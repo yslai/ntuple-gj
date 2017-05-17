@@ -1,0 +1,17 @@
+*.d
+*.eps
+*.pdf
+*.png
+*.pyc
+*.so
+*~
+000*.xml
+AutoDict_*_.cxx
+ROOTMERGE-*.root
+analysis.jdl
+analysis.root
+analysis.sh
+analysis_validation.sh
+myAnalysis.C
+outputs_valid
+wn.xml
