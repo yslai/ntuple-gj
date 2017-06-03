@@ -1,12 +1,13 @@
 #!/usr/bin/gawk {system("root -b -q " FILENAME); exit;}
 // -*- mode: c++; -*-
 
-void runNTGJ(const char *run_mode = "full")
+void runNTGJ(const char *run_mode = "test")
 {
 	gROOT->ProcessLine(".include $ROOTSYS/include");
 	gROOT->ProcessLine(".include $ALICE_ROOT/include");
 	gROOT->ProcessLine(".include $ALICE_ROOT/../../fastjet/"
 					   "v3.2.1_1.024-alice1-1/include");
+	gROOT->ProcessLine(".include $ALICE_PHYSICS/include");
 
 	// Load base root libraries
 	gSystem->Load("libTree");
@@ -20,6 +21,7 @@ void runNTGJ(const char *run_mode = "full")
 	// Load analysis framework libraries
 	gSystem->Load("libANALYSIS");
 	gSystem->Load("libANALYSISalice");
+
 	gSystem->Load("libEMCALUtils");
 	gSystem->Load("libPWGPPEMCAL");
 
@@ -50,7 +52,8 @@ void runNTGJ(const char *run_mode = "full")
 	plugin->AddExternalPackage("fastjet::v3.2.1_1.024-alice1-3");
 	plugin->AddIncludePath("-I. -I$ALICE_ROOT/include "
 						   "-I$ALICE_ROOT/../../fastjet/"
-						   "v3.2.1_1.024-alice1-3/include");
+						   "v3.2.1_1.024-alice1-3/include "
+						   "-I$ALICE_PHYSICS/include");
 
 	plugin->SetAdditionalLibs(
 		"AliAnalysisTaskNTGJ.h "
@@ -76,15 +79,12 @@ void runNTGJ(const char *run_mode = "full")
 		-1
 	};
 
-	const int run_number_lhc16h3_bis[] = {
+	const int run_number_lhc16c2[] = {
  	
-		244340,
-
+		180720,
 #if 0
-		244343, 244351, 244355, 244359, 244364, 244377, 244411,
-		244416, 244418, 244421, 244453, 244456, 244480, 244481,
-		244482, 244483, 244484, 244531, 244540, 244542, 244617,
-		244618, 244619, 244626, 244627, 244628,
+		182692, 184215, 185687, 187488, 189616, 190393, 192073,
+		192349, 193051
 #endif
 
 		-1
@@ -92,14 +92,14 @@ void runNTGJ(const char *run_mode = "full")
 
 	const int *run_number;
 
-	// plugin->SetGridDataDir("/alice/sim/2016/LHC16h3_bis/1");
-	// plugin->SetDataPattern("*/*/AliESDs.root");
-	// run_number = run_number_lhc16h3_bis;
+	plugin->SetGridDataDir("/alice/sim/2016/LHC16c2/1");
+	plugin->SetDataPattern("*/*/AliESDs.root");
+	run_number = run_number_lhc16c2;
 
-	plugin->SetGridDataDir("/alice/data/2015/LHC15o");
-	plugin->SetDataPattern("/pass1/*/AliESDs.root");
-	plugin->SetRunPrefix("000");
-	run_number = run_number_lhc15o;
+	// plugin->SetGridDataDir("/alice/data/2015/LHC15o");
+	// plugin->SetDataPattern("/pass1/*/AliESDs.root");
+	// plugin->SetRunPrefix("000");
+	// run_number = run_number_lhc15o;
 
 	for (const int *r = run_number; *r != -1; r++) {
 		plugin->AddRunNumber(*r);
