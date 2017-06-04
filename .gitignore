@@ -14,4 +14,6 @@ analysis.sh
 analysis_validation.sh
 myAnalysis.C
 outputs_valid
+stderr
+stdout
 wn.xml
