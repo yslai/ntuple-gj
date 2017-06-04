@@ -12,6 +12,7 @@
 #include <AliEMCALGeometry.h>
 #include <AliEMCALRecoUtils.h>
 #include <AliAnalysisTaskSE.h>
+#include <AliAnalysisAlien.h>
 
 #define EMCAL_NCELL 17664
 
@@ -25,80 +26,86 @@ private:
 	TString _emcal_geometry_name; //!
 	TTree *_tree_event; //!
 
-#define MEMBER_BRANCH												\
-	BRANCH(run_number, I)											\
-	BRANCH(mixed_event, B)											\
-	BRANCH_ARRAY(multiplicity_v0, 64, F)							\
-	BRANCH(centrality_v0m, F)										\
-	BRANCH_ARRAY(centrality, 9, F)									\
-	BRANCH_ARRAY(event_plane_psi_v0, 3, F)							\
-	BRANCH_ARRAY2(event_plane_q_v0, 3, 2, D)						\
-	BRANCH(has_misalignment_matrix, O)								\
-	BRANCH(eg_ntrial, I)											\
-	BRANCH(eg_perp_hat, F)											\
-	BRANCH(eg_cross_section, F)										\
-	BRANCH_ARRAY(primary_vertex, 3, D)								\
-	BRANCH(ncluster, l)												\
-	BRANCH_ARRAY(cluster_e, ncluster, F)							\
-	BRANCH_ARRAY(cluster_pt, ncluster, F)							\
-	BRANCH_ARRAY(cluster_eta, ncluster, F)							\
-	BRANCH_ARRAY(cluster_phi, ncluster, F)							\
-	BRANCH_ARRAY(cluster_m02, ncluster, F)							\
-	BRANCH_ARRAY(cluster_m20, ncluster, F)							\
-	BRANCH_ARRAY(cluster_tof, ncluster, F)							\
-	BRANCH_ARRAY(cluster_ncell, ncluster, I)						\
-	BRANCH(ntrack, l)												\
-	BRANCH_ARRAY(track_e, ntrack, F)								\
-	BRANCH_ARRAY(track_pt, ntrack, F)								\
-	BRANCH_ARRAY(track_eta, ntrack, F)								\
-	BRANCH_ARRAY(track_phi, ntrack, F)								\
-	BRANCH_ARRAY(track_quality, ntrack, b)							\
-	BRANCH_ARRAY(track_tpc_dedx, ntrack, F)							\
-	BRANCH_ARRAY(track_tpc_length_active_zone, ntrack, F)			\
-	BRANCH_ARRAY(track_tpc_xrow, ntrack, b)							\
-	BRANCH_ARRAY(track_tpc_ncluster, ntrack, b)						\
-	BRANCH_ARRAY(track_tpc_ncluster_dedx, ntrack, b)				\
-	BRANCH_ARRAY(track_tpc_ncluster_findable, ntrack, b)			\
-	BRANCH_ARRAY(track_its_ncluster, ntrack, b)						\
-	BRANCH_ARRAY(track_dca_xy, ntrack, F)							\
-	BRANCH_ARRAY(track_dca_z, ntrack, F)							\
-	BRANCH(nmc_truth, l)											\
-	BRANCH_ARRAY(mc_truth_e, nmc_truth, F)							\
-	BRANCH_ARRAY(mc_truth_pt, nmc_truth, F)							\
-	BRANCH_ARRAY(mc_truth_eta, nmc_truth, F)						\
-	BRANCH_ARRAY(mc_truth_phi, nmc_truth, F)						\
-	BRANCH_ARRAY(mc_truth_label, nmc_truth, I)						\
-	BRANCH_ARRAY(mc_truth_pdg_id, nmc_truth, I)						\
-	BRANCH_ARRAY(mc_truth_status, nmc_truth, I)						\
-	BRANCH(njet, l)													\
-	BRANCH_ARRAY(jet_e_raw, njet, F)								\
-	BRANCH_ARRAY(jet_e, njet, F)									\
-	BRANCH_ARRAY(jet_e_charged, njet, F)							\
-	BRANCH_ARRAY(jet_pt_raw, njet, F)								\
-	BRANCH_ARRAY(jet_pt, njet, F)									\
-	BRANCH_ARRAY(jet_pt_charged, njet, F)							\
-	BRANCH_ARRAY(jet_eta, njet, F)									\
-	BRANCH_ARRAY(jet_phi, njet, F)									\
-	BRANCH_ARRAY(jet_area, njet, F)									\
-	BRANCH_ARRAY(jet_emf_raw, njet, F)								\
-	BRANCH_ARRAY(jet_emf, njet, F)									\
-	BRANCH_ARRAY(jet_e_truth, njet, F)								\
-	BRANCH_ARRAY(jet_pt_truth, njet, F)								\
-	BRANCH_ARRAY(jet_eta_truth, njet, F)							\
-	BRANCH_ARRAY(jet_phi_truth, njet, F)							\
-	BRANCH_ARRAY(jet_area_truth, njet, F)							\
-	BRANCH_ARRAY(jet_emf_truth, njet, F)							\
-	BRANCH_ARRAY2(jet_truth_index_z_truth, njet, 2, I)				\
-	BRANCH_ARRAY2(jet_truth_z_truth, njet, 2, F)					\
-	BRANCH_ARRAY2(jet_truth_index_z_reco, njet, 2, I)				\
-	BRANCH_ARRAY2(jet_truth_z_reco, njet, 2, F)						\
-	BRANCH(njet_truth, l)											\
-	BRANCH_ARRAY(jet_truth_e, njet_truth, F)						\
-	BRANCH_ARRAY(jet_truth_pt, njet_truth, F)						\
-	BRANCH_ARRAY(jet_truth_eta, njet_truth, F)						\
-	BRANCH_ARRAY(jet_truth_phi, njet_truth, F)						\
-	BRANCH_ARRAY(jet_truth_area, njet_truth, F)						\
-	BRANCH_ARRAY(jet_truth_emf, njet_truth, F)						\
+#define MEMBER_BRANCH										\
+	BRANCH_STR(id_git)										\
+	BRANCH_STR(version_aliroot)								\
+	BRANCH_STR(version_aliphysics)							\
+	BRANCH_STR(version_jec)									\
+	BRANCH_STR(grid_data_dir)								\
+	BRANCH_STR(grid_data_pattern)							\
+	BRANCH(run_number, I)									\
+	BRANCH(mixed_event, B)									\
+	BRANCH_ARRAY(multiplicity_v0, 64, F)					\
+	BRANCH(centrality_v0m, F)								\
+	BRANCH_ARRAY(centrality, 9, F)							\
+	BRANCH_ARRAY(event_plane_psi_v0, 3, F)					\
+	BRANCH_ARRAY2(event_plane_q_v0, 3, 2, D)				\
+	BRANCH(has_misalignment_matrix, O)						\
+	BRANCH(eg_ntrial, I)									\
+	BRANCH(eg_perp_hat, F)									\
+	BRANCH(eg_cross_section, F)								\
+	BRANCH_ARRAY(primary_vertex, 3, D)						\
+	BRANCH(ncluster, l)										\
+	BRANCH_ARRAY(cluster_e, ncluster, F)					\
+	BRANCH_ARRAY(cluster_pt, ncluster, F)					\
+	BRANCH_ARRAY(cluster_eta, ncluster, F)					\
+	BRANCH_ARRAY(cluster_phi, ncluster, F)					\
+	BRANCH_ARRAY(cluster_m02, ncluster, F)					\
+	BRANCH_ARRAY(cluster_m20, ncluster, F)					\
+	BRANCH_ARRAY(cluster_tof, ncluster, F)					\
+	BRANCH_ARRAY(cluster_ncell, ncluster, I)				\
+	BRANCH(ntrack, l)										\
+	BRANCH_ARRAY(track_e, ntrack, F)						\
+	BRANCH_ARRAY(track_pt, ntrack, F)						\
+	BRANCH_ARRAY(track_eta, ntrack, F)						\
+	BRANCH_ARRAY(track_phi, ntrack, F)						\
+	BRANCH_ARRAY(track_quality, ntrack, b)					\
+	BRANCH_ARRAY(track_tpc_dedx, ntrack, F)					\
+	BRANCH_ARRAY(track_tpc_length_active_zone, ntrack, F)	\
+	BRANCH_ARRAY(track_tpc_xrow, ntrack, b)					\
+	BRANCH_ARRAY(track_tpc_ncluster, ntrack, b)				\
+	BRANCH_ARRAY(track_tpc_ncluster_dedx, ntrack, b)		\
+	BRANCH_ARRAY(track_tpc_ncluster_findable, ntrack, b)	\
+	BRANCH_ARRAY(track_its_ncluster, ntrack, b)				\
+	BRANCH_ARRAY(track_dca_xy, ntrack, F)					\
+	BRANCH_ARRAY(track_dca_z, ntrack, F)					\
+	BRANCH(nmc_truth, l)									\
+	BRANCH_ARRAY(mc_truth_e, nmc_truth, F)					\
+	BRANCH_ARRAY(mc_truth_pt, nmc_truth, F)					\
+	BRANCH_ARRAY(mc_truth_eta, nmc_truth, F)				\
+	BRANCH_ARRAY(mc_truth_phi, nmc_truth, F)				\
+	BRANCH_ARRAY(mc_truth_label, nmc_truth, I)				\
+	BRANCH_ARRAY(mc_truth_pdg_id, nmc_truth, I)				\
+	BRANCH_ARRAY(mc_truth_status, nmc_truth, I)				\
+	BRANCH(njet, l)											\
+	BRANCH_ARRAY(jet_e_raw, njet, F)						\
+	BRANCH_ARRAY(jet_e, njet, F)							\
+	BRANCH_ARRAY(jet_e_charged, njet, F)					\
+	BRANCH_ARRAY(jet_pt_raw, njet, F)						\
+	BRANCH_ARRAY(jet_pt, njet, F)							\
+	BRANCH_ARRAY(jet_pt_charged, njet, F)					\
+	BRANCH_ARRAY(jet_eta, njet, F)							\
+	BRANCH_ARRAY(jet_phi, njet, F)							\
+	BRANCH_ARRAY(jet_area, njet, F)							\
+	BRANCH_ARRAY(jet_emf_raw, njet, F)						\
+	BRANCH_ARRAY(jet_emf, njet, F)							\
+	BRANCH_ARRAY(jet_e_truth, njet, F)						\
+	BRANCH_ARRAY(jet_pt_truth, njet, F)						\
+	BRANCH_ARRAY(jet_eta_truth, njet, F)					\
+	BRANCH_ARRAY(jet_phi_truth, njet, F)					\
+	BRANCH_ARRAY(jet_area_truth, njet, F)					\
+	BRANCH_ARRAY(jet_emf_truth, njet, F)					\
+	BRANCH_ARRAY2(jet_truth_index_z_truth, njet, 2, I)		\
+	BRANCH_ARRAY2(jet_truth_z_truth, njet, 2, F)			\
+	BRANCH_ARRAY2(jet_truth_index_z_reco, njet, 2, I)		\
+	BRANCH_ARRAY2(jet_truth_z_reco, njet, 2, F)				\
+	BRANCH(njet_truth, l)									\
+	BRANCH_ARRAY(jet_truth_e, njet_truth, F)				\
+	BRANCH_ARRAY(jet_truth_pt, njet_truth, F)				\
+	BRANCH_ARRAY(jet_truth_eta, njet_truth, F)				\
+	BRANCH_ARRAY(jet_truth_phi, njet_truth, F)				\
+	BRANCH_ARRAY(jet_truth_area, njet_truth, F)				\
+	BRANCH_ARRAY(jet_truth_emf, njet_truth, F)				\
 
 
 #define B Char_t
@@ -124,15 +131,19 @@ private:
 	t _branch_ ## b [(d)];
 #define BRANCH_ARRAY2(b, d, e, t)				\
 	t _branch_ ## b [(d)][(e)];
+#define BRANCH_STR(b)							\
+	char _branch_ ## b[BUFSIZ];
 
 	MEMBER_BRANCH;
 
 #undef BRANCH
 #undef BRANCH_ARRAY
 #undef BRANCH_ARRAY2
+#undef BRANCH_STR
 #undef nmc_truth
 #undef njet
 #undef njet_truth
+#undef C
 #undef B
 #undef b
 #undef S
@@ -155,7 +166,14 @@ private:
 	double _cluster_trigger_min_e; //!
 	double _jet_min_pt_raw; //!
 
-	std::vector<bool> _emcal_mask;
+	std::vector<bool> _emcal_mask; //!
+
+	AliAnalysisAlien *_alien_plugin; //!
+	bool _metadata_filled; //!
+	char _version_aliroot[BUFSIZ]; //!
+	char _version_aliphysics[BUFSIZ]; //!
+	char _grid_data_dir[BUFSIZ]; //!
+	char _grid_data_pattern[BUFSIZ]; //!
 
 	TRandom3 _prng; //!
 public:
@@ -168,6 +186,10 @@ public:
 	virtual void UserCreateOutputObjects(void);
 	virtual void UserExec(Option_t *);
 	AliEMCALRecoUtils *GetEMCALRecoUtils(void);
+	void SetAliROOTVersion(const char *version);
+	void SetAliPhysicsVersion(const char *version);
+	void SetGridDataDir(const char *dir);
+	void SetGridDataPattern(const char *pattern);
 	ClassDef(AliAnalysisTaskNTGJ, 1);
 };
 

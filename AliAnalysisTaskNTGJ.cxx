@@ -5,8 +5,11 @@
 #include <TCollectionProxyInfo.h>
 #pragma GCC diagnostic pop
 
-#include <TGeoManager.h>
 #include <TFile.h>
+#include <TGeoManager.h>
+#include <TGeoGlobalMagField.h>
+#include <TGridJDL.h>
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Woverloaded-virtual"
 #include <AliVEvent.h>
@@ -29,7 +32,6 @@
 #include <AliMultSelection.h>
 #include <AliEventplane.h>
 
-#include <TGeoGlobalMagField.h>
 #include <AliMagF.h>
 
 #include "AliAnalysisTaskNTGJ.h"
@@ -196,6 +198,30 @@ namespace {
 
 }
 
+// FIXME: This needs to be moved to somewhere else, later on
+
+namespace {
+
+	class alice_jec_t {
+	protected:
+		const char *_version;
+	public:
+		alice_jec_t(void)
+			: _version("lhc16c2-2017-06-pre1")
+		{
+		}
+		double jec_p(TLorentzVector p) const
+		{
+			return 1;
+		}
+		const char *version(void) const
+		{
+			return _version;
+		}
+	};
+
+}
+
 ClassImp(AliAnalysisTaskNTGJ);
 
 #define EMCAL_GEOMETRY_NAME "EMCAL_COMPLETE12SMV1_DCAL_8SM"
@@ -215,6 +241,7 @@ ClassImp(AliAnalysisTaskNTGJ);
     _branch_ ## b((t)),
 #define BRANCH_ARRAY(b, d, t)
 #define BRANCH_ARRAY2(b, d, e, t)
+#define BRANCH_STR(b)
 
 // FIXME: I need to create an interface for:
 // _cluster_trigger_min_e(6),
@@ -232,6 +259,8 @@ ClassImp(AliAnalysisTaskNTGJ);
     _cluster_trigger_min_e(-INFINITY),          \
     _jet_min_pt_raw(-INFINITY),                 \
     _emcal_mask(std::vector<bool>()),           \
+    _alien_plugin(NULL),                        \
+    _metadata_filled(false),                    \
     _prng()
 
 AliAnalysisTaskNTGJ::AliAnalysisTaskNTGJ(void)
@@ -255,6 +284,7 @@ AliAnalysisTaskNTGJ::AliAnalysisTaskNTGJ(
 #undef BRANCH
 #undef BRANCH_ARRAY
 #undef BRANCH_ARRAY2
+#undef BRANCH_STR
 #undef B
 #undef b
 #undef S
@@ -299,12 +329,16 @@ void AliAnalysisTaskNTGJ::UserCreateOutputObjects(void)
 #define BRANCH_ARRAY2(b, d, e, t)                       \
     _tree_event->Branch(                                \
         #b, _branch_ ## b, #b "[" #d "][" #e "]/" #t);
+#define BRANCH_STR(b)                           \
+    _tree_event->Branch(                        \
+        #b, _branch_ ## b, #b "/C");
 
     MEMBER_BRANCH;
 
 #undef BRANCH
 #undef BRANCH_ARRAY
 #undef BRANCH_ARRAY2
+#undef BRANCH_STR
 
     /////////////////////////////////////////////////////////////////
 
@@ -328,7 +362,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
     if (_emcal_mask.size() != _ncell) {
         _emcal_mask.resize(_ncell);
-#if 1 // Keep = 1 to have actual EMCAL mask (and not all channels on)
+#if 1 // Keep = 1 to for an actual EMCAL mask (and not all channels
+	  // turned on)
         for (unsigned int i = 0; i < _ncell; i++) {
             _emcal_mask[i] = inside_edge(i, 1);
         }
@@ -349,6 +384,30 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         }
 #endif
     }
+
+	alice_jec_t jec;
+
+	if (!_metadata_filled) {
+		strncpy(_branch_id_git, "$Id$", BUFSIZ);
+		_branch_id_git[BUFSIZ - 1] = '\0';
+		strcpy(_branch_version_aliroot, _version_aliroot);
+		strcpy(_branch_version_aliphysics, _version_aliphysics);
+		strncpy(_branch_version_jec, jec.version(), BUFSIZ);
+		_branch_version_jec[BUFSIZ - 1] = '\0';
+		strcpy(_branch_grid_data_dir, _grid_data_dir);
+		strcpy(_branch_grid_data_pattern, _grid_data_pattern);
+		_metadata_filled = true;
+	}
+	else {
+		// To make sure no space is wasted, set metadata in all
+		// subsequent events to empty
+		_branch_id_git[0] = '\0';
+		_branch_version_aliroot[0] = '\0';
+		_branch_version_aliphysics[0] = '\0';
+		_branch_version_jec[0] = '\0';
+		_branch_grid_data_dir[0] = '\0';
+		_branch_grid_data_pattern[0] = '\0';
+	}
 
     _branch_run_number = event->GetRunNumber();
     _branch_has_misalignment_matrix = false;
@@ -1074,4 +1133,28 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 AliEMCALRecoUtils *AliAnalysisTaskNTGJ::GetEMCALRecoUtils(void)
 {
     return _reco_util;
+}
+
+void AliAnalysisTaskNTGJ::SetAliROOTVersion(const char *version)
+{
+	strncpy(_branch_version_aliroot, version, BUFSIZ);
+	_version_aliroot[BUFSIZ - 1] = '\0';
+}
+
+void AliAnalysisTaskNTGJ::SetAliPhysicsVersion(const char *version)
+{
+	strncpy(_branch_version_aliroot, version, BUFSIZ);
+	_version_aliroot[BUFSIZ - 1] = '\0';
+}
+
+void AliAnalysisTaskNTGJ::SetGridDataDir(const char *dir)
+{
+	strncpy(_branch_grid_data_dir, dir, BUFSIZ);
+	_grid_data_dir[BUFSIZ - 1] = '\0';
+}
+
+void AliAnalysisTaskNTGJ::SetGridDataPattern(const char *pattern)
+{
+	strncpy(_branch_grid_data_pattern, pattern, BUFSIZ);
+	_grid_data_pattern[BUFSIZ - 1] = '\0';
 }

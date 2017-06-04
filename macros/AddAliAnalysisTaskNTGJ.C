@@ -41,5 +41,14 @@ AddAliAnalysisTaskNTGJ(TString name = "AliAnalysisTaskNTGJ")
 											kOutputContainer,
 											filename.Data()));
 
+	AliAnalysisAlien *plugin = mgr->GetGridHandler();
+
+	if (plugin != NULL) {
+		task->SetAliROOTVersion(plugin->GetAliROOTVersion());
+		task->SetAliPhysicsVersion(plugin->GetAliPhysicsVersion());
+		task->SetGridDataDir(plugin->GetGridDataDir());
+		task->SetGridDataPattern(plugin->GetDataPattern());
+	}
+
 	return task;
 }
