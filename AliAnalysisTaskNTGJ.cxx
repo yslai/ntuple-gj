@@ -242,6 +242,7 @@ ClassImp(AliAnalysisTaskNTGJ);
 #define BRANCH_ARRAY(b, d, t)
 #define BRANCH_ARRAY2(b, d, e, t)
 #define BRANCH_STR(b)
+#define BRANCH_STR_ARRAY(b, d)
 
 // FIXME: I need to create an interface for:
 // _cluster_trigger_min_e(6),
@@ -285,6 +286,7 @@ AliAnalysisTaskNTGJ::AliAnalysisTaskNTGJ(
 #undef BRANCH_ARRAY
 #undef BRANCH_ARRAY2
 #undef BRANCH_STR
+#undef BRANCH_STR_ARRAY
 #undef B
 #undef b
 #undef S
@@ -390,12 +392,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 	if (!_metadata_filled) {
 		strncpy(_branch_id_git, "$Id$", BUFSIZ);
 		_branch_id_git[BUFSIZ - 1] = '\0';
-		strcpy(_branch_version_aliroot, _version_aliroot);
-		strcpy(_branch_version_aliphysics, _version_aliphysics);
 		strncpy(_branch_version_jec, jec.version(), BUFSIZ);
 		_branch_version_jec[BUFSIZ - 1] = '\0';
-		strcpy(_branch_grid_data_dir, _grid_data_dir);
-		strcpy(_branch_grid_data_pattern, _grid_data_pattern);
 		_metadata_filled = true;
 	}
 	else {
@@ -1137,24 +1135,24 @@ AliEMCALRecoUtils *AliAnalysisTaskNTGJ::GetEMCALRecoUtils(void)
 
 void AliAnalysisTaskNTGJ::SetAliROOTVersion(const char *version)
 {
-	strncpy(_branch_version_aliroot, version, BUFSIZ);
-	_version_aliroot[BUFSIZ - 1] = '\0';
+	memset(_branch_version_aliroot, 0, BUFSIZ);
+	strncpy(_branch_version_aliroot, version, BUFSIZ - 1);
 }
 
 void AliAnalysisTaskNTGJ::SetAliPhysicsVersion(const char *version)
 {
-	strncpy(_branch_version_aliroot, version, BUFSIZ);
-	_version_aliroot[BUFSIZ - 1] = '\0';
+	memset(_branch_version_aliphysics, 0, BUFSIZ);
+	strncpy(_branch_version_aliphysics, version, BUFSIZ - 1);
 }
 
 void AliAnalysisTaskNTGJ::SetGridDataDir(const char *dir)
 {
-	strncpy(_branch_grid_data_dir, dir, BUFSIZ);
-	_grid_data_dir[BUFSIZ - 1] = '\0';
+	memset(_branch_grid_data_dir, 0, BUFSIZ);
+	strncpy(_branch_grid_data_dir, dir, BUFSIZ - 1);
 }
 
 void AliAnalysisTaskNTGJ::SetGridDataPattern(const char *pattern)
 {
-	strncpy(_branch_grid_data_pattern, pattern, BUFSIZ);
-	_grid_data_pattern[BUFSIZ - 1] = '\0';
+	memset(_branch_grid_data_pattern, 0, BUFSIZ);
+	strncpy(_branch_grid_data_pattern, pattern, BUFSIZ - 1);
 }

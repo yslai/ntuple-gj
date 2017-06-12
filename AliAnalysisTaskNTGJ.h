@@ -16,6 +16,7 @@
 
 #define EMCAL_NCELL 17664
 
+#define NTRIGGER_CLASS_MAX 64
 #define NCLUSTER_MAX 131072
 #define NTRACK_MAX 131072
 #define NMC_TRUTH_MAX 131072
@@ -26,6 +27,10 @@ private:
 	TString _emcal_geometry_name; //!
 	TTree *_tree_event; //!
 
+	// BRANCH(ntrigger_class, b)								\
+	// BRANCH_STR_ARRAY(trigger_class, ntrigger_class)			\
+
+
 #define MEMBER_BRANCH										\
 	BRANCH_STR(id_git)										\
 	BRANCH_STR(version_aliroot)								\
@@ -34,6 +39,7 @@ private:
 	BRANCH_STR(grid_data_dir)								\
 	BRANCH_STR(grid_data_pattern)							\
 	BRANCH(run_number, I)									\
+	BRANCH(trigger_mask, l)									\
 	BRANCH(mixed_event, B)									\
 	BRANCH_ARRAY(multiplicity_v0, 64, F)					\
 	BRANCH(centrality_v0m, F)								\
@@ -54,6 +60,7 @@ private:
 	BRANCH_ARRAY(cluster_m20, ncluster, F)					\
 	BRANCH_ARRAY(cluster_tof, ncluster, F)					\
 	BRANCH_ARRAY(cluster_ncell, ncluster, I)				\
+	BRANCH_ARRAY(cluster_cell_id_max, ncluster, s)			\
 	BRANCH(ntrack, l)										\
 	BRANCH_ARRAY(track_e, ntrack, F)						\
 	BRANCH_ARRAY(track_pt, ntrack, F)						\
@@ -69,13 +76,14 @@ private:
 	BRANCH_ARRAY(track_its_ncluster, ntrack, b)				\
 	BRANCH_ARRAY(track_dca_xy, ntrack, F)					\
 	BRANCH_ARRAY(track_dca_z, ntrack, F)					\
+	BRANCH_ARRAY(track_mc_truth_index, ntrack, s)			\
 	BRANCH(nmc_truth, l)									\
 	BRANCH_ARRAY(mc_truth_e, nmc_truth, F)					\
 	BRANCH_ARRAY(mc_truth_pt, nmc_truth, F)					\
 	BRANCH_ARRAY(mc_truth_eta, nmc_truth, F)				\
 	BRANCH_ARRAY(mc_truth_phi, nmc_truth, F)				\
 	BRANCH_ARRAY(mc_truth_label, nmc_truth, I)				\
-	BRANCH_ARRAY(mc_truth_pdg_id, nmc_truth, I)				\
+	BRANCH_ARRAY(mc_truth_pdg_code, nmc_truth, I)			\
 	BRANCH_ARRAY(mc_truth_status, nmc_truth, I)				\
 	BRANCH(njet, l)											\
 	BRANCH_ARRAY(jet_e_raw, njet, F)						\
@@ -84,6 +92,7 @@ private:
 	BRANCH_ARRAY(jet_pt_raw, njet, F)						\
 	BRANCH_ARRAY(jet_pt, njet, F)							\
 	BRANCH_ARRAY(jet_pt_charged, njet, F)					\
+	BRANCH_ARRAY(jet_eta_raw, njet, F)						\
 	BRANCH_ARRAY(jet_eta, njet, F)							\
 	BRANCH_ARRAY(jet_phi, njet, F)							\
 	BRANCH_ARRAY(jet_area, njet, F)							\
@@ -108,6 +117,15 @@ private:
 	BRANCH_ARRAY(jet_truth_emf, njet_truth, F)				\
 
 
+#if 0
+	BRANCH_ARRAY(cell_amplitude, 17664, F)					\
+	BRANCH_ARRAY(cell_time, 17664, F)						\
+	BRANCH_ARRAY(cell_mc_truth_index, 17664, s)				\
+	BRANCH_ARRAY(cell_efrac, 17664, b)						\
+
+#endif
+
+
 #define B Char_t
 #define b UChar_t
 #define S Short_t
@@ -119,6 +137,7 @@ private:
 #define L Long_t
 #define l ULong_t
 #define O Bool_t
+#define ntrigger_class NTRIGGER_CLASS_MAX
 #define ncluster NCLUSTER_MAX
 #define ntrack NTRACK_MAX
 #define nmc_truth NMC_TRUTH_MAX
@@ -132,7 +151,9 @@ private:
 #define BRANCH_ARRAY2(b, d, e, t)				\
 	t _branch_ ## b [(d)][(e)];
 #define BRANCH_STR(b)							\
-	char _branch_ ## b[BUFSIZ];
+	char _branch_ ## b [BUFSIZ];
+#define BRANCH_STR_ARRAY(b, d)					\
+	char _branch_ ## b [(d)][BUFSIZ];
 
 	MEMBER_BRANCH;
 
@@ -140,6 +161,7 @@ private:
 #undef BRANCH_ARRAY
 #undef BRANCH_ARRAY2
 #undef BRANCH_STR
+#undef BRANCH_STR_ARRAY
 #undef nmc_truth
 #undef njet
 #undef njet_truth
@@ -170,10 +192,6 @@ private:
 
 	AliAnalysisAlien *_alien_plugin; //!
 	bool _metadata_filled; //!
-	char _version_aliroot[BUFSIZ]; //!
-	char _version_aliphysics[BUFSIZ]; //!
-	char _grid_data_dir[BUFSIZ]; //!
-	char _grid_data_pattern[BUFSIZ]; //!
 
 	TRandom3 _prng; //!
 public:
