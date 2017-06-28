@@ -1,3 +1,5 @@
+#include <climits>
+
 // This is purely to suppress warning inside ROOT once instanciating
 // std::vector<bool>
 #pragma GCC diagnostic push
@@ -5,10 +7,10 @@
 #include <TCollectionProxyInfo.h>
 #pragma GCC diagnostic pop
 
+#include <Compression.h>
 #include <TFile.h>
 #include <TGeoManager.h>
 #include <TGeoGlobalMagField.h>
-#include <TGridJDL.h>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Woverloaded-virtual"
@@ -210,9 +212,27 @@ namespace {
 			: _version("lhc16c2-2017-06-pre1")
 		{
 		}
-		double jec_p(TLorentzVector p) const
+		TLorentzVector jec_p(TLorentzVector p) const
 		{
-			return 1;
+			const double pt = p.Pt();
+
+			// Dummy value
+			const double pt_calib = 2.0 * pt;
+
+			const double eta = p.Eta();
+
+			// Mean value for jet pT raw within 2.5-18 GeV
+			static const double par_eta[] = { 0.015, 7.7, 0.65 };
+
+			const double eta_calib = par_eta[0] *
+				(TMath::Erf(par_eta[1] * (eta - par_eta[2])) +
+				 TMath::Erf(par_eta[1] * (eta + par_eta[2])));
+
+			TLorentzVector calib;
+
+			calib.SetPtEtaPhiM(pt_calib, eta_calib, p.Phi(), p.M());
+
+			return calib;
 		}
 		const char *version(void) const
 		{
@@ -316,11 +336,16 @@ AliAnalysisTaskNTGJ::~AliAnalysisTaskNTGJ(void)
 
 void AliAnalysisTaskNTGJ::UserCreateOutputObjects(void)
 {
+	TFile *file = OpenFile(1);
+
+	if (file != NULL) {
+		file->SetCompressionSettings(ROOT::CompressionSettings(
+			ROOT::kZLIB, 9));
+	}
+
     /////////////////////////////////////////////////////////////////
 
     _tree_event = new TTree("_tree_event", "");
-    // Force in-memory
-    _tree_event->SetDirectory(0);
 
 #define BRANCH(b, t)                    \
     _tree_event->Branch(                \
@@ -334,6 +359,9 @@ void AliAnalysisTaskNTGJ::UserCreateOutputObjects(void)
 #define BRANCH_STR(b)                           \
     _tree_event->Branch(                        \
         #b, _branch_ ## b, #b "/C");
+#define BRANCH_STR_ARRAY(b, d)					\
+    _tree_event->Branch(                        \
+        #b, _branch_ ## b, #b "[" #d "]/C");
 
     MEMBER_BRANCH;
 
@@ -341,6 +369,7 @@ void AliAnalysisTaskNTGJ::UserCreateOutputObjects(void)
 #undef BRANCH_ARRAY
 #undef BRANCH_ARRAY2
 #undef BRANCH_STR
+#undef BRANCH_STR_ARRAY
 
     /////////////////////////////////////////////////////////////////
 
@@ -362,11 +391,11 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     AliAODEvent *aod_event = dynamic_cast<AliAODEvent *>(event);
 #endif
 
-    if (_emcal_mask.size() != _ncell) {
-        _emcal_mask.resize(_ncell);
+    if (_emcal_mask.size() != EMCAL_NCELL) {
+        _emcal_mask.resize(EMCAL_NCELL);
 #if 1 // Keep = 1 to for an actual EMCAL mask (and not all channels
 	  // turned on)
-        for (unsigned int i = 0; i < _ncell; i++) {
+        for (unsigned int i = 0; i < EMCAL_NCELL; i++) {
             _emcal_mask[i] = inside_edge(i, 1);
         }
 #include "bad_channel.h"
@@ -381,7 +410,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             }
         }
 #else
-        for (unsigned int i = 0; i < _ncell; i++) {
+        for (unsigned int i = 0; i < EMCAL_NCELL; i++) {
             _emcal_mask[i] = true;
         }
 #endif
@@ -394,6 +423,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 		_branch_id_git[BUFSIZ - 1] = '\0';
 		strncpy(_branch_version_jec, jec.version(), BUFSIZ);
 		_branch_version_jec[BUFSIZ - 1] = '\0';
+
+		fprintf(stdout, "%s:%d: %d %d\n", __FILE__, __LINE__, esd_event->GetBeamParticle(0), esd_event->GetBeamParticle(1));
+
 		_metadata_filled = true;
 	}
 	else {
@@ -611,15 +643,15 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         primary_vertex->GetXYZ(_branch_primary_vertex);
     }
 
-    TRefArray *calo_cluster = new TRefArray();
+    TRefArray calo_cluster;
 
-    event->GetEMCALClusters(calo_cluster);
+    event->GetEMCALClusters(&calo_cluster);
 
     double cluster_e_max = -INFINITY;
 
-    for (Int_t i = 0; i < calo_cluster->GetEntriesFast(); i++) {
+    for (Int_t i = 0; i < calo_cluster.GetEntriesFast(); i++) {
         AliVCluster *c =
-            static_cast<AliVCluster *>(calo_cluster->At(i));
+            static_cast<AliVCluster *>(calo_cluster.At(i));
 
         if (!(c->GetNCells() > 1) || cell_masked(c, _emcal_mask)) {
             continue;
@@ -692,21 +724,22 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                          (mode_inner_wall, dead_zone_width_cm,
                           max_z_cm, event->GetMagneticField()));
             }
-
             _branch_track_tpc_xrow[_branch_ntrack] =
-                std::min(255.0F, std::max(0.0F, t->GetTPCCrossedRows()));
+                std::min(static_cast<Float_t>(UCHAR_MAX),
+						 std::max(0.0F, t->GetTPCCrossedRows()));
             _branch_track_tpc_ncluster[_branch_ntrack] =
-                std::min(255, std::max(0, t->GetNumberOfTPCClusters()));
-
-            static const UShort_t us0 = 0;
-            static const UShort_t us255 = 255;
-
+                std::min(UCHAR_MAX,
+						 std::max(0, t->GetNumberOfTPCClusters()));
             _branch_track_tpc_ncluster_dedx[_branch_ntrack] =
-                std::min(us255, std::max(us0, t->GetTPCsignalN()));
+                std::min(static_cast<UShort_t>(UCHAR_MAX),
+						 std::max(static_cast<UShort_t>(0),
+								  t->GetTPCsignalN()));
             _branch_track_its_ncluster[_branch_ntrack] =
                 t->GetNumberOfITSClusters();
             _branch_track_tpc_ncluster_findable[_branch_ntrack] =
-                std::min(us255, std::max(us0, t->GetTPCNclsF()));
+                std::min(static_cast<UShort_t>(UCHAR_MAX),
+						 std::max(static_cast<UShort_t>(0),
+								  t->GetTPCNclsF()));
 
             Double_t dz[2] = { NAN, NAN };
             Double_t cov[3] = { NAN, NAN, NAN };
@@ -717,6 +750,15 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 _branch_track_dca_xy[_branch_ntrack] = half(dz[0]);
                 _branch_track_dca_z[_branch_ntrack] = half(dz[1]);
             }
+
+#if 0
+			const Int_t mc_label = t->GetLabel();
+
+			_branch_track_mc_truth_index[_branch_ntrack] =
+				_branch_cell_mc_truth_index[_branch_ntrack] =
+				mc_label < 0 ? USHRT_MAX :
+				std::min(USHRT_MAX, std::max(0, mc_label));
+#endif
 
             _branch_ntrack++;
         }
@@ -734,8 +776,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     // the removal of EM and muons, -1 then implicitly means hadronic
 
     enum {
-        USER_INDEX_EM   = -2,
-        USER_INDEX_MUON = -3
+        USER_INDEX_DEFAULT_OR_TRACK = -1,
+        USER_INDEX_EM               = -2,
+        USER_INDEX_MUON             = -3
     };
 
     // PDG Monte Carlo number scheme
@@ -749,6 +792,13 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         PDG_CODE_TAU_NEUTRINO               = 16,
         PDG_CODE_PHOTON                     = 22,
     };
+
+	std::vector<size_t> stored_mc_truth_index(
+		mc_truth_event->GetNumberOfTracks(),
+		mc_truth_event->GetNumberOfTracks());
+	std::vector<size_t> reverse_stored_mc_truth_index(
+		mc_truth_event->GetNumberOfTracks(),
+		mc_truth_event->GetNumberOfTracks());
 
     if (mc_truth_event != NULL) {
         for (Int_t i = 0;
@@ -793,6 +843,15 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             _branch_mc_truth_eta[_branch_nmc_truth] = half(p->Eta());
             _branch_mc_truth_phi[_branch_nmc_truth] =
                 half(angular_range_reduce(p->Phi()));
+            _branch_mc_truth_pdg_code[_branch_nmc_truth] =
+				std::min(SHRT_MAX,
+						 std::max(SHRT_MIN, p->PdgCode()));
+            _branch_mc_truth_status[_branch_nmc_truth] =
+				std::min(static_cast<Int_t>(UCHAR_MAX),
+						 std::max(0, mc_truth_event->Particle(i)->
+								  GetStatusCode()));
+			stored_mc_truth_index[i] = _branch_nmc_truth;
+			reverse_stored_mc_truth_index[_branch_nmc_truth] = i;
             _branch_nmc_truth++;
         }
 
@@ -821,9 +880,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     // being the larger acceptance detector).
 
     _branch_ncluster = 0;
-    for (Int_t i = 0; i < calo_cluster->GetEntriesFast(); i++) {
+    for (Int_t i = 0; i < calo_cluster.GetEntriesFast(); i++) {
         AliVCluster *c =
-            static_cast<AliVCluster *>(calo_cluster->At(i));
+            static_cast<AliVCluster *>(calo_cluster.At(i));
         TLorentzVector p;
 
         c->GetMomentum(p, _branch_primary_vertex);
@@ -852,6 +911,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             particle_reco.back().set_user_index(USER_INDEX_EM);
         }
     }
+
+	calo_cluster.Delete();
 
     _branch_njet_truth = 0;
 
@@ -910,6 +971,14 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         delete cluster_sequence_truth;
     }
 
+	enum {
+		BEAM_PARTICLE_P = 1001
+	};
+
+	const bool jet_subtract_ue = esd_event != NULL &&
+		!(esd_event->GetBeamParticle(0) == BEAM_PARTICLE_P &&
+		  esd_event->GetBeamParticle(1) == BEAM_PARTICLE_P);
+
     const fastjet::ClusterSequenceArea
         cluster_sequence_reco(
             particle_reco,
@@ -923,6 +992,28 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     for (std::vector<fastjet::PseudoJet>::const_iterator
              iterator_jet = jet_reco.begin();
         iterator_jet != jet_reco.end(); iterator_jet++) {
+
+        const std::vector<fastjet::PseudoJet> constituent =
+            cluster_sequence_reco.constituents(*iterator_jet);
+
+		// Skip jets that only consists of tagging ghosts
+
+		size_t ghost_only = true;
+        for (std::vector<fastjet::PseudoJet>::const_iterator
+                 iterator_constituent = constituent.begin();
+             iterator_constituent != constituent.end();
+             iterator_constituent++) {
+            switch (iterator_constituent->user_index()) {
+			case USER_INDEX_DEFAULT_OR_TRACK:
+			case USER_INDEX_EM:
+                ghost_only = false;
+				break;
+            }
+        }
+		if (ghost_only) {
+			continue;
+		}
+
         if (!(iterator_jet->perp() >= _jet_min_pt_raw)) {
             continue;
         }
@@ -945,6 +1036,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         _branch_jet_pt[_branch_njet] = NAN;
         _branch_jet_e_charged[_branch_njet] = NAN;
         _branch_jet_pt_charged[_branch_njet] = NAN;
+        _branch_jet_eta_raw[_branch_njet] =
+            half(iterator_jet->pseudorapidity());
         _branch_jet_eta[_branch_njet] =
             half(iterator_jet->pseudorapidity());
         _branch_jet_phi[_branch_njet] =
@@ -954,9 +1047,6 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
         // Calculate the electro magnetic fraction (EMF), but without
         // a particle-flow-based removal of energy double counting.
-
-        const std::vector<fastjet::PseudoJet> constituent =
-            cluster_sequence_reco.constituents(*iterator_jet);
 
         double sum_track = 0;
         double sum_em = 0;
@@ -1125,6 +1215,41 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         _branch_njet++;
     }
 
+	AliVCaloCells *emcal_cell = event->GetEMCALCells();
+
+	for (size_t i = 0; i < EMCAL_NCELL; i++) {
+		_branch_cell_amplitude[i] = NAN;
+		_branch_cell_time[i] = NAN;
+#if 0
+		_branch_cell_mc_truth_index[i] = USHRT_MAX;
+		_branch_cell_efrac[i] = 0;
+#endif
+	}
+	for (Short_t i = 0; i < emcal_cell->GetNumberOfCells(); i++) {
+		Short_t cell_number = -1;
+		Double_t amplitude = NAN;
+		Double_t time = NAN;
+		Int_t mc_label = -1;
+		Double_t efrac = NAN;
+
+		if (emcal_cell->GetCell(
+			i, cell_number, amplitude, time, mc_label, efrac) ==
+			kTRUE &&
+            cell_number >= 0 && cell_number < EMCAL_NCELL) {
+            _branch_cell_amplitude[cell_number] = half(amplitude);
+            _branch_cell_time[cell_number]      = half(time);
+#if 0
+            _branch_cell_mc_truth_index[cell_number] =
+				mc_label < 0 ? USHRT_MAX :
+				std::min(USHRT_MAX, std::max(0, mc_label));
+			// efrac is stored as INT8
+            _branch_cell_efrac[cell_number] = 
+				std::min(static_cast<double>(UCHAR_MAX),
+						 std::max(0.0, efrac * UCHAR_MAX));
+#endif
+        }
+    }
+
     _tree_event->Fill();
 }
 
@@ -1135,24 +1260,24 @@ AliEMCALRecoUtils *AliAnalysisTaskNTGJ::GetEMCALRecoUtils(void)
 
 void AliAnalysisTaskNTGJ::SetAliROOTVersion(const char *version)
 {
-	memset(_branch_version_aliroot, 0, BUFSIZ);
-	strncpy(_branch_version_aliroot, version, BUFSIZ - 1);
+	strncpy(_branch_version_aliroot, version, BUFSIZ);
+	_branch_version_aliroot[BUFSIZ - 1] = '\0';
 }
 
 void AliAnalysisTaskNTGJ::SetAliPhysicsVersion(const char *version)
 {
-	memset(_branch_version_aliphysics, 0, BUFSIZ);
-	strncpy(_branch_version_aliphysics, version, BUFSIZ - 1);
+	strncpy(_branch_version_aliroot, version, BUFSIZ);
+	_branch_version_aliroot[BUFSIZ - 1] = '\0';
 }
 
 void AliAnalysisTaskNTGJ::SetGridDataDir(const char *dir)
 {
-	memset(_branch_grid_data_dir, 0, BUFSIZ);
-	strncpy(_branch_grid_data_dir, dir, BUFSIZ - 1);
+	strncpy(_branch_grid_data_dir, dir, BUFSIZ);
+	_branch_grid_data_dir[BUFSIZ - 1] = '\0';
 }
 
 void AliAnalysisTaskNTGJ::SetGridDataPattern(const char *pattern)
 {
-	memset(_branch_grid_data_pattern, 0, BUFSIZ);
-	strncpy(_branch_grid_data_pattern, pattern, BUFSIZ - 1);
+	strncpy(_branch_grid_data_pattern, pattern, BUFSIZ);
+	_branch_grid_data_pattern[BUFSIZ - 1] = '\0';
 }

@@ -30,7 +30,6 @@ private:
 	// BRANCH(ntrigger_class, b)								\
 	// BRANCH_STR_ARRAY(trigger_class, ntrigger_class)			\
 
-
 #define MEMBER_BRANCH										\
 	BRANCH_STR(id_git)										\
 	BRANCH_STR(version_aliroot)								\
@@ -115,15 +114,10 @@ private:
 	BRANCH_ARRAY(jet_truth_phi, njet_truth, F)				\
 	BRANCH_ARRAY(jet_truth_area, njet_truth, F)				\
 	BRANCH_ARRAY(jet_truth_emf, njet_truth, F)				\
-
-
-#if 0
 	BRANCH_ARRAY(cell_amplitude, 17664, F)					\
 	BRANCH_ARRAY(cell_time, 17664, F)						\
 	BRANCH_ARRAY(cell_mc_truth_index, 17664, s)				\
 	BRANCH_ARRAY(cell_efrac, 17664, b)						\
-
-#endif
 
 
 #define B Char_t
@@ -151,9 +145,7 @@ private:
 #define BRANCH_ARRAY2(b, d, e, t)				\
 	t _branch_ ## b [(d)][(e)];
 #define BRANCH_STR(b)							\
-	char _branch_ ## b [BUFSIZ];
-#define BRANCH_STR_ARRAY(b, d)					\
-	char _branch_ ## b [(d)][BUFSIZ];
+	char _branch_ ## b[BUFSIZ];
 
 	MEMBER_BRANCH;
 
@@ -161,7 +153,6 @@ private:
 #undef BRANCH_ARRAY
 #undef BRANCH_ARRAY2
 #undef BRANCH_STR
-#undef BRANCH_STR_ARRAY
 #undef nmc_truth
 #undef njet
 #undef njet_truth
