@@ -8,27 +8,25 @@
 #include <TList.h>
 #include <TH2D.h>
 #include <TFormula.h>
+#include <TClonesArray.h>
 #include <AliESDtrackCuts.h>
 #include <AliEMCALGeometry.h>
 #include <AliEMCALRecoUtils.h>
 #include <AliAnalysisTaskSE.h>
 #include <AliAnalysisAlien.h>
 
-#define EMCAL_NCELL 17664
+#define EMCAL_NCELL			17664
 
-#define NTRIGGER_CLASS_MAX 64
-#define NCLUSTER_MAX 131072
-#define NTRACK_MAX 131072
-#define NMC_TRUTH_MAX 131072
-#define NJET_MAX 131072
+#define NTRIGGER_CLASS_MAX	100	// = AliESDRun::kNTriggerClasses
+#define NCLUSTER_MAX		(1U << 17)
+#define NTRACK_MAX			(1U << 17)
+#define NMC_TRUTH_MAX		(1U << 17)
+#define NJET_MAX			(1U << 17)
 
 class AliAnalysisTaskNTGJ : public AliAnalysisTaskSE {
 private:
 	TString _emcal_geometry_name; //!
 	TTree *_tree_event; //!
-
-	// BRANCH(ntrigger_class, b)								\
-	// BRANCH_STR_ARRAY(trigger_class, ntrigger_class)			\
 
 #define MEMBER_BRANCH										\
 	BRANCH_STR(id_git)										\
@@ -37,8 +35,11 @@ private:
 	BRANCH_STR(version_jec)									\
 	BRANCH_STR(grid_data_dir)								\
 	BRANCH_STR(grid_data_pattern)							\
+	BRANCH_ARRAY(beam_particle, 2, I)						\
+	BRANCH(ntrigger_class, b)								\
+	BRANCH_STR_ARRAY(trigger_class, ntrigger_class)			\
 	BRANCH(run_number, I)									\
-	BRANCH(trigger_mask, l)									\
+	BRANCH_ARRAY(trigger_mask, 2, l)						\
 	BRANCH(mixed_event, B)									\
 	BRANCH_ARRAY(multiplicity_v0, 64, F)					\
 	BRANCH(centrality_v0m, F)								\
@@ -131,6 +132,7 @@ private:
 #define L Long_t
 #define l ULong_t
 #define O Bool_t
+
 #define ntrigger_class NTRIGGER_CLASS_MAX
 #define ncluster NCLUSTER_MAX
 #define ntrack NTRACK_MAX
@@ -138,6 +140,7 @@ private:
 #define njet NJET_MAX
 #define njet_truth NJET_MAX
 #define full_emcal_ncell EMCAL_NCELL
+
 #define BRANCH(b, t)							\
 	t _branch_ ## b;
 #define BRANCH_ARRAY(b, d, t)					\
@@ -146,6 +149,8 @@ private:
 	t _branch_ ## b [(d)][(e)];
 #define BRANCH_STR(b)							\
 	char _branch_ ## b[BUFSIZ];
+#define BRANCH_STR_ARRAY(b, d)					\
+	TClonesArray _branch_ ## b;
 
 	MEMBER_BRANCH;
 
@@ -153,9 +158,16 @@ private:
 #undef BRANCH_ARRAY
 #undef BRANCH_ARRAY2
 #undef BRANCH_STR
+#undef BRANCH_STR_ARRAY
+
+#undef ntrigger_class
+#undef ncluster
+#undef ntrack
 #undef nmc_truth
 #undef njet
 #undef njet_truth
+#undef full_emcal_ncell
+
 #undef C
 #undef B
 #undef b

@@ -246,6 +246,8 @@ ClassImp(AliAnalysisTaskNTGJ);
 
 #define EMCAL_GEOMETRY_NAME "EMCAL_COMPLETE12SMV1_DCAL_8SM"
 
+#define ntrigger_class NTRIGGER_CLASS_MAX
+
 #define B CHAR_MIN
 #define b 0
 #define S SHRT_MIN
@@ -262,7 +264,8 @@ ClassImp(AliAnalysisTaskNTGJ);
 #define BRANCH_ARRAY(b, d, t)
 #define BRANCH_ARRAY2(b, d, e, t)
 #define BRANCH_STR(b)
-#define BRANCH_STR_ARRAY(b, d)
+#define BRANCH_STR_ARRAY(b, d)					\
+	_branch_ ## b("TObjArray", (d)),
 
 // FIXME: I need to create an interface for:
 // _cluster_trigger_min_e(6),
@@ -301,6 +304,8 @@ AliAnalysisTaskNTGJ::AliAnalysisTaskNTGJ(
     : AliAnalysisTaskSE(), CLASS_INITIALIZATION
 {
 }
+
+#undef ntrigger_class
 
 #undef BRANCH
 #undef BRANCH_ARRAY
@@ -361,7 +366,7 @@ void AliAnalysisTaskNTGJ::UserCreateOutputObjects(void)
         #b, _branch_ ## b, #b "/C");
 #define BRANCH_STR_ARRAY(b, d)					\
     _tree_event->Branch(                        \
-        #b, _branch_ ## b, #b "[" #d "]/C");
+        #b, &_branch_ ## b, #b "[" #d "]/C");
 
     MEMBER_BRANCH;
 
@@ -380,17 +385,6 @@ void AliAnalysisTaskNTGJ::UserCreateOutputObjects(void)
 
 void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 {
-    AliVEvent *event = InputEvent();
-
-    if (event == NULL) {
-        return;
-    }
-
-    AliESDEvent *esd_event = dynamic_cast<AliESDEvent *>(event);
-#if 0
-    AliAODEvent *aod_event = dynamic_cast<AliAODEvent *>(event);
-#endif
-
     if (_emcal_mask.size() != EMCAL_NCELL) {
         _emcal_mask.resize(EMCAL_NCELL);
 #if 1 // Keep = 1 to for an actual EMCAL mask (and not all channels
@@ -416,6 +410,18 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 #endif
     }
 
+    AliVEvent *event = InputEvent();
+
+    if (event == NULL) {
+        return;
+    }
+
+    AliESDEvent *esd_event = dynamic_cast<AliESDEvent *>(event);
+
+	if (esd_event == NULL) {
+		return;
+	}
+
 	alice_jec_t jec;
 
 	if (!_metadata_filled) {
@@ -423,8 +429,18 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 		_branch_id_git[BUFSIZ - 1] = '\0';
 		strncpy(_branch_version_jec, jec.version(), BUFSIZ);
 		_branch_version_jec[BUFSIZ - 1] = '\0';
+		for (size_t i = 0; i < 2; i++) {
+			_branch_beam_particle[i] = esd_event->GetBeamParticle(i);
+		}
 
-		fprintf(stdout, "%s:%d: %d %d\n", __FILE__, __LINE__, esd_event->GetBeamParticle(0), esd_event->GetBeamParticle(1));
+		const AliESDRun *esd_run = esd_event->GetESDRun();
+
+		if (esd_run != NULL) {
+			_branch_trigger_class.Delete();
+			for (size_t i = 0; i < NTRIGGER_CLASS_MAX; i++) {
+				new (_branch_trigger_class[i]) TObjString(esd_run->GetTriggerClass(i));
+			}
+		}
 
 		_metadata_filled = true;
 	}
@@ -437,9 +453,15 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 		_branch_version_jec[0] = '\0';
 		_branch_grid_data_dir[0] = '\0';
 		_branch_grid_data_pattern[0] = '\0';
+		for (size_t i = 0; i < 2; i++) {
+			_branch_beam_particle[i] = 0;
+		}
+		_branch_trigger_class.Delete();
 	}
 
     _branch_run_number = event->GetRunNumber();
+	_branch_trigger_mask[0] = esd_event->GetTriggerMask();
+	_branch_trigger_mask[1] = esd_event->GetTriggerMaskNext50();
     _branch_has_misalignment_matrix = false;
 
     if (_f1_ncluster_tpc_linear_pt_dep == NULL) {
@@ -667,6 +689,27 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         return;
     }
 
+	std::vector<size_t> stored_mc_truth_index;
+	std::vector<Int_t> reverse_stored_mc_truth_index;
+
+    if (mc_truth_event != NULL) {
+		stored_mc_truth_index.resize(
+			mc_truth_event->GetNumberOfTracks(), ULONG_MAX);
+
+		size_t nmc_truth = 0;
+
+        for (Int_t i = 0;
+             i < mc_truth_event->GetNumberOfTracks(); i++) {
+            if (!mc_truth_event->IsPhysicalPrimary(i)) {
+                // Keep only primary final state particles
+                continue;
+            }
+			stored_mc_truth_index[i] = nmc_truth;
+			reverse_stored_mc_truth_index.push_back(i);
+			nmc_truth++;
+		}
+	}
+
     std::vector<fastjet::PseudoJet> particle_reco;
 
     _branch_ntrack = 0;
@@ -751,14 +794,21 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 _branch_track_dca_z[_branch_ntrack] = half(dz[1]);
             }
 
-#if 0
 			const Int_t mc_label = t->GetLabel();
 
+#define SAFE_MC_LABEL_TO_USHRT(mc_label)						\
+			!(mc_label >= 0 &&									\
+			  static_cast<size_t>(mc_label) <					\
+			  stored_mc_truth_index.size()) ? USHRT_MAX :		\
+				stored_mc_truth_index[mc_label] == ULONG_MAX ?	\
+				USHRT_MAX :										\
+				std::min(static_cast<size_t>(USHRT_MAX),		\
+						 std::max(static_cast<size_t>(0),		\
+								  stored_mc_truth_index			\
+								  [mc_label]));
+
 			_branch_track_mc_truth_index[_branch_ntrack] =
-				_branch_cell_mc_truth_index[_branch_ntrack] =
-				mc_label < 0 ? USHRT_MAX :
-				std::min(USHRT_MAX, std::max(0, mc_label));
-#endif
+				SAFE_MC_LABEL_TO_USHRT(mc_label);
 
             _branch_ntrack++;
         }
@@ -793,24 +843,14 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         PDG_CODE_PHOTON                     = 22,
     };
 
-	std::vector<size_t> stored_mc_truth_index(
-		mc_truth_event->GetNumberOfTracks(),
-		mc_truth_event->GetNumberOfTracks());
-	std::vector<size_t> reverse_stored_mc_truth_index(
-		mc_truth_event->GetNumberOfTracks(),
-		mc_truth_event->GetNumberOfTracks());
-
     if (mc_truth_event != NULL) {
-        for (Int_t i = 0;
-             i < mc_truth_event->GetNumberOfTracks(); i++) {
-            if (!mc_truth_event->IsPhysicalPrimary(i)) {
-                // Keep only primary final state particles
-                continue;
-            }
-
+        for (std::vector<Int_t>::const_iterator iterator =
+				 reverse_stored_mc_truth_index.begin();
+			 iterator != reverse_stored_mc_truth_index.end();
+			 iterator++) {
             const AliMCParticle *p =
                 static_cast<AliMCParticle *>(
-                    mc_truth_event->GetTrack(i));
+                    mc_truth_event->GetTrack(*iterator));
 
             if (p == NULL) {
                 continue;
@@ -848,10 +888,10 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 						 std::max(SHRT_MIN, p->PdgCode()));
             _branch_mc_truth_status[_branch_nmc_truth] =
 				std::min(static_cast<Int_t>(UCHAR_MAX),
-						 std::max(0, mc_truth_event->Particle(i)->
+						 std::max(0,
+								  mc_truth_event->
+								  Particle(*iterator)->
 								  GetStatusCode()));
-			stored_mc_truth_index[i] = _branch_nmc_truth;
-			reverse_stored_mc_truth_index[_branch_nmc_truth] = i;
             _branch_nmc_truth++;
         }
 
@@ -1220,10 +1260,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 	for (size_t i = 0; i < EMCAL_NCELL; i++) {
 		_branch_cell_amplitude[i] = NAN;
 		_branch_cell_time[i] = NAN;
-#if 0
 		_branch_cell_mc_truth_index[i] = USHRT_MAX;
 		_branch_cell_efrac[i] = 0;
-#endif
 	}
 	for (Short_t i = 0; i < emcal_cell->GetNumberOfCells(); i++) {
 		Short_t cell_number = -1;
@@ -1238,15 +1276,17 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             cell_number >= 0 && cell_number < EMCAL_NCELL) {
             _branch_cell_amplitude[cell_number] = half(amplitude);
             _branch_cell_time[cell_number]      = half(time);
-#if 0
+
+
             _branch_cell_mc_truth_index[cell_number] =
-				mc_label < 0 ? USHRT_MAX :
-				std::min(USHRT_MAX, std::max(0, mc_label));
+				SAFE_MC_LABEL_TO_USHRT(mc_label);
+
+#undef SAFE_MC_LABEL_TO_USHRT
+
 			// efrac is stored as INT8
             _branch_cell_efrac[cell_number] = 
 				std::min(static_cast<double>(UCHAR_MAX),
 						 std::max(0.0, efrac * UCHAR_MAX));
-#endif
         }
     }
 
@@ -1266,8 +1306,8 @@ void AliAnalysisTaskNTGJ::SetAliROOTVersion(const char *version)
 
 void AliAnalysisTaskNTGJ::SetAliPhysicsVersion(const char *version)
 {
-	strncpy(_branch_version_aliroot, version, BUFSIZ);
-	_branch_version_aliroot[BUFSIZ - 1] = '\0';
+	strncpy(_branch_version_aliphysics, version, BUFSIZ);
+	_branch_version_aliphysics[BUFSIZ - 1] = '\0';
 }
 
 void AliAnalysisTaskNTGJ::SetGridDataDir(const char *dir)
