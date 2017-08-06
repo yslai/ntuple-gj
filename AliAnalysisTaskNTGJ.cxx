@@ -253,9 +253,9 @@ void AliAnalysisTaskNTGJ::UserCreateOutputObjects(void)
 
     /////////////////////////////////////////////////////////////////
 
-	if (_muon_track_cut != NULL) {
-		_muon_track_cut->SetAllowDefaultParams(kTRUE);
-	}
+    if (_muon_track_cut != NULL) {
+        _muon_track_cut->SetAllowDefaultParams(kTRUE);
+    }
 }
 
 #undef MEMBER_BRANCH
@@ -288,12 +288,12 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     }
 
 #if 0
-	if (_muon_track_cut != NULL) {
-		_muon_track_cut->SetRun(
-			(AliInputEventHandler *)
-			((AliAnalysisManager::GetAnalysisManager())->
-			 GetInputEventHandler()));
-	}
+    if (_muon_track_cut != NULL) {
+        _muon_track_cut->SetRun(
+            (AliInputEventHandler *)
+            ((AliAnalysisManager::GetAnalysisManager())->
+             GetInputEventHandler()));
+    }
 #endif
 
     AliVEvent *event = InputEvent();
@@ -729,6 +729,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                     SAFE_MC_LABEL_TO_USHRT(mc_label);
 
                 _branch_ntrack++;
+                if (_branch_ntrack >= NTRACK_MAX) {
+                    break;
+                }
             }
         }
     }
@@ -817,6 +820,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                          std::max(static_cast<Short_t>(0),
                                   p->GetGeneratorIndex()));
             _branch_nmc_truth++;
+            if (_branch_nmc_truth >= NMC_TRUTH_MAX) {
+                break;
+            }
         }
 
         cluster_sequence_truth = new fastjet::ClusterSequenceArea(
@@ -874,6 +880,10 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             particle_reco.push_back(pj * scale_ghost);
             particle_reco.back().set_user_index(USER_INDEX_EM);
         }
+
+        if (_branch_ncluster >= NCLUSTER_MAX) {
+            break;
+        }
     }
 
     calo_cluster.Delete();
@@ -929,6 +939,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 sum_em / (sum_hadronic + sum_em);
 
             _branch_njet_truth++;
+            if (_branch_njet_truth >= NJET_MAX) {
+                break;
+            }
         }
     }
     if (cluster_sequence_truth != NULL) {
@@ -1180,6 +1193,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             }
         }
         _branch_njet++;
+        if (_branch_njet >= NJET_MAX) {
+            break;
+        }
     }
 
     AliVCaloCells *emcal_cell = event->GetEMCALCells();
@@ -1257,18 +1273,18 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                     param.GetSigmaPdca23() : param.GetSigmaPdca310();
 
                 _branch_muon_track_sigma_p_dca[_branch_nmuon_track] =
-					sigma_p_dca;
+                    sigma_p_dca;
 
-				// In AliMuonTrackCuts::GetSelectionMask(), it would
-				// be nrp = nsigma * p * dp
+                // In AliMuonTrackCuts::GetSelectionMask(), it would
+                // be nrp = nsigma * p * dp
 
                 const Double_t delta_sagitta_p =
-					param.GetRelPResolution() * t->P();
+                    param.GetRelPResolution() * t->P();
 
                 _branch_muon_track_delta_sagitta_p
-					[_branch_nmuon_track] = delta_sagitta_p;
+                    [_branch_nmuon_track] = delta_sagitta_p;
 
-				// p_resolution_effect = sigma_p_dca / (1 - nrp / (1 +
+                // p_resolution_effect = sigma_p_dca / (1 - nrp / (1 +
                 // nrp));
 
                 static const Double_t z_tc12_cm = 535;
@@ -1276,10 +1292,13 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                     z_tc12_cm * param.GetSlopeResolution() * t->P();
 
                 _branch_muon_track_distance_sigma_slope_p
-					[_branch_nmuon_track] =
-					distance_sigma_slope_p_meas;
+                    [_branch_nmuon_track] =
+                    distance_sigma_slope_p_meas;
             }
             _branch_nmuon_track++;
+            if (_branch_nmuon_track >= NTRACK_MAX) {
+                break;
+            }
         }
     }
     else if (aod_event != NULL) {
