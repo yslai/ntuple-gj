@@ -1254,8 +1254,19 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             _branch_muon_track_r_abs[_branch_nmuon_track] =
                 half(t->GetRAtAbsorberEnd());
             _branch_muon_track_p_dca[_branch_nmuon_track] = NAN;
+
+			static const double c_505_tan_3_pi_180 =
+				505 * tan(3 * M_PI / 180);
+
+			// Default values from
+			// AliPhysics/PWG/muon/buildMuonTrackCutsOADB.C
+
+			static const double default_sigma_p_dca_23 = 80;
+			static const double default_sigma_p_dca_310 = 54;
+
             _branch_muon_track_sigma_p_dca[_branch_nmuon_track] =
-                NAN;
+                t->GetRAtAbsorberEnd() < c_505_tan_3_pi_180 ?
+				default_sigma_p_dca_23 : default_sigma_p_dca_310;
             if (_muon_track_cut != NULL) {
                 _branch_muon_track_p_dca[_branch_nmuon_track] =
                     half(_muon_track_cut->GetAverageMomentum(t) *
@@ -1273,7 +1284,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                     param.GetSigmaPdca23() : param.GetSigmaPdca310();
 
                 _branch_muon_track_sigma_p_dca[_branch_nmuon_track] =
-                    sigma_p_dca;
+                    half(sigma_p_dca);
 
                 // In AliMuonTrackCuts::GetSelectionMask(), it would
                 // be nrp = nsigma * p * dp
@@ -1282,7 +1293,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                     param.GetRelPResolution() * t->P();
 
                 _branch_muon_track_delta_sagitta_p
-                    [_branch_nmuon_track] = delta_sagitta_p;
+                    [_branch_nmuon_track] = half(delta_sagitta_p);
 
                 // p_resolution_effect = sigma_p_dca / (1 - nrp / (1 +
                 // nrp));
@@ -1293,7 +1304,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
                 _branch_muon_track_distance_sigma_slope_p
                     [_branch_nmuon_track] =
-                    distance_sigma_slope_p_meas;
+                    half(distance_sigma_slope_p_meas);
             }
             _branch_nmuon_track++;
             if (_branch_nmuon_track >= NTRACK_MAX) {
