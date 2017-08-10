@@ -40,7 +40,7 @@ To efficiently use available space, unsigned data types are used extensively. In
 | `eg_weight`          | `float`            | Weight of the current event, HepMC&rsquo;s `GenEvent::weights().front()` and e.g. PYTHIA 8&rsquo;s `Info::weight()` and HERWIG 7&rsquo;s `EventHandler::integratedXSec() / Units::millibarn` |
 | `eg_primary_vertex`  | `float[3]`         | The generator truth primary vertex, HepMC&rsquo;s `GenEvent::signal_process_vertex()->point3d()` |
 | `eg_ntrial`          | `int`              | Number of trial until the current event is generated (ALICE SW specific) |
-| `eg_scale_pdf`       | `float`            | The PDF scale _Q_ of the current event (not stored by ALICE SW) |
+| `eg_scale_pdf`       | `float`            | The scale _Q_ for the of the current event, as used for the calculation of parton distribution functions (PDFs), HepMC&rsquo;s `GenEvent::event_scale()` and e.g. PYTHIA 8&rsquo;s `Info::scalup()` (not stored by ALICE SW) |
 | `eg_alpha_qcd`       | `float`            | The strong coupling constant, _&alpha;_<sub>S</sub>, of the current event, HepMC&rsquo;s `GenEvent::alphaQCD()` and e.g. PYTHIA 8&rsquo;s `Info::alphaS()`, HERWIG 7&rsquo;s `EventHandler::lastAlphaS()` (not stored by ALICE SW) |
 | `eg_alpha_qed`       | `float`            | The electromagnetic coupling constant, _&alpha;_<sub>EM</sub>, of the current event, HepMC&rsquo;s `GenEvent::alphaQED()` and e.g. PYTHIA 8&rsquo;s `Info::alphaEM()`, HERWIG 7&rsquo;s `EventHandler::lastAlphaEM()` (not stored by ALICE SW) |
 | `eg_pdf_id`          | `int[2]`           | The flavor code of the two incoming partons, HepMC&rsquo;s `PdfInfo::id1()`/`id2()` and e.g. PYTHIA 8&rsquo;s `Info::id1pdf()`/`id2pdf()` (not stored by ALICE SW) |
