@@ -111,7 +111,7 @@ A full 17664 (=&nbsp;10&nbsp;&times;&nbsp;48&nbsp;&times;&nbsp;24 + 6&nbsp;&time
 To make an arbitrary, resolution corrected &ldquo;n&sigma;&rdquo; cut on _p_&nbsp;&times;&nbsp;DCA, the boolean `pass_cut` is calculated as:
 
 ```C++
-const float nrp = nsigma_p_dca × muon_track_delta_sagitta_p[i]
+const float nrp = nsigma_p_dca * muon_track_delta_sagitta_p[i]
 const float p_resolution_effect = muon_track_sigma_p_dca[i] / (1 - nrp / (1 + nrp))
 const float slope_resolution_effect = muon_track_distance_sigma_slope_p[i]
 const float sigma_p_dca_resolution_effect = sqrt(std::pow(p_resolution_effect, 2) + std::pow(slope_resolution_effect, 2))
