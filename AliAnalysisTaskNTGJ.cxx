@@ -147,6 +147,7 @@ ClassImp(AliAnalysisTaskNTGJ);
     _emcal_geometry_name(EMCAL_GEOMETRY_NAME),  \
     _tree_event(NULL),                          \
     MEMBER_BRANCH                               \
+    _run_number_current(INT_MIN),               \
     _f1_ncluster_tpc_linear_pt_dep(NULL),       \
     _track_cut(std::vector<AliESDtrackCuts>()), \
     _reco_util(new AliEMCALRecoUtils),          \
@@ -252,10 +253,6 @@ void AliAnalysisTaskNTGJ::UserCreateOutputObjects(void)
     PostData(1, _tree_event);
 
     /////////////////////////////////////////////////////////////////
-
-    if (_muon_track_cut != NULL) {
-        _muon_track_cut->SetAllowDefaultParams(kTRUE);
-    }
 }
 
 #undef MEMBER_BRANCH
@@ -287,20 +284,24 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 #endif
     }
 
-#if 0
-    if (_muon_track_cut != NULL) {
-        _muon_track_cut->SetRun(
-            (AliInputEventHandler *)
-            ((AliAnalysisManager::GetAnalysisManager())->
-             GetInputEventHandler()));
-    }
-#endif
-
     AliVEvent *event = InputEvent();
 
     if (event == NULL) {
         return;
     }
+
+#if 1
+    if (event->GetRunNumber() != _run_number_current) {
+        _run_number_current = event->GetRunNumber();
+        if (_muon_track_cut != NULL) {
+            _muon_track_cut->SetAllowDefaultParams(kTRUE);
+            _muon_track_cut->SetRun(
+                (AliInputEventHandler *)
+                ((AliAnalysisManager::GetAnalysisManager())->
+                 GetInputEventHandler()));
+        }
+    }
+#endif
 
     AliESDEvent *esd_event = dynamic_cast<AliESDEvent *>(event);
     AliAODEvent *aod_event = NULL;
@@ -534,23 +535,51 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         mc_truth_event->PreReadAll();
     }
 
-    _branch_eg_ntrial = -1;
-    _branch_eg_perp_hat = NAN;
+    _branch_eg_signal_process_id = INT_MIN;
+    _branch_eg_mpi = INT_MIN;
+    _branch_eg_pt_hat = NAN;
     _branch_eg_cross_section = NAN;
+    _branch_eg_weight = NAN;
+    _branch_eg_ntrial = -1;
+
+    // Not stored by ALICE SW
+
+    _branch_eg_scale_pdf = NAN;
+    _branch_eg_alpha_qcd = NAN;
+    _branch_eg_alpha_qed = NAN;
+    for (size_t i = 0; i < 2; i++) {
+        _branch_eg_pdf_id[i] = INT_MIN;
+        _branch_eg_pdf_x[i] = NAN;
+        _branch_eg_pdf_x_pdf[i] = NAN;
+    }
+
+    // FIXME: Weight is missing, AliGenEventHeader::EventWeight()
 
     AliGenEventHeader *mc_truth_header = mc_truth_event != NULL ?
         mc_truth_event->GenEventHeader() : NULL;
     AliGenPythiaEventHeader *mc_truth_pythia_header;
 
     if (mc_truth_header != NULL) {
+        _branch_eg_weight = mc_truth_header->EventWeight();
+
+        TArrayF eg_primary_vertex(3);
+
+        mc_truth_header->PrimaryVertex(eg_primary_vertex);
+
+        for (Int_t i = 0; i < 3; i++) {
+            _branch_eg_primary_vertex[i] = eg_primary_vertex.At(i);
+        }
         mc_truth_pythia_header =
             dynamic_cast<AliGenPythiaEventHeader *>(mc_truth_header);
         if (mc_truth_pythia_header != NULL) {
-            _branch_eg_ntrial = mc_truth_pythia_header->Trials();
-            _branch_eg_perp_hat =
+            _branch_eg_signal_process_id =
+                mc_truth_pythia_header->ProcessType();
+            _branch_eg_mpi = mc_truth_pythia_header->GetNMPI();
+            _branch_eg_pt_hat =
                 mc_truth_pythia_header->GetPtHard();
             _branch_eg_cross_section =
                 mc_truth_pythia_header->GetXsection();
+            _branch_eg_ntrial = mc_truth_pythia_header->Trials();
         }
     }
 
@@ -1022,6 +1051,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             half(iterator_jet->pseudorapidity());
         _branch_jet_phi[_branch_njet] =
             half(iterator_jet->phi_std());
+        _branch_jet_area_raw[_branch_njet] =
+            half(iterator_jet->area());
         _branch_jet_area[_branch_njet] =
             half(iterator_jet->area());
 
@@ -1255,18 +1286,18 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 half(t->GetRAtAbsorberEnd());
             _branch_muon_track_p_dca[_branch_nmuon_track] = NAN;
 
-			static const double c_505_tan_3_pi_180 =
-				505 * tan(3 * M_PI / 180);
+            static const double c_505_tan_3_pi_180 =
+                505 * tan(3 * M_PI / 180);
 
-			// Default values from
-			// AliPhysics/PWG/muon/buildMuonTrackCutsOADB.C
+            // Default values from
+            // AliPhysics/PWG/muon/buildMuonTrackCutsOADB.C
 
-			static const double default_sigma_p_dca_23 = 80;
-			static const double default_sigma_p_dca_310 = 54;
+            static const double default_sigma_p_dca_23 = 80;
+            static const double default_sigma_p_dca_310 = 54;
 
             _branch_muon_track_sigma_p_dca[_branch_nmuon_track] =
                 t->GetRAtAbsorberEnd() < c_505_tan_3_pi_180 ?
-				default_sigma_p_dca_23 : default_sigma_p_dca_310;
+                default_sigma_p_dca_23 : default_sigma_p_dca_310;
             if (_muon_track_cut != NULL) {
                 _branch_muon_track_p_dca[_branch_nmuon_track] =
                     half(_muon_track_cut->GetAverageMomentum(t) *

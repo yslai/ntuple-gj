@@ -29,108 +29,118 @@ private:
     TString _emcal_geometry_name; //!
     TTree *_tree_event; //!
 
-#define MEMBER_BRANCH												\
-    BRANCH_STR(id_git)												\
-    BRANCH_STR(version_aliroot)										\
-    BRANCH_STR(version_aliphysics)									\
-    BRANCH_STR(version_jec)											\
-    BRANCH_STR(grid_data_dir)										\
-    BRANCH_STR(grid_data_pattern)									\
-    BRANCH_ARRAY(beam_particle, 2, I)								\
-    BRANCH(ntrigger_class, b)										\
-    BRANCH_STR_ARRAY(trigger_class, ntrigger_class)					\
-    BRANCH(run_number, I)											\
-    BRANCH_ARRAY(trigger_mask, 2, l)								\
-    BRANCH(mixed_event, B)											\
-    BRANCH_ARRAY(multiplicity_v0, 64, F)							\
-    BRANCH(centrality_v0m, F)										\
-    BRANCH_ARRAY(centrality, 9, F)									\
-    BRANCH_ARRAY(event_plane_psi_v0, 3, F)							\
-    BRANCH_ARRAY2(event_plane_q_v0, 3, 2, D)						\
-    BRANCH(has_misalignment_matrix, O)								\
-    BRANCH(eg_ntrial, I)											\
-    BRANCH(eg_perp_hat, F)											\
-    BRANCH(eg_cross_section, F)										\
-    BRANCH_ARRAY(primary_vertex, 3, D)								\
-    BRANCH(ncluster, l)												\
-    BRANCH_ARRAY(cluster_e, ncluster, F)							\
-    BRANCH_ARRAY(cluster_pt, ncluster, F)							\
-    BRANCH_ARRAY(cluster_eta, ncluster, F)							\
-    BRANCH_ARRAY(cluster_phi, ncluster, F)							\
-    BRANCH_ARRAY(cluster_m02, ncluster, F)							\
-    BRANCH_ARRAY(cluster_m20, ncluster, F)							\
-    BRANCH_ARRAY(cluster_tof, ncluster, F)							\
-    BRANCH_ARRAY(cluster_ncell, ncluster, I)						\
-    BRANCH_ARRAY(cluster_cell_id_max, ncluster, s)					\
-    BRANCH(ntrack, l)												\
-    BRANCH_ARRAY(track_e, ntrack, F)								\
-    BRANCH_ARRAY(track_pt, ntrack, F)								\
-    BRANCH_ARRAY(track_eta, ntrack, F)								\
-    BRANCH_ARRAY(track_phi, ntrack, F)								\
-    BRANCH_ARRAY(track_quality, ntrack, b)							\
-    BRANCH_ARRAY(track_tpc_dedx, ntrack, F)							\
-    BRANCH_ARRAY(track_tpc_length_active_zone, ntrack, F)			\
-    BRANCH_ARRAY(track_tpc_xrow, ntrack, b)							\
-    BRANCH_ARRAY(track_tpc_ncluster, ntrack, b)						\
-    BRANCH_ARRAY(track_tpc_ncluster_dedx, ntrack, b)				\
-    BRANCH_ARRAY(track_tpc_ncluster_findable, ntrack, b)			\
-    BRANCH_ARRAY(track_its_ncluster, ntrack, b)						\
-    BRANCH_ARRAY(track_dca_xy, ntrack, F)							\
-    BRANCH_ARRAY(track_dca_z, ntrack, F)							\
-    BRANCH_ARRAY(track_mc_truth_index, ntrack, s)					\
-    BRANCH(nmuon_track, l)											\
-    BRANCH_ARRAY(muon_track_e, nmuon_track, F)						\
-    BRANCH_ARRAY(muon_track_pt, nmuon_track, F)						\
-    BRANCH_ARRAY(muon_track_eta, nmuon_track, F)					\
-    BRANCH_ARRAY(muon_track_phi, nmuon_track, F)					\
-    BRANCH_ARRAY(muon_track_r_abs, nmuon_track, F)					\
-    BRANCH_ARRAY(muon_track_p_dca, nmuon_track, F)					\
-    BRANCH_ARRAY(muon_track_sigma_p_dca, nmuon_track, F)			\
-    BRANCH_ARRAY(muon_track_delta_sagitta_p, nmuon_track, F)		\
-    BRANCH_ARRAY(muon_track_distance_sigma_slope_p, nmuon_track, F)	\
-    BRANCH_ARRAY(muon_track_mc_truth_index, nmuon_track, s)			\
-    BRANCH(nmc_truth, l)											\
-    BRANCH_ARRAY(mc_truth_e, nmc_truth, F)							\
-    BRANCH_ARRAY(mc_truth_pt, nmc_truth, F)							\
-    BRANCH_ARRAY(mc_truth_eta, nmc_truth, F)						\
-    BRANCH_ARRAY(mc_truth_phi, nmc_truth, F)						\
-    BRANCH_ARRAY(mc_truth_pdg_code, nmc_truth, S)					\
-    BRANCH_ARRAY(mc_truth_status, nmc_truth, b)						\
-    BRANCH_ARRAY(mc_truth_generator_index, nmc_truth, b)			\
-    BRANCH(njet, l)													\
-    BRANCH_ARRAY(jet_e_raw, njet, F)								\
-    BRANCH_ARRAY(jet_e, njet, F)									\
-    BRANCH_ARRAY(jet_e_charged, njet, F)							\
-    BRANCH_ARRAY(jet_pt_raw, njet, F)								\
-    BRANCH_ARRAY(jet_pt, njet, F)									\
-    BRANCH_ARRAY(jet_pt_charged, njet, F)							\
-    BRANCH_ARRAY(jet_eta_raw, njet, F)								\
-    BRANCH_ARRAY(jet_eta, njet, F)									\
-    BRANCH_ARRAY(jet_phi, njet, F)									\
-    BRANCH_ARRAY(jet_area, njet, F)									\
-    BRANCH_ARRAY(jet_emf_raw, njet, F)								\
-    BRANCH_ARRAY(jet_emf, njet, F)									\
-    BRANCH_ARRAY(jet_e_truth, njet, F)								\
-    BRANCH_ARRAY(jet_pt_truth, njet, F)								\
-    BRANCH_ARRAY(jet_eta_truth, njet, F)							\
-    BRANCH_ARRAY(jet_phi_truth, njet, F)							\
-    BRANCH_ARRAY(jet_area_truth, njet, F)							\
-    BRANCH_ARRAY(jet_emf_truth, njet, F)							\
-    BRANCH_ARRAY2(jet_truth_index_z_truth, njet, 2, I)				\
-    BRANCH_ARRAY2(jet_truth_z_truth, njet, 2, F)					\
-    BRANCH_ARRAY2(jet_truth_index_z_reco, njet, 2, I)				\
-    BRANCH_ARRAY2(jet_truth_z_reco, njet, 2, F)						\
-    BRANCH(njet_truth, l)											\
-    BRANCH_ARRAY(jet_truth_e, njet_truth, F)						\
-    BRANCH_ARRAY(jet_truth_pt, njet_truth, F)						\
-    BRANCH_ARRAY(jet_truth_eta, njet_truth, F)						\
-    BRANCH_ARRAY(jet_truth_phi, njet_truth, F)						\
-    BRANCH_ARRAY(jet_truth_area, njet_truth, F)						\
-    BRANCH_ARRAY(jet_truth_emf, njet_truth, F)						\
-    BRANCH_ARRAY(cell_amplitude, 17664, F)							\
-    BRANCH_ARRAY(cell_time, 17664, F)								\
-    BRANCH_ARRAY(cell_mc_truth_index, 17664, s)						\
-    BRANCH_ARRAY(cell_efrac, 17664, b)								\
+#define MEMBER_BRANCH                                               \
+    BRANCH_STR(id_git)                                              \
+    BRANCH_STR(version_aliroot)                                     \
+    BRANCH_STR(version_aliphysics)                                  \
+    BRANCH_STR(version_jec)                                         \
+    BRANCH_STR(grid_data_dir)                                       \
+    BRANCH_STR(grid_data_pattern)                                   \
+    BRANCH_ARRAY(beam_particle, 2, I)                               \
+    BRANCH(ntrigger_class, b)                                       \
+    BRANCH_STR_ARRAY(trigger_class, ntrigger_class)                 \
+    BRANCH(run_number, I)                                           \
+    BRANCH_ARRAY(trigger_mask, 2, l)                                \
+    BRANCH_ARRAY(multiplicity_v0, 64, F)                            \
+    BRANCH(centrality_v0m, F)                                       \
+    BRANCH_ARRAY(centrality, 9, F)                                  \
+    BRANCH_ARRAY(event_plane_psi_v0, 3, F)                          \
+    BRANCH_ARRAY2(event_plane_q_v0, 3, 2, D)                        \
+    BRANCH(has_misalignment_matrix, O)                              \
+    BRANCH_ARRAY(primary_vertex, 3, D)                              \
+    BRANCH(eg_signal_process_id, I)                                 \
+    BRANCH(eg_mpi, I)                                               \
+    BRANCH(eg_pt_hat, F)                                            \
+    BRANCH(eg_cross_section, F)                                     \
+    BRANCH(eg_weight, F)                                            \
+    BRANCH_ARRAY(eg_primary_vertex, 3, F)                           \
+    BRANCH(eg_ntrial, I)                                            \
+    BRANCH(eg_scale_pdf, F)                                         \
+    BRANCH(eg_alpha_qcd, F)                                         \
+    BRANCH(eg_alpha_qed, F)                                         \
+    BRANCH_ARRAY(eg_pdf_id, 2, I)                                   \
+    BRANCH_ARRAY(eg_pdf_x, 2, F)                                    \
+    BRANCH_ARRAY(eg_pdf_x_pdf, 2, F)                                \
+    BRANCH(ncluster, l)                                             \
+    BRANCH_ARRAY(cluster_e, ncluster, F)                            \
+    BRANCH_ARRAY(cluster_pt, ncluster, F)                           \
+    BRANCH_ARRAY(cluster_eta, ncluster, F)                          \
+    BRANCH_ARRAY(cluster_phi, ncluster, F)                          \
+    BRANCH_ARRAY(cluster_m02, ncluster, F)                          \
+    BRANCH_ARRAY(cluster_m20, ncluster, F)                          \
+    BRANCH_ARRAY(cluster_tof, ncluster, F)                          \
+    BRANCH_ARRAY(cluster_ncell, ncluster, I)                        \
+    BRANCH_ARRAY(cluster_cell_id_max, ncluster, s)                  \
+    BRANCH_ARRAY(cell_amplitude, 17664, F)                          \
+    BRANCH_ARRAY(cell_time, 17664, F)                               \
+    BRANCH_ARRAY(cell_mc_truth_index, 17664, s)                     \
+    BRANCH_ARRAY(cell_efrac, 17664, b)                              \
+    BRANCH(ntrack, l)                                               \
+    BRANCH_ARRAY(track_e, ntrack, F)                                \
+    BRANCH_ARRAY(track_pt, ntrack, F)                               \
+    BRANCH_ARRAY(track_eta, ntrack, F)                              \
+    BRANCH_ARRAY(track_phi, ntrack, F)                              \
+    BRANCH_ARRAY(track_quality, ntrack, b)                          \
+    BRANCH_ARRAY(track_tpc_dedx, ntrack, F)                         \
+    BRANCH_ARRAY(track_tpc_length_active_zone, ntrack, F)           \
+    BRANCH_ARRAY(track_tpc_xrow, ntrack, b)                         \
+    BRANCH_ARRAY(track_tpc_ncluster, ntrack, b)                     \
+    BRANCH_ARRAY(track_tpc_ncluster_dedx, ntrack, b)                \
+    BRANCH_ARRAY(track_tpc_ncluster_findable, ntrack, b)            \
+    BRANCH_ARRAY(track_its_ncluster, ntrack, b)                     \
+    BRANCH_ARRAY(track_dca_xy, ntrack, F)                           \
+    BRANCH_ARRAY(track_dca_z, ntrack, F)                            \
+    BRANCH_ARRAY(track_mc_truth_index, ntrack, s)                   \
+    BRANCH(nmuon_track, l)                                          \
+    BRANCH_ARRAY(muon_track_e, nmuon_track, F)                      \
+    BRANCH_ARRAY(muon_track_pt, nmuon_track, F)                     \
+    BRANCH_ARRAY(muon_track_eta, nmuon_track, F)                    \
+    BRANCH_ARRAY(muon_track_phi, nmuon_track, F)                    \
+    BRANCH_ARRAY(muon_track_r_abs, nmuon_track, F)                  \
+    BRANCH_ARRAY(muon_track_p_dca, nmuon_track, F)                  \
+    BRANCH_ARRAY(muon_track_sigma_p_dca, nmuon_track, F)            \
+    BRANCH_ARRAY(muon_track_delta_sagitta_p, nmuon_track, F)        \
+    BRANCH_ARRAY(muon_track_distance_sigma_slope_p, nmuon_track, F) \
+    BRANCH_ARRAY(muon_track_mc_truth_index, nmuon_track, s)         \
+    BRANCH(nmc_truth, l)                                            \
+    BRANCH_ARRAY(mc_truth_e, nmc_truth, F)                          \
+    BRANCH_ARRAY(mc_truth_pt, nmc_truth, F)                         \
+    BRANCH_ARRAY(mc_truth_eta, nmc_truth, F)                        \
+    BRANCH_ARRAY(mc_truth_phi, nmc_truth, F)                        \
+    BRANCH_ARRAY(mc_truth_pdg_code, nmc_truth, S)                   \
+    BRANCH_ARRAY(mc_truth_status, nmc_truth, b)                     \
+    BRANCH_ARRAY(mc_truth_generator_index, nmc_truth, b)            \
+    BRANCH(njet, l)                                                 \
+    BRANCH_ARRAY(jet_e_raw, njet, F)                                \
+    BRANCH_ARRAY(jet_e, njet, F)                                    \
+    BRANCH_ARRAY(jet_e_charged, njet, F)                            \
+    BRANCH_ARRAY(jet_pt_raw, njet, F)                               \
+    BRANCH_ARRAY(jet_pt, njet, F)                                   \
+    BRANCH_ARRAY(jet_pt_charged, njet, F)                           \
+    BRANCH_ARRAY(jet_eta_raw, njet, F)                              \
+    BRANCH_ARRAY(jet_eta, njet, F)                                  \
+    BRANCH_ARRAY(jet_phi, njet, F)                                  \
+    BRANCH_ARRAY(jet_area_raw, njet, F)                             \
+    BRANCH_ARRAY(jet_area, njet, F)                                 \
+    BRANCH_ARRAY(jet_emf_raw, njet, F)                              \
+    BRANCH_ARRAY(jet_emf, njet, F)                                  \
+    BRANCH_ARRAY(jet_e_truth, njet, F)                              \
+    BRANCH_ARRAY(jet_pt_truth, njet, F)                             \
+    BRANCH_ARRAY(jet_eta_truth, njet, F)                            \
+    BRANCH_ARRAY(jet_phi_truth, njet, F)                            \
+    BRANCH_ARRAY(jet_area_truth, njet, F)                           \
+    BRANCH_ARRAY(jet_emf_truth, njet, F)                            \
+    BRANCH_ARRAY2(jet_truth_index_z_truth, njet, 2, I)              \
+    BRANCH_ARRAY2(jet_truth_z_truth, njet, 2, F)                    \
+    BRANCH_ARRAY2(jet_truth_index_z_reco, njet, 2, I)               \
+    BRANCH_ARRAY2(jet_truth_z_reco, njet, 2, F)                     \
+    BRANCH(njet_truth, l)                                           \
+    BRANCH_ARRAY(jet_truth_e, njet_truth, F)                        \
+    BRANCH_ARRAY(jet_truth_pt, njet_truth, F)                       \
+    BRANCH_ARRAY(jet_truth_eta, njet_truth, F)                      \
+    BRANCH_ARRAY(jet_truth_phi, njet_truth, F)                      \
+    BRANCH_ARRAY(jet_truth_area, njet_truth, F)                     \
+    BRANCH_ARRAY(jet_truth_emf, njet_truth, F)                      \
 
 
 #define B Char_t
@@ -193,6 +203,8 @@ private:
 #undef L
 #undef l
 #undef O
+
+    Int_t _run_number_current; //!
 
     TFormula *_f1_ncluster_tpc_linear_pt_dep; //!
     std::vector<AliESDtrackCuts> _track_cut; //!
