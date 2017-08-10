@@ -14,7 +14,7 @@ To efficiently use available space, unsigned data types are used extensively. In
 
 | Name                 | Type               | Description                               |
 | -------------------- | ------------------ | ----------------------------------------- |
-| `id_git`             | `const char *`     | <span style="font-variant: small-caps">git</span> blob SHA1 hash of the analyzer |
+| `id_git`             | `const char *`     | Git blob SHA1 hash of the analyzer        |
 | `version_aliroot`    | `const char *`     | AliRoot version                           |
 | `version_aliphysics` | `const char *`     | AliPhysics version                        |
 | `version_jec`        | `const char *`     | Jet energy correction version             |
@@ -33,19 +33,19 @@ To efficiently use available space, unsigned data types are used extensively. In
 | `event_plane_q_v0`   | `double[3][2]`     | V0 event plane _Q_-vector _Q_<sub>_n_</sub>, _n_&nbsp;=&nbsp;1, &hellip; 3, for the directed/elliptic/triangular flows |
 | `has_misalignment_matrix` | `bool` | True if the EMCAL misalignment matrix was loaded |
 | `primary_vertex`     | `double[3]`        | The primary vertex position (cm)          |
-| `eg_signal_process_id` | `int`            | The code of the process of the current event, HepMC&rsquo;s `GenEvent::signal_process_id()` and e.g. <span style="font-variant: small-caps">pythia</span>8&rsquo;s `Info::code()` |
-| `eg_mpi`             | `int`              | The number of hard interactions of the current event, HepMC&rsquo;s `GenEvent::mpi()` and e.g. <span style="font-variant: small-caps">pythia</span>8&rsquo;s `Info::nMPI()` |
-| `eg_pt_hat`          | `float`            | The rest frame transverse momentum _p&#770;_<sub>&perp;</sub> (GeV/_c_) of the current event, e.g. <span style="font-variant: small-caps">pythia</span>8&rsquo;s `Info::pTHat()` |
-| `eg_cross_section`   | `float`            | Cross section _&sigma;_ (mb) of the current event, e.g. <span style="font-variant: small-caps">pythia</span>8&rsquo;s `Info::sigmaGen()` and <span style="font-variant: small-caps">herwig</span>7&rsquo;s `EventHandler::integratedXSec() / Units::millibarn` |
-| `eg_weight`          | `float`            | Weight of the current event, HepMC&rsquo;s `GenEvent::weights().front()` and e.g. <span style="font-variant: small-caps">pythia</span>8&rsquo;s `Info::weight()` and <span style="font-variant: small-caps">herwig</span>7&rsquo;s `EventHandler::integratedXSec() / Units::millibarn` |
+| `eg_signal_process_id` | `int`            | The code of the process of the current event, HepMC&rsquo;s `GenEvent::signal_process_id()` and e.g. PYTHIA 8&rsquo;s `Info::code()` |
+| `eg_mpi`             | `int`              | The number of hard interactions of the current event, HepMC&rsquo;s `GenEvent::mpi()` and e.g. PYTHIA 8&rsquo;s `Info::nMPI()` |
+| `eg_pt_hat`          | `float`            | The rest frame transverse momentum _p&#770;_<sub>&perp;</sub> (GeV/_c_) of the current event, e.g. PYTHIA 8&rsquo;s `Info::pTHat()` |
+| `eg_cross_section`   | `float`            | Cross section _&sigma;_ (mb) of the current event, e.g. PYTHIA 8&rsquo;s `Info::sigmaGen()` and HERWIG 7&rsquo;s `EventHandler::integratedXSec() / Units::millibarn` |
+| `eg_weight`          | `float`            | Weight of the current event, HepMC&rsquo;s `GenEvent::weights().front()` and e.g. PYTHIA 8&rsquo;s `Info::weight()` and HERWIG 7&rsquo;s `EventHandler::integratedXSec() / Units::millibarn` |
 | `eg_primary_vertex`  | `float[3]`         | The generator truth primary vertex, HepMC&rsquo;s `GenEvent::signal_process_vertex()->point3d()` |
 | `eg_ntrial`          | `int`              | Number of trial until the current event is generated (ALICE SW specific) |
 | `eg_scale_pdf`       | `float`            | The PDF scale _Q_ of the current event (not stored by ALICE SW) |
-| `eg_alpha_qcd`       | `float`            | The strong coupling constant, _&alpha;_<sub>S</sub>, of the current event, HepMC&rsquo;s `GenEvent::alphaQCD()` and e.g. <span style="font-variant: small-caps">pythia</span>8&rsquo;s `Info::alphaS()`, <span style="font-variant: small-caps">herwig</span>7&rsquo;s `EventHandler::lastAlphaS()` (not stored by ALICE SW) |
-| `eg_alpha_qed`       | `float`            | The electromagnetic coupling constant, _&alpha;_<sub>EM</sub>, of the current event, HepMC&rsquo;s `GenEvent::alphaQED()` and e.g. <span style="font-variant: small-caps">pythia</span>8&rsquo;s `Info::alphaEM()`, <span style="font-variant: small-caps">herwig</span>7&rsquo;s `EventHandler::lastAlphaEM()` (not stored by ALICE SW) |
-| `eg_pdf_id`          | `int[2]`           | The flavor code of the two incoming partons, HepMC&rsquo;s `PdfInfo::id1()`/`id2()` and e.g. <span style="font-variant: small-caps">pythia</span>8&rsquo;s `Info::id1pdf()`/`id2pdf()` (not stored by ALICE SW) |
-| `eg_pdf_x`           | `float[2]`         | The longitudinal momentum fraction _x_ of the two incoming partons, HepMC&rsquo;s `PdfInfo::x1()`/`x2()` and e.g. <span style="font-variant: small-caps">pythia</span>8&rsquo;s `Info::x1pdf()`/`x2pdf()`, <span style="font-variant: small-caps">herwig</span>7&rsquo;s `EventHandler::lastX1()`/`lastX2()` (not stored by ALICE SW) |
-| `eg_pdf_x_pdf`       | `float[2]`         | The parton densities _x_&nbsp;_f_(_x_, _Q_<sup>2</sup>) of the two incoming partons, HepMC&rsquo;s `PdfInfo::pdf1()`/`pdf2()` and e.g. <span style="font-variant: small-caps">pythia</span>8&rsquo;s `Info::pdf1()`/`pdf2()` (not stored by ALICE SW) |
+| `eg_alpha_qcd`       | `float`            | The strong coupling constant, _&alpha;_<sub>S</sub>, of the current event, HepMC&rsquo;s `GenEvent::alphaQCD()` and e.g. PYTHIA 8&rsquo;s `Info::alphaS()`, HERWIG 7&rsquo;s `EventHandler::lastAlphaS()` (not stored by ALICE SW) |
+| `eg_alpha_qed`       | `float`            | The electromagnetic coupling constant, _&alpha;_<sub>EM</sub>, of the current event, HepMC&rsquo;s `GenEvent::alphaQED()` and e.g. PYTHIA 8&rsquo;s `Info::alphaEM()`, HERWIG 7&rsquo;s `EventHandler::lastAlphaEM()` (not stored by ALICE SW) |
+| `eg_pdf_id`          | `int[2]`           | The flavor code of the two incoming partons, HepMC&rsquo;s `PdfInfo::id1()`/`id2()` and e.g. PYTHIA 8&rsquo;s `Info::id1pdf()`/`id2pdf()` (not stored by ALICE SW) |
+| `eg_pdf_x`           | `float[2]`         | The longitudinal momentum fraction _x_ of the two incoming partons, HepMC&rsquo;s `PdfInfo::x1()`/`x2()` and e.g. PYTHIA 8&rsquo;s `Info::x1pdf()`/`x2pdf()`, HERWIG 7&rsquo;s `EventHandler::lastX1()`/`lastX2()` (not stored by ALICE SW) |
+| `eg_pdf_x_pdf`       | `float[2]`         | The parton densities _x_&nbsp;_f_(_x_, _Q_<sup>2</sup>) of the two incoming partons, HepMC&rsquo;s `PdfInfo::pdf1()`/`pdf2()` and e.g. PYTHIA 8&rsquo;s `Info::pdf1()`/`pdf2()` (not stored by ALICE SW) |
 
 ## EMCAL Clusters
 
