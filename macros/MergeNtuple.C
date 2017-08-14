@@ -19,7 +19,7 @@ s/\"\\\([0-9]\\+\\\)\"/\\1/g\;s/^\"\"\$//))"; exit 0
 void chain_add_glob(TChain &chain, const char *pattern,
                     int nentries = -1)
 {
-    TString command = TString("ls -1 ") + pattern;
+    const TString command = TString("ls -1 ") + pattern;
     FILE *pipe = gSystem->OpenPipe(command, "r");
 
     if (pipe == NULL) {
@@ -57,24 +57,21 @@ void search_ntuple(TObjArray &dir_name, TObjArray &dir_tree_name,
     }
 
     TFile *test_file = test_chain.GetFile();
-    TList *key_list_1 = test_file->GetListOfKeys();
+    const TList *key_list_1 = test_file->GetListOfKeys();
 
     for (Int_t i = 0; i < key_list_1->GetEntries(); i++) {
-        TDirectoryFile *dir_file = (TDirectoryFile *)
+        const TDirectoryFile *dir_file = (TDirectoryFile *)
             test_file->Get(key_list_1->At(i)->GetName());
 
         if (strcmp(dir_file->ClassName(), "TDirectoryFile") != 0) {
             continue;
         }
 
-        TList *key_list_2 = dir_file->GetListOfKeys();
+        const TList *key_list_2 = dir_file->GetListOfKeys();
 
         for (Int_t j = 0; j < key_list_2->GetEntries(); j++) {
-            TString n = dir_file->GetName();
-
-            n += "/";
-            n += key_list_2->At(j)->GetName();
-
+            const TString n = dir_file->GetName() + TString("/") +
+                key_list_2->At(j)->GetName();
             const TTree *t = (TTree *)test_file->Get(n);
 
             if (t != NULL &&
@@ -99,7 +96,7 @@ void merge_ntuple(const char *output_filename, TObjArray &dir_name,
     TObjArray chain;
 
     for (Int_t i = 0; i < dir_tree_name.GetEntries(); i++) {
-        TString *dtn = (TString *)dir_tree_name.At(i);
+        const TString *dtn = (TString *)dir_tree_name.At(i);
 
         chain.AddLast((TObject *)(new TChain(dtn->Data())));
         chain_add_glob(*((TChain *)chain.Last()), glob);
@@ -112,8 +109,8 @@ void merge_ntuple(const char *output_filename, TObjArray &dir_name,
     for (Int_t i = 0; i < dir_tree_name.GetEntries(); i++) {
         output_file.cd();
 
-        TString *dn = (TString *)dir_name.At(i);
-        TString *dtn = (TString *)dir_tree_name.At(i);
+        const TString *dn = (TString *)dir_name.At(i);
+        const TString *dtn = (TString *)dir_tree_name.At(i);
 
         fprintf(stderr, "Processing %s... ", dtn->Data());
 
