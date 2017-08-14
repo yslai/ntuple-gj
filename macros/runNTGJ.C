@@ -1,7 +1,13 @@
-#!/usr/bin/gawk {system("root -b -q " FILENAME); exit;}
-// -*- mode: c++; -*-
+#if 0
+set +o posix; function join_by { local d=$1; shift; echo -n "$1";
+    shift; printf "%s" "${@/#/$d}"; }
+root=root; root6="$HOME/alice/sw/slc7_x86-64/ROOT/root6-1/bin/root";
+[[ -x "$root6" ]] && root="$root6"; exec $root -l -b -q \
+    "$0($(join_by \",\" \"$*\" | /usr/bin/sed \
+s/\"\\\([0-9]\\+\\\)\"/\\1/g\;s/^\"\"\$//))"; exit 0
+#endif
 
-void runNTGJ(const char *run_mode = "test")
+void runNTGJ(const char *run_mode = "full")
 {
 	gROOT->ProcessLine(".include $ROOTSYS/include");
 	gROOT->ProcessLine(".include $ALICE_ROOT/include");
@@ -58,7 +64,7 @@ void runNTGJ(const char *run_mode = "test")
 	plugin->SetAdditionalLibs(
 		"AliAnalysisTaskNTGJ.h "
 		"AliAnalysisTaskNTGJ.cxx "
-		"bad_channel.h "
+		"special_function.h emcal.h isolation.h jet.h bad_channel.h "
 		"eLut.cpp eLut.h half.cpp halfExport.h halfFunction.h "
 		"half.h halfLimits.h toFloat.h "
 		"libCGAL.so libfastjet.so libsiscone.so "
@@ -90,11 +96,18 @@ void runNTGJ(const char *run_mode = "test")
 		-1
 	};
 
+	const int run_number_lhc16h2a_bis[] = {
+ 	
+		246994,
+
+		-1
+	};
+
 	const int *run_number;
 
-	plugin->SetGridDataDir("/alice/sim/2016/LHC16c2/1");
+	plugin->SetGridDataDir("/alice/sim/2016/LHC16h2a_bis/1");
 	plugin->SetDataPattern("*/*/AliESDs.root");
-	run_number = run_number_lhc16c2;
+	run_number = run_number_lhc16h2a_bis;
 
 	// plugin->SetGridDataDir("/alice/data/2015/LHC15o");
 	// plugin->SetDataPattern("/pass1/*/AliESDs.root");
