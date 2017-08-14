@@ -1,11 +1,12 @@
 #if 0
 set +o posix; function join_by { local d=$1; shift; echo -n "$1";
     shift; printf "%s" "${@/#/$d}"; }
-root=root; root6="$HOME/alice/sw/slc7_x86-64/ROOT/root6-1/bin/root";
-[[ -x "$root6" ]] && root="$root6"; exec $root -l -b -q \
-    "$0($(join_by \",\" \"$*\" | /usr/bin/sed \
-s/\"\\\([0-9]\\+\\\)\"/\\1/g\;s/^\"\"\$//))"; exit 0
+root=root; exec $root -l -b -q "$0($(join_by \",\" \"$*\" | \
+/usr/bin/sed s/\"\\\([0-9]\\+\\\)\"/\\1/g\;s/^\"\"\$//))"; exit 0
 #endif
+
+#include <TROOT.h>
+#include <TSystem.h>
 
 void runNTGJ(const char *run_mode = "full")
 {
