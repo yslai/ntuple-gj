@@ -14,54 +14,39 @@ s/\"\\\([0-9]\\+\\\)\"/\\1/g\;s/^\"\"\$//))"; exit 0
 #include <TSystem.h>
 #include <TChain.h>
 #include <TFile.h>
+#include <linux/limits.h>
 
-TString fix_tchain_glob(const char *glob, const char *output_filename)
+void chain_add_glob(TChain &chain, const char *pattern,
+					int nentries = -1)
 {
-    // A distinctively named temporary subdirectory/symbolic links for
-    // merging. Note: Only one level of subdirectory will get cleaned
-    // up in clean_up().
+	TString command = TString("ls ") + pattern;
+	FILE *pipe = gSystem->OpenPipe(command, "r");
+	char line[PATH_MAX + 1];
 
-    const TString temp_base = "merge_temp/merge_temp_" +
-        TString(gSystem->BaseName(output_filename)).
-        ReplaceAll(".root", "");
-
-    if (temp_base.Index("/") != -1) {
-        if (gSystem->AccessPathName(gSystem->DirName(temp_base))) {
-            gSystem->Unlink(gSystem->DirName(temp_base));
-        }
-        gSystem->mkdir(gSystem->DirName(temp_base), kTRUE);
-    }
-    gSystem->Exec(TString("i=0; for f in ") + glob +
-                  "; do ln -sf \"$(readlink -f \"$f\")\" " +
-                  temp_base + "_\"$(printf %03d \"$i\")\".root; i=" +
-				  "$(($i + 1)); done");
-
-    return temp_base;
-}
-
-void clean_up(TString temp_base)
-{
-    gSystem->Exec(TString("for f in ") + temp_base +
-                  "_*.root; do [ -L \"$f\" ] && rm -f \"$f\"; done");
-    if (temp_base.Index("/") != -1) {
-        gSystem->Unlink(gSystem->DirName(temp_base));
-    }
+	while (fgets(line, PATH_MAX + 1, pipe) != NULL) {
+		line[PATH_MAX] = '\0';
+		strtok(line, "\n");
+		// Passing Long64_t does not appear to be handled gracefully
+		// by ROOT
+		if (nentries == -1) {
+			chain.Add(line);
+		}
+		else {
+			chain.Add(line, nentries);
+		}
+	}
 }
 
 void search_ntuple(TObjArray &dir_name, TObjArray &dir_tree_name,
-                   const char *glob, Bool_t extended_glob,
-                   TString temp_base)
+                   const char *glob)
 {
     TChain test_chain("AliAnalysisTaskNTGJ/_tree_event");
 
     fprintf(stderr, "Search for ntuples... ");
 	// Maximum one event as to avoid loading all files
-    test_chain.Add(glob, 1);
+    chain_add_glob(test_chain, glob, 1);
     if (!(test_chain.GetEntries() > 0)) {
         fprintf(stderr, "error: no entries found, abort.\n");
-        if (extended_glob) {
-            clean_up(temp_base);
-        }
         gSystem->Exit(1);
     }
 
@@ -111,7 +96,7 @@ void merge_ntuple(const char *output_filename, TObjArray &dir_name,
         TString *dtn = (TString *)dir_tree_name.At(i);
 
         chain.AddLast((TObject *)(new TChain(dtn->Data())));
-        ((TChain *)chain.Last())->Add(glob);
+        chain_add_glob(*((TChain *)chain.Last()), glob);
         fprintf(stderr, "Created merged ntuple %d: %s\n", i,
                 dtn->Data());
     }
@@ -158,30 +143,10 @@ void MergeNtuple(
 
 	fprintf(stderr, "Merging %s => %s\n", glob, output_filename);
 
-    TString temp_base;
-    TString *new_glob = NULL;
-
-    if (extended_glob) {
-        temp_base = fix_tchain_glob(glob, output_filename);
-
-        TString *new_glob = new TString(temp_base + "_*.root");
-
-        glob = *new_glob;
-        fprintf(stderr, "New glob: %s\n", glob);
-    }
-
     TObjArray dir_name;
     TObjArray dir_tree_name;
 
-    search_ntuple(dir_name, dir_tree_name, glob, extended_glob,
-                  temp_base);
+    search_ntuple(dir_name, dir_tree_name, glob);
     merge_ntuple(output_filename, dir_name, dir_tree_name, glob);
-
-    if (extended_glob) {
-        clean_up(temp_base);
-        if (new_glob != NULL) {
-            delete new_glob;
-        }
-    }
     gSystem->Exit(0);
 }
