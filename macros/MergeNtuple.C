@@ -17,24 +17,30 @@ s/\"\\\([0-9]\\+\\\)\"/\\1/g\;s/^\"\"\$//))"; exit 0
 #include <linux/limits.h>
 
 void chain_add_glob(TChain &chain, const char *pattern,
-					int nentries = -1)
+                    int nentries = -1)
 {
-	TString command = TString("ls ") + pattern;
-	FILE *pipe = gSystem->OpenPipe(command, "r");
-	char line[PATH_MAX + 1];
+    TString command = TString("ls -1 ") + pattern;
+    FILE *pipe = gSystem->OpenPipe(command, "r");
 
-	while (fgets(line, PATH_MAX + 1, pipe) != NULL) {
-		line[PATH_MAX] = '\0';
-		strtok(line, "\n");
-		// Passing Long64_t does not appear to be handled gracefully
-		// by ROOT
-		if (nentries == -1) {
-			chain.Add(line);
-		}
-		else {
-			chain.Add(line, nentries);
-		}
-	}
+    if (pipe == NULL) {
+        return;
+    }
+
+    char line[PATH_MAX + 1];
+
+    while (fgets(line, PATH_MAX + 1, pipe) != NULL) {
+        line[PATH_MAX] = '\0';
+        line[strcspn(line, "\r\n")] = '\0';
+        // Passing Long64_t does not appear to be handled gracefully
+        // by ROOT
+        if (nentries == -1) {
+            chain.Add(line);
+        }
+        else {
+            chain.Add(line, nentries);
+        }
+    }
+    gSystem->ClosePipe(pipe);
 }
 
 void search_ntuple(TObjArray &dir_name, TObjArray &dir_tree_name,
@@ -43,7 +49,7 @@ void search_ntuple(TObjArray &dir_name, TObjArray &dir_tree_name,
     TChain test_chain("AliAnalysisTaskNTGJ/_tree_event");
 
     fprintf(stderr, "Search for ntuples... ");
-	// Maximum one event as to avoid loading all files
+    // Maximum one event as to avoid loading all files
     chain_add_glob(test_chain, glob, 1);
     if (!(test_chain.GetEntries() > 0)) {
         fprintf(stderr, "error: no entries found, abort.\n");
@@ -134,14 +140,14 @@ void MergeNtuple(
     const char *glob = NULL, const char *output_filename = NULL,
     const bool extended_glob = true)
 {
-	if (glob == NULL || output_filename == NULL) {
-		fprintf(stderr, "Usage: MergeNtuple <glob> "
-				"<output_filename>\nNote to quote <glob>, e.g. "
-				"\"lhc15o/*/AnalysisResults.root\"\n");
-		gSystem->Exit(1);
-	}
+    if (glob == NULL || output_filename == NULL) {
+        fprintf(stderr, "Usage: MergeNtuple <glob> "
+                "<output_filename>\nNote to quote <glob>, e.g. "
+                "\"lhc15o/*/AnalysisResults.root\"\n");
+        gSystem->Exit(1);
+    }
 
-	fprintf(stderr, "Merging %s => %s\n", glob, output_filename);
+    fprintf(stderr, "Merging %s => %s\n", glob, output_filename);
 
     TObjArray dir_name;
     TObjArray dir_tree_name;
