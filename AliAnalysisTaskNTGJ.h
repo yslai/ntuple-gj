@@ -17,8 +17,8 @@
 #include <AliAnalysisAlien.h>
 
 #define EMCAL_NCELL         17664
-
 #define NTRIGGER_CLASS_MAX  100 // = AliESDRun::kNTriggerClasses
+
 #define NCLUSTER_MAX        (1U << 17)
 #define NTRACK_MAX          (1U << 17)
 #define NMC_TRUTH_MAX       (1U << 17)
@@ -71,10 +71,27 @@ private:
     BRANCH_ARRAY(cluster_tof, ncluster, F)                          \
     BRANCH_ARRAY(cluster_ncell, ncluster, I)                        \
     BRANCH_ARRAY(cluster_cell_id_max, ncluster, s)                  \
-    BRANCH_ARRAY(cell_amplitude, 17664, F)                          \
-    BRANCH_ARRAY(cell_time, 17664, F)                               \
-    BRANCH_ARRAY(cell_mc_truth_index, 17664, s)                     \
-    BRANCH_ARRAY(cell_efrac, 17664, b)                              \
+    BRANCH_ARRAY(cluster_e_max, ncluster, F)						\
+    BRANCH_ARRAY(cluster_e_cross, ncluster, F)						\
+    BRANCH_ARRAY(cluster_nmc_truth, ncluster, i)					\
+    BRANCH_ARRAY2(cluster_mc_truth_index, ncluster, 32, s)			\
+    BRANCH_ARRAY(cluster_iso_tpc_01, ncluster, F)					\
+    BRANCH_ARRAY(cluster_iso_tpc_02, ncluster, F)					\
+    BRANCH_ARRAY(cluster_iso_tpc_03, ncluster, F)					\
+    BRANCH_ARRAY(cluster_iso_tpc_04, ncluster, F)					\
+    BRANCH_ARRAY(cluster_frixione_tpc_04_02, ncluster, F)			\
+    BRANCH_ARRAY(cluster_frixione_tpc_04_05, ncluster, F)			\
+    BRANCH_ARRAY(cluster_frixione_tpc_04_10, ncluster, F)			\
+    BRANCH_ARRAY(cluster_iso_01_truth, ncluster, F)					\
+    BRANCH_ARRAY(cluster_iso_02_truth, ncluster, F)					\
+    BRANCH_ARRAY(cluster_iso_03_truth, ncluster, F)					\
+    BRANCH_ARRAY(cluster_iso_04_truth, ncluster, F)					\
+    BRANCH_ARRAY(cluster_frixione_04_02_truth, ncluster, F)			\
+    BRANCH_ARRAY(cluster_frixione_04_05_truth, ncluster, F)			\
+    BRANCH_ARRAY(cluster_frixione_04_10_truth, ncluster, F)			\
+    BRANCH_ARRAY(cell_energy, 17664, F)                             \
+    BRANCH_ARRAY(cell_tof, 17664, F)								\
+    BRANCH_ARRAY(cell_mc_truth_index, 17664, s)						\
     BRANCH(ntrack, l)                                               \
     BRANCH_ARRAY(track_e, ntrack, F)                                \
     BRANCH_ARRAY(track_pt, ntrack, F)                               \
@@ -91,6 +108,8 @@ private:
     BRANCH_ARRAY(track_dca_xy, ntrack, F)                           \
     BRANCH_ARRAY(track_dca_z, ntrack, F)                            \
     BRANCH_ARRAY(track_mc_truth_index, ntrack, s)                   \
+    BRANCH_ARRAY(track_voronoi_area, ntrack, F)						\
+    BRANCH_ARRAY(track_voronoi_diameter, ntrack, F)					\
     BRANCH(nmuon_track, l)                                          \
     BRANCH_ARRAY(muon_track_e, nmuon_track, F)                      \
     BRANCH_ARRAY(muon_track_pt, nmuon_track, F)                     \
@@ -110,10 +129,21 @@ private:
     BRANCH_ARRAY(mc_truth_pdg_code, nmc_truth, S)                   \
     BRANCH_ARRAY(mc_truth_status, nmc_truth, b)                     \
     BRANCH_ARRAY(mc_truth_generator_index, nmc_truth, b)            \
+    BRANCH(debug_njet_ue_estimation, l)                             \
+    BRANCH_ARRAY(debug_jet_ue_estimation_pt_raw,					\
+				 debug_njet_ue_estimation, F)						\
+    BRANCH_ARRAY(debug_jet_ue_estimation_eta_raw,					\
+				 debug_njet_ue_estimation, F)						\
+    BRANCH_ARRAY(debug_jet_ue_estimation_phi_raw,					\
+				 debug_njet_ue_estimation, F)						\
+    BRANCH_ARRAY(debug_jet_ue_estimation_area_raw,					\
+				 debug_njet_ue_estimation, F)						\
     BRANCH(njet, l)                                                 \
+    BRANCH_ARRAY(debug_jet_tag_dr_square, njet, F)					\
     BRANCH_ARRAY(jet_e_raw, njet, F)                                \
     BRANCH_ARRAY(jet_e, njet, F)                                    \
     BRANCH_ARRAY(jet_e_charged, njet, F)                            \
+    BRANCH_ARRAY(jet_pt_raw_ue, njet, F)                            \
     BRANCH_ARRAY(jet_pt_raw, njet, F)                               \
     BRANCH_ARRAY(jet_pt, njet, F)                                   \
     BRANCH_ARRAY(jet_pt_charged, njet, F)                           \
@@ -124,16 +154,25 @@ private:
     BRANCH_ARRAY(jet_area, njet, F)                                 \
     BRANCH_ARRAY(jet_emf_raw, njet, F)                              \
     BRANCH_ARRAY(jet_emf, njet, F)                                  \
+    BRANCH_ARRAY(jet_multiplicity_raw, njet, s)                     \
+    BRANCH_ARRAY(jet_multiplicity, njet, F)                         \
+    BRANCH_ARRAY2(jet_width_sigma_raw, njet, 2, F)					\
+    BRANCH_ARRAY2(jet_width_sigma, njet, 2, F)						\
+    BRANCH_ARRAY(jet_ptd_raw, njet, F)								\
+    BRANCH_ARRAY(jet_ptd, njet, F)									\
+    BRANCH_ARRAY2(jet_truth_index_z_truth, njet, 2, I)              \
+    BRANCH_ARRAY2(jet_truth_z_truth, njet, 2, F)                    \
+    BRANCH_ARRAY2(jet_truth_index_z_reco, njet, 2, I)               \
+    BRANCH_ARRAY2(jet_truth_z_reco, njet, 2, F)                     \
     BRANCH_ARRAY(jet_e_truth, njet, F)                              \
     BRANCH_ARRAY(jet_pt_truth, njet, F)                             \
     BRANCH_ARRAY(jet_eta_truth, njet, F)                            \
     BRANCH_ARRAY(jet_phi_truth, njet, F)                            \
     BRANCH_ARRAY(jet_area_truth, njet, F)                           \
     BRANCH_ARRAY(jet_emf_truth, njet, F)                            \
-    BRANCH_ARRAY2(jet_truth_index_z_truth, njet, 2, I)              \
-    BRANCH_ARRAY2(jet_truth_z_truth, njet, 2, F)                    \
-    BRANCH_ARRAY2(jet_truth_index_z_reco, njet, 2, I)               \
-    BRANCH_ARRAY2(jet_truth_z_reco, njet, 2, F)                     \
+    BRANCH_ARRAY(jet_multiplicity_truth, njet, s)					\
+    BRANCH_ARRAY2(jet_width_sigma_truth, njet, 2, F)				\
+    BRANCH_ARRAY(jet_ptd_truth, njet, F)                            \
     BRANCH(njet_truth, l)                                           \
     BRANCH_ARRAY(jet_truth_e, njet_truth, F)                        \
     BRANCH_ARRAY(jet_truth_pt, njet_truth, F)                       \
@@ -141,6 +180,11 @@ private:
     BRANCH_ARRAY(jet_truth_phi, njet_truth, F)                      \
     BRANCH_ARRAY(jet_truth_area, njet_truth, F)                     \
     BRANCH_ARRAY(jet_truth_emf, njet_truth, F)                      \
+    BRANCH_ARRAY(jet_truth_multiplicity, njet, s)					\
+    BRANCH_ARRAY2(jet_truth_width_sigma, njet, 2, F)				\
+    BRANCH_ARRAY(jet_truth_ptd, njet, F)							\
+    BRANCH_ARRAY(met_tpc, 2, D)										\
+    BRANCH_ARRAY(met_truth, 2, D)									\
 
 
 #define B Char_t
@@ -160,6 +204,7 @@ private:
 #define ntrack NTRACK_MAX
 #define nmuon_track NTRACK_MAX
 #define nmc_truth NMC_TRUTH_MAX
+#define debug_njet_ue_estimation NJET_MAX
 #define njet NJET_MAX
 #define njet_truth NJET_MAX
 #define full_emcal_ncell EMCAL_NCELL
@@ -187,6 +232,7 @@ private:
 #undef ncluster
 #undef ntrack
 #undef nmc_truth
+#undef debug_njet_ue_estimation
 #undef njet
 #undef njet_truth
 #undef full_emcal_ncell

@@ -8,6 +8,11 @@ The following C style notation are used below to describe the less obvious data 
 * C string array: `const char (*)[]`
 * IEEE 754-2008 binary16 (&ldquo;half precision&rdquo;) stored in binary32: `__fp16`
 
+Otherwise LP64 is assumed, i.e.:
+
+* 32 bit signed integer: `int`
+* 64 bit signed integer: `long`
+
 To efficiently use available space, unsigned data types are used extensively. Invalid or empty entries, e.g. the Monte Carlo truth particle index for secondary tracks, are indexed by the largest possible value of the data type (or what would be the equivalent value for &minus;1 in two&rsquo;s complement signed representation). For example with `unsigned short`, 2<sup>16</sup>&nbsp;&minus;&nbsp;1&nbsp;=&nbsp;65535 means an invalid or empty entry, but 65534 is an actual index.
 
 ## Run/Event Metadata
@@ -20,7 +25,7 @@ To efficiently use available space, unsigned data types are used extensively. In
 | `version_jec`        | `const char *`     | Jet energy correction version             |
 | `grid_data_dir`      | `const char *`     | AliEn data production directory           |
 | `grid_data_pattern`  | `const char *`     | AliEn data pattern for the &ldquo;find&rdquo; command |
-| `beam_particle`      | `int[2]`           | _Z_&nbsp;+&nbsp;1000&nbsp;_A_ for each beam particle |
+| `beam_particle`      | `int[2]`           | _Z_&nbsp;+&nbsp;1000&#8239;_A_ for each beam particle |
 | `ntrigger_class`     | `unsigned long`    | Number of trigger classes                 |
 | `trigger_class`      | `const char (*)[ntrigger_class]` | Trigger class names         |
 | `run_number`         | `int`              | ALICE run number                          |
@@ -31,13 +36,13 @@ To efficiently use available space, unsigned data types are used extensively. In
 | `centrality`         | `float[9]`         | Centrality using: {V0M, CL0, CL1, V0Mplus05, V0Mplus10, V0Mminus05, V0Mminus10, SPDClustersCorr, SPDTracklets} |
 | `event_plane_psi_v0` | `float[3]`         | V0 event plane angle &Psi;<sub>_n_</sub>, _n_&nbsp;=&nbsp;1, &hellip; 3, for the directed/elliptic/triangular flows  |
 | `event_plane_q_v0`   | `double[3][2]`     | V0 event plane _Q_-vector _Q_<sub>_n_</sub>, _n_&nbsp;=&nbsp;1, &hellip; 3, for the directed/elliptic/triangular flows |
-| `has_misalignment_matrix` | `bool` | True if the EMCAL misalignment matrix was loaded |
+| `has_misalignment_matrix` | `bool`        | True if the EMCAL misalignment matrix was loaded |
 | `primary_vertex`     | `double[3]`        | The primary vertex position (cm)          |
 | `eg_signal_process_id` | `int`            | The code of the process of the current event, HepMC&rsquo;s `GenEvent::signal_process_id()` and e.g. PYTHIA 8&rsquo;s `Info::code()` |
 | `eg_mpi`             | `int`              | The number of hard interactions of the current event, HepMC&rsquo;s `GenEvent::mpi()` and e.g. PYTHIA 8&rsquo;s `Info::nMPI()` |
 | `eg_pt_hat`          | `float`            | The rest frame transverse momentum _p&#770;_<sub>&perp;</sub> (GeV/_c_) of the current event, e.g. PYTHIA 8&rsquo;s `Info::pTHat()` |
 | `eg_cross_section`   | `float`            | Cross section _&sigma;_ (mb) of the current event, e.g. PYTHIA 8&rsquo;s `Info::sigmaGen()` and HERWIG 7&rsquo;s `EventHandler::integratedXSec() / Units::millibarn` |
-| `eg_weight`          | `float`            | Weight of the current event, HepMC&rsquo;s `GenEvent::weights().front()` and e.g. PYTHIA 8&rsquo;s `Info::weight()` and HERWIG 7&rsquo;s `EventHandler::integratedXSec() / Units::millibarn` |
+| `eg_weight`          | `float`            | Weight of the current event, HepMC&rsquo;s `GenEvent::weights().front()` and e.g. PYTHIA 8&rsquo;s `Info::weight()` and HERWIG 7&rsquo;s `EventHandler::histogramScale()` |
 | `eg_primary_vertex`  | `float[3]`         | The generator truth primary vertex, HepMC&rsquo;s `GenEvent::signal_process_vertex()->point3d()` |
 | `eg_ntrial`          | `int`              | Number of trial until the current event is generated (ALICE SW specific) |
 | `eg_scale_pdf`       | `float`            | The scale _Q_ for the of the current event, as used for the calculation of parton distribution functions (PDFs), HepMC&rsquo;s `GenEvent::event_scale()` and e.g. PYTHIA 8&rsquo;s `Info::scalup()` (not stored by ALICE SW) |
@@ -45,33 +50,52 @@ To efficiently use available space, unsigned data types are used extensively. In
 | `eg_alpha_qed`       | `float`            | The electromagnetic coupling constant, _&alpha;_<sub>EM</sub>, of the current event, HepMC&rsquo;s `GenEvent::alphaQED()` and e.g. PYTHIA 8&rsquo;s `Info::alphaEM()`, HERWIG 7&rsquo;s `EventHandler::lastAlphaEM()` (not stored by ALICE SW) |
 | `eg_pdf_id`          | `int[2]`           | The flavor code of the two incoming partons, HepMC&rsquo;s `PdfInfo::id1()`/`id2()` and e.g. PYTHIA 8&rsquo;s `Info::id1pdf()`/`id2pdf()` (not stored by ALICE SW) |
 | `eg_pdf_x`           | `float[2]`         | The longitudinal momentum fraction _x_ of the two incoming partons, HepMC&rsquo;s `PdfInfo::x1()`/`x2()` and e.g. PYTHIA 8&rsquo;s `Info::x1pdf()`/`x2pdf()`, HERWIG 7&rsquo;s `EventHandler::lastX1()`/`lastX2()` (not stored by ALICE SW) |
-| `eg_pdf_x_pdf`       | `float[2]`         | The parton densities _x_&nbsp;_f_(_x_, _Q_<sup>2</sup>) of the two incoming partons, HepMC&rsquo;s `PdfInfo::pdf1()`/`pdf2()` and e.g. PYTHIA 8&rsquo;s `Info::pdf1()`/`pdf2()` (not stored by ALICE SW) |
+| `eg_pdf_x_pdf`       | `float[2]`         | The parton densities _x_&#8239;_f_(_x_, _Q_<sup>2</sup>) of the two incoming partons, HepMC&rsquo;s `PdfInfo::pdf1()`/`pdf2()` and e.g. PYTHIA 8&rsquo;s `Info::pdf1()`/`pdf2()` (not stored by ALICE SW) |
 
 ## EMCAL Clusters
 
-| Name                  | Type                       | Description                                                              |
-| --------------------- | -------------------------- | ------------------------------------------------------------------------ |
-| `ncluster`            | `unsigned long`            | Number of EMCAL clusters                                                 |
-| `cluster_e`           | `__fp16[ncluster]`         | Cluster energy _E_ (GeV) (with masses from _dE_/_dx_)                    |
-| `cluster_pt`          | `__fp16[ncluster]`         | Cluster transverse momentum _p_<sub>T</sub> (GeV/_c_)                    |
-| `cluster_eta`         | `__fp16[ncluster]`         | Cluster pseudorapidity _&eta;_                                           |
-| `cluster_phi`         | `__fp16[ncluster]`         | Cluster azimuth _&straightphi;_                                          |
-| `cluster_m02`         | `__fp16[ncluster]`         | Minor axis of the cluster dispersion (_&lambda_<sub>0</sub>)<sup>2</sup> |
-| `cluster_m20`         | `__fp16[ncluster]`         | Major axis of the cluster dispersion (_&lambda_<sub>1</sub>)<sup>2</sup> |
-| `cluster_tof`         | `__fp16[ncluster]`         | Cluster time-of-flight _T_<sub>0</sub> (s)                               |
-| `cluster_ncell`       | `int[ncluster]`            | Number of cells (towers) in the cluster                                  |
-| `cluster_cell_id_max` | `unsigned short[ncluster]` | Index of the cell (tower) in the cluster with the highest energy         |
+| Name                     | Type                           | Description                                                              |
+| ------------------------ | ------------------------------ | ------------------------------------------------------------------------ |
+| `ncluster`               | `unsigned long`                | Number of EMCAL clusters                                                 |
+| `cluster_e`              | `__fp16[ncluster]`             | Cluster energy _E_ (GeV) (with masses from _dE_/_dx_)                    |
+| `cluster_pt`             | `__fp16[ncluster]`             | Cluster transverse momentum _p_<sub>T</sub> (GeV/_c_)                    |
+| `cluster_eta`            | `__fp16[ncluster]`             | Cluster pseudorapidity _&eta;_                                           |
+| `cluster_phi`            | `__fp16[ncluster]`             | Cluster azimuth _&straightphi;_                                          |
+| `cluster_m02`            | `__fp16[ncluster]`             | Minor axis of the cluster dispersion (_&lambda;_<sub>0</sub>)<sup>2</sup> |
+| `cluster_m20`            | `__fp16[ncluster]`             | Major axis of the cluster dispersion (_&lambda;_<sub>1</sub>)<sup>2</sup> |
+| `cluster_tof`            | `__fp16[ncluster]`             | Cluster time-of-flight _T_<sub>0</sub> (s)                               |
+| `cluster_ncell`          | `int[ncluster]`                | Number of cells (towers) in the cluster                                  |
+| `cluster_cell_id_max`    | `unsigned short[ncluster]`     | Index of the cell (tower) in the cluster with the highest energy         |
+| `cluster_e_max`          | `__fp16[ncluster]`             | Energy of the cell (tower) in the cluster with the highest energy (GeV)  |
+| `cluster_e_cross`        | `__fp16[ncluster]`             | Energy sum of the 4 cross-shaped cells (towers) adjacent to the cell in the cluster with the highest energy (GeV) |
+| `cluster_nmc_truth`      | `unsigned short[ncluster]`     | Number of matched Monte Carlo (MC) truth particles, in `mc_truth_`*      |
+| `cluster_mc_truth_index` | `unsigned short[ncluster][32]` | Indices of the matched MC truth particles, in `mc_truth_`*               |
+| `cluster_iso_tpc_01`     | `__fp16[ncluster]`             | TPC isolation transverse momentum _p_<sub>T,iso</sub> (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.1 |
+| `cluster_iso_tpc_02`     | `__fp16[ncluster]`             | TPC isolation transverse momentum _p_<sub>T,iso</sub> (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.2 |
+| `cluster_iso_tpc_03`     | `__fp16[ncluster]`             | TPC isolation transverse momentum _p_<sub>T,iso</sub> (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.3 |
+| `cluster_iso_tpc_04`     | `__fp16[ncluster]`             | TPC isolation transverse momentum _p_<sub>T,iso</sub> (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.4 |
+| `cluster_frixione_tpc_04_02` | `__fp16[ncluster]`         | TPC Frixione _p_<sub>T,iso</sub>_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_R_) (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;0.2 |
+| `cluster_frixione_tpc_04_05` | `__fp16[ncluster]`         | TPC Frixione _p_<sub>T,iso</sub>_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_R_) (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;0.5 |
+| `cluster_frixione_tpc_04_10` | `__fp16[ncluster]`         | TPC Frixione _p_<sub>T,iso</sub>_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_R_) (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;1.0 |
+| `cluster_iso_01_truth`   | `__fp16[ncluster]`             | MC truth isolation transverse momentum _p_<sub>T,iso</sub> (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.1 |
+| `cluster_iso_02_truth`   | `__fp16[ncluster]`             | MC truth isolation transverse momentum _p_<sub>T,iso</sub> (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.2 |
+| `cluster_iso_03_truth`   | `__fp16[ncluster]`             | MC truth isolation transverse momentum _p_<sub>T,iso</sub> (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.3 |
+| `cluster_iso_04_truth`   | `__fp16[ncluster]`             | MC truth isolation transverse momentum _p_<sub>T,iso</sub> (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.4 |
+| `cluster_frixione_04_02_truth` | `__fp16[ncluster]`       | MC truth Frixione _p_<sub>T,iso</sub>_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_R_) (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;0.2 |
+| `cluster_frixione_04_05_truth` | `__fp16[ncluster]`       | MC truth Frixione _p_<sub>T,iso</sub>_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_R_) (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;0.5 |
+| `cluster_frixione_04_10_truth` | `__fp16[ncluster]`       | MC truth Frixione _p_<sub>T,iso</sub>_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_R_) (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;1.0 |
+
+In the definitions above, _R_<sub>0</sub>&nbsp;=&nbsp;_&delta;_<sub>0</sub> in S. Frixione&rsquo;s original notation. To apply the Frixione isolation _p_<sub>T,iso</sub>&nbsp;<&nbsp;&#120039;(_R_), cut on _p_<sub>T,iso</sub>_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_R_)&nbsp;<&nbsp;_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>.
 
 ## EMCAL Cells
 
 A full 17664 (=&nbsp;10&nbsp;&times;&nbsp;48&nbsp;&times;&nbsp;24 + 6&nbsp;&times;&nbsp;32&nbsp;&times;&nbsp;24 + 4&nbsp;&times;&nbsp;48&nbsp;&times;&nbsp;8, for the 10 full-`iphi` EMCAL, 6 full-`iphi` DCAL, and 4 one-third-`iphi` EMCAL/DCAL supermodules) entries array is stored per event.
 
-| Name                  | Type                    | Description                                                                     |
-| --------------------- | ----------------------- | ------------------------------------------------------------------------------- |
-| `cell_amplitude`      | `__fp16[17664]`         | Cell energy _E_ (GeV)                                                           |
-| `cell_time`           | `__fp16[17664]`         | Cell time-of-flight _T_<sub>0</sub> (s)                                         |
-| `cell_mc_truth_index` | `unsigned short[17664]` | Index of the matched Monte Carlo truth particle, in `mc_truth_`*                |
-| `cell_efrac`          | `unsigned char[17664]`  | Fraction of energy from the Monte Carlo truth particle with respect to the cell |
+| Name                  | Type                    | Description                                                           |
+| --------------------- | ----------------------- | --------------------------------------------------------------------- |
+| `cell_energy`         | `__fp16[17664]`         | Cell energy _E_ (GeV)                                                 |
+| `cell_time`           | `__fp16[17664]`         | Cell time-of-flight _T_<sub>0</sub> (s)                               |
+| `cell_mc_truth_index` | `unsigned short[17664]` | Index of the matched Monte Carlo (MC) truth particle, in `mc_truth_`* |
 
 ## Central Region Tracks
 
@@ -120,38 +144,65 @@ const bool pass_cut = muon_track_p_dca[i] < sigma_p_dca_resolution_effect
 
 ## Monte Carlo Truth Particles
 
+| Name                       | Type                | Description                                            |
+| -------------------------- | ------------------- | ------------------------------------------------------ |
+| `nmc_truth`                | `unsigned long`     | Number of Monte Carlo (MC) truth particles             |
+| `mc_truth_e`               | `__fp16[nmc_truth]` | Particle energy _E_ (GeV)                              |
+| `mc_truth_pt`              | `__fp16[nmc_truth]` | Particle transverse momentum _p_<sub>T</sub> (GeV/_c_) |
+| `mc_truth_eta`             | `__fp16[nmc_truth]` | Particle pseudorapidity _&eta;_                        |
+| `mc_truth_phi`             | `__fp16[nmc_truth]` | Particle azimuth _&straightphi;_                       |
+| `mc_truth_pdg_code`        | `__fp16[nmc_truth]` | The particle species, according to Particle Data Group&rsquo;s MC Number Scheme |
+| `mc_truth_status`          | `__fp16[nmc_truth]` | The HepMC status code of the particle                  |
+| `mc_truth_generator_index` | `__fp16[nmc_truth]` | Index of the generator that produced the particle      |
+
 ## Jets
 
-| Name                      | Type              | Description                                                         |
-| --------------------------| ----------------- | ------------------------------------------------------------------- |
-| `njet`                    | `unsigned long`   | Number of reconstructed jets                                        |
-| `jet_e_raw`               | `__fp16[njet]`    | Raw (observed) jet energy _E_ (GeV)                                 |
-| `jet_e`                   | `__fp16[njet]`    | Calibrated jet energy _E_ (GeV)                                     |
-| `jet_e_charged`           | `__fp16[njet]`    | Calibrated, charged-particles-only jet energy _E_ (GeV)             |
-| `jet_pt_raw`              | `__fp16[njet]`    | Raw (observed) jet transverse momentum _p_<sub>T</sub> (GeV/_c_)    |
-| `jet_pt`                  | `__fp16[njet]`    | Calibrated jet transverse momentum _p_<sub>T</sub> (GeV/_c_)        |
-| `jet_pt_charged`          | `__fp16[njet]`    | Calibrated, charged-particles-only jet transverse momentum _p_<sub>T</sub> (GeV/_c_) |
-| `jet_eta_raw`             | `__fp16[njet]`    | Raw (observed) jet pseudorapidity _&eta;_                           |
-| `jet_eta`                 | `__fp16[njet]`    | Calibrated jet pseudorapidity _&eta;_                               |
-| `jet_phi`                 | `__fp16[njet]`    | Raw (observed) jet azimuth _&straightphi;_                          |
-| `jet_area_raw`            | `__fp16[njet]`    | Raw (observed) jet area (units of &Delta;_&eta;_&nbsp;&times;&nbsp;&Delta;_&straightphi;_) |
-| `jet_area`                | `__fp16[njet]`    | Calibrated jet area (units of &Delta;_&eta;_&nbsp;&times;&nbsp;&Delta;_&straightphi;_) |
-| `jet_emf_raw`             | `__fp16[njet]`    | Raw (observed) jet electromagnetic fraction (EMF)                   |
-| `jet_emf`                 | `__fp16[njet]`    | Calibrated jet electromagnetic fraction (EMF)                       |
-| `jet_e_truth`             | `__fp16[njet]`    | Alias for `jet_truth_e[jet_truth_index_z_reco[i][0]]`               |
-| `jet_pt_truth`            | `__fp16[njet]`    | Alias for `jet_truth_pt[jet_truth_index_z_reco[i][0]]`              |
-| `jet_eta_truth`           | `__fp16[njet]`    | Alias for `jet_truth_eta[jet_truth_index_z_reco[i][0]]`             |
-| `jet_phi_truth`           | `__fp16[njet]`    | Alias for `jet_truth_phi[jet_truth_index_z_reco[i][0]]`             |
-| `jet_area_truth`          | `__fp16[njet]`    | Alias for `jet_truth_area[jet_truth_index_z_reco[i][0]]`            |
-| `jet_emf_truth`           | `__fp16[njet]`    | Alias for `jet_truth_emf[jet_truth_index_z_reco[i][0]]`             |
-| `jet_truth_index_z_truth` | `int[njet][2]`    | Index of the truth jet with the two highest longitudinal momentum fraction _z_<sub>truth</sub>, relative to the truth jet 3-momenta, in descending _z_<sub>truth</sub> order |
-| `jet_truth_z_truth`       | `__fp16[njet][2]` | The longitudinal momentum fraction _z_<sub>truth</sub> of the two highest truth jets, relative to the truth jet 3-momenta, in descending _z_<sub>truth</sub> order |
-| `jet_truth_index_z_reco`  | `int[njet][2]`    | Index of the truth jet with the two highest longitudinal momentum fraction _z_<sub>reco</sub>, relative to the reconstructed jet 3-momenta, in descending _z_<sub>reco</sub> order |
-| `jet_truth_z_reco`        | `__fp16[njet][2]` | The longitudinal momentum fraction _z_<sub>reco</sub> of the two highest truth jets, relative to the reconstructed jet 3-momenta, in descending _z_<sub>reco</sub> order |
-| `njet_truth`              | `unsigned long`   | Number of Monte Carlo truth jets                                    |
-| `jet_truth_e`             | `__fp16[njet]`    | Monte Carlo truth jet energy _E_ (GeV)                              |
-| `jet_truth_pt`            | `__fp16[njet]`    | Monte Carlo truth jet transverse momentum _p_<sub>T</sub> (GeV/_c_) |
-| `jet_truth_eta`           | `__fp16[njet]`    | Monte Carlo truth jet pseudorapidity _&eta;_                        |
-| `jet_truth_phi`           | `__fp16[njet]`    | Monte Carlo truth jet azimuth _&straightphi;_                       |
-| `jet_truth_area`          | `__fp16[njet]`    | Monte Carlo truth jet area (units of &Delta;_&eta;_&nbsp;&times;&nbsp;&Delta;_&straightphi;_) |
-| `jet_truth_emf`           | `__fp16[njet]`    | Monte Carlo truth jet electromagnetic fraction (EMF)                |
+| Name                      | Type                   | Description                                                         |
+| --------------------------| ---------------------- | ------------------------------------------------------------------- |
+| `njet`                    | `unsigned long`        | Number of reconstructed jets                                        |
+| `jet_e_raw`               | `__fp16[njet]`         | Raw (observed) jet energy _E_ (GeV)                                 |
+| `jet_e`                   | `__fp16[njet]`         | Calibrated jet energy _E_ (GeV)                                     |
+| `jet_e_charged`           | `__fp16[njet]`         | Calibrated, charged-particles-only jet energy _E_ (GeV)             |
+| `jet_pt_raw_ue`           | `__fp16[njet]`         | The estimated underlying event (UE) of the raw (observed) jet transverse momentum _p_<sub>T</sub> (GeV/_c_) |
+| `jet_pt_raw`              | `__fp16[njet]`         | Raw (observed) jet transverse momentum _p_<sub>T</sub> (GeV/_c_), after subtracting the UE (`jet_pt_raw_ue`) |
+| `jet_pt`                  | `__fp16[njet]`         | Calibrated jet transverse momentum _p_<sub>T</sub> (GeV/_c_)        |
+| `jet_pt_charged`          | `__fp16[njet]`         | Calibrated, charged-particles-only jet transverse momentum _p_<sub>T</sub> (GeV/_c_) |
+| `jet_eta_raw`             | `__fp16[njet]`         | Raw (observed) jet pseudorapidity _&eta;_                           |
+| `jet_eta`                 | `__fp16[njet]`         | Calibrated jet pseudorapidity _&eta;_                               |
+| `jet_phi`                 | `__fp16[njet]`         | Raw (observed) jet azimuth _&straightphi;_                          |
+| `jet_area_raw`            | `__fp16[njet]`         | Raw (observed) jet area (units of &Delta;_&eta;_&nbsp;&times;&nbsp;&Delta;_&straightphi;_) |
+| `jet_area`                | `__fp16[njet]`         | Calibrated jet area (units of &Delta;_&eta;_&nbsp;&times;&nbsp;&Delta;_&straightphi;_) |
+| `jet_emf_raw`             | `__fp16[njet]`         | Raw (observed) jet electromagnetic fraction (EMF)                   |
+| `jet_emf`                 | `__fp16[njet]`         | Calibrated jet electromagnetic fraction (EMF)                       |
+| `jet_multiplicity_raw`    | `unsigned short[njet]` | Raw (observed) jet multiplicity                                     |
+| `jet_multiplicity`        | `__fp16[njet]`         | Calibrated jet multiplicity                                         |
+| `jet_width_sigma_raw`     | `__fp16[njet][2]`      | Raw (observed) normalized major (`[0]`) and minor (`[1]`) axes of the 2-dimensional &#10216;_j_<sub>T</sub>&#10217; |
+| `jet_width_sigma`         | `__fp16[njet][2]`      | Calibrated, normalized major (`[0]`) and minor (`[1]`) axes of the 2-dimensional &#10216;_j_<sub>T</sub>&#10217; |
+| `jet_ptd_raw`             | `__fp16[njet]`         | Raw (observed) jet _p_<sub>T</sub>_D_                               |
+| `jet_ptd`                 | `__fp16[njet]`         | Calibrated jet _p_<sub>T</sub>_D_                                   |
+| `jet_e_truth`             | `__fp16[njet]`         | Alias for `jet_truth_e[jet_truth_index_z_reco[i][0]]`               |
+| `jet_pt_truth`            | `__fp16[njet]`         | Alias for `jet_truth_pt[jet_truth_index_z_reco[i][0]]`              |
+| `jet_eta_truth`           | `__fp16[njet]`         | Alias for `jet_truth_eta[jet_truth_index_z_reco[i][0]]`             |
+| `jet_phi_truth`           | `__fp16[njet]`         | Alias for `jet_truth_phi[jet_truth_index_z_reco[i][0]]`             |
+| `jet_area_truth`          | `__fp16[njet]`         | Alias for `jet_truth_area[jet_truth_index_z_reco[i][0]]`            |
+| `jet_emf_truth`           | `__fp16[njet]`         | Alias for `jet_truth_emf[jet_truth_index_z_reco[i][0]]`             |
+| `jet_multiplicity_truth`  | `unsigned short[njet]` | Alias for `jet_truth_multiplicity[jet_truth_index_z_reco[i][0]]`    |
+| `jet_width_sigma_truth`   | `__fp16[njet][2]`      | Alias for `jet_truth_width_sigma[jet_truth_index_z_reco[i][0]]`     |
+| `jet_ptd_truth`           | `__fp16[njet]`         | Alias for `jet_truth_ptd[jet_truth_index_z_reco[i][0]]`             |
+| `jet_truth_index_z_truth` | `int[njet][2]`         | Index of the truth jet with the two highest longitudinal momentum fraction _z_<sub>truth</sub>, relative to the truth jet 3-momenta, in descending _z_<sub>truth</sub> order |
+| `jet_truth_z_truth`       | `__fp16[njet][2]`      | The longitudinal momentum fraction _z_<sub>truth</sub> of the two highest truth jets, relative to the truth jet 3-momenta, in descending _z_<sub>truth</sub> order |
+| `jet_truth_index_z_reco`  | `int[njet][2]`         | Index of the truth jet with the two highest longitudinal momentum fraction _z_<sub>reco</sub>, relative to the reconstructed jet 3-momenta, in descending _z_<sub>reco</sub> order |
+| `jet_truth_z_reco`        | `__fp16[njet][2]`      | The longitudinal momentum fraction _z_<sub>reco</sub> of the two highest truth jets, relative to the reconstructed jet 3-momenta, in descending _z_<sub>reco</sub> order |
+| `njet_truth`              | `unsigned long`        | Number of Monte Carlo (MC) truth jets                               |
+| `jet_truth_e`             | `__fp16[njet]`         | MC truth jet energy _E_ (GeV)                                       |
+| `jet_truth_pt_ue`         | `__fp16[njet]`         | MC truth underlying event (UE) of the jet momentum _p_<sub>T</sub> (GeV/_c_) |
+| `jet_truth_pt`            | `__fp16[njet]`         | MC truth jet transverse momentum _p_<sub>T</sub> (GeV/_c_)          |
+| `jet_truth_eta`           | `__fp16[njet]`         | MC truth jet pseudorapidity _&eta;_                                 |
+| `jet_truth_phi`           | `__fp16[njet]`         | MC truth jet azimuth _&straightphi;_                                |
+| `jet_truth_area`          | `__fp16[njet]`         | MC truth jet area (units of &Delta;_&eta;_&nbsp;&times;&nbsp;&Delta;_&straightphi;_) |
+| `jet_truth_emf`           | `__fp16[njet]`         | MC truth jet electromagnetic fraction (EMF)                         |
+| `jet_truth_multiplicity`  | `__fp16[njet]`         | MC truth jet multiplicity                                           |
+| `jet_truth_width_sigma`   | `__fp16[njet][2]`      | MC truth normalized major (`[0]`) and minor (`[1]`) axes of the 2-dimensional &#10216;_j_<sub>T</sub>&#10217; |
+| `jet_truth_ptd`           | `__fp16[njet]`         | MC truth jet _p_<sub>T</sub>_D_                                     |
+| `met_tpc`                 | `double[2]`            | TPC _&#582;_<sub>T</sub>                                            |
+| `met_truth`               | `double[2]`            | MC truth _&#582;_<sub>T</sub>                                       |
