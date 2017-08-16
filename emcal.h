@@ -3,6 +3,9 @@
 #ifndef EMCAL_H_
 #define EMCAL_H_
 
+#include <vector>
+#include <AliVCluster.h>
+
 namespace {
 
 	void to_sm_nphi(unsigned int &sm, unsigned int &nphi,
@@ -144,6 +147,21 @@ namespace {
 			}
 		}
 	}
+
+    bool cell_masked(AliVCluster *c, std::vector<bool> emcal_mask)
+    {
+        for (Int_t j = 0; j < c->GetNCells(); j++) {
+            const Int_t cell_id = c->GetCellsAbsId()[j];
+
+            if (cell_id >= 0 &&
+                cell_id < static_cast<Int_t>(emcal_mask.size()) &&
+                !emcal_mask[cell_id]) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
 }
 

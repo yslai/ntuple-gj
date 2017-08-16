@@ -5,6 +5,7 @@
 
 #include <limits.h>
 #include <vector>
+#include <set>
 #include <TList.h>
 #include <TH2D.h>
 #include <TFormula.h>
@@ -30,6 +31,7 @@ private:
     TTree *_tree_event; //!
 
 #define MEMBER_BRANCH                                               \
+    /* */															\
     BRANCH_STR(id_git)                                              \
     BRANCH_STR(version_aliroot)                                     \
     BRANCH_STR(version_aliphysics)                                  \
@@ -40,6 +42,7 @@ private:
     BRANCH(ntrigger_class, b)                                       \
     BRANCH_STR_ARRAY(trigger_class, ntrigger_class)                 \
     BRANCH(run_number, I)                                           \
+    /* */															\
     BRANCH_ARRAY(trigger_mask, 2, l)                                \
     BRANCH_ARRAY(multiplicity_v0, 64, F)                            \
     BRANCH(centrality_v0m, F)                                       \
@@ -47,6 +50,9 @@ private:
     BRANCH_ARRAY(event_plane_psi_v0, 3, F)                          \
     BRANCH_ARRAY2(event_plane_q_v0, 3, 2, D)                        \
     BRANCH(has_misalignment_matrix, O)                              \
+    BRANCH_ARRAY(cell_eta, 17664, F)                                \
+    BRANCH_ARRAY(cell_phi, 17664, F)                                \
+    BRANCH_ARRAY(cell_voronoi_area, 17664, F)                       \
     BRANCH_ARRAY(primary_vertex, 3, D)                              \
     BRANCH(eg_signal_process_id, I)                                 \
     BRANCH(eg_mpi, I)                                               \
@@ -61,6 +67,7 @@ private:
     BRANCH_ARRAY(eg_pdf_id, 2, I)                                   \
     BRANCH_ARRAY(eg_pdf_x, 2, F)                                    \
     BRANCH_ARRAY(eg_pdf_x_pdf, 2, F)                                \
+    /* */															\
     BRANCH(ncluster, l)                                             \
     BRANCH_ARRAY(cluster_e, ncluster, F)                            \
     BRANCH_ARRAY(cluster_pt, ncluster, F)                           \
@@ -89,9 +96,10 @@ private:
     BRANCH_ARRAY(cluster_frixione_04_02_truth, ncluster, F)			\
     BRANCH_ARRAY(cluster_frixione_04_05_truth, ncluster, F)			\
     BRANCH_ARRAY(cluster_frixione_04_10_truth, ncluster, F)			\
-    BRANCH_ARRAY(cell_energy, 17664, F)                             \
+    BRANCH_ARRAY(cell_e, 17664, F)                                  \
     BRANCH_ARRAY(cell_tof, 17664, F)								\
     BRANCH_ARRAY(cell_mc_truth_index, 17664, s)						\
+    /* */															\
     BRANCH(ntrack, l)                                               \
     BRANCH_ARRAY(track_e, ntrack, F)                                \
     BRANCH_ARRAY(track_pt, ntrack, F)                               \
@@ -109,7 +117,7 @@ private:
     BRANCH_ARRAY(track_dca_z, ntrack, F)                            \
     BRANCH_ARRAY(track_mc_truth_index, ntrack, s)                   \
     BRANCH_ARRAY(track_voronoi_area, ntrack, F)						\
-    BRANCH_ARRAY(track_voronoi_diameter, ntrack, F)					\
+    /* */															\
     BRANCH(nmuon_track, l)                                          \
     BRANCH_ARRAY(muon_track_e, nmuon_track, F)                      \
     BRANCH_ARRAY(muon_track_pt, nmuon_track, F)                     \
@@ -121,6 +129,7 @@ private:
     BRANCH_ARRAY(muon_track_delta_sagitta_p, nmuon_track, F)        \
     BRANCH_ARRAY(muon_track_distance_sigma_slope_p, nmuon_track, F) \
     BRANCH_ARRAY(muon_track_mc_truth_index, nmuon_track, s)         \
+    /* */															\
     BRANCH(nmc_truth, l)                                            \
     BRANCH_ARRAY(mc_truth_e, nmc_truth, F)                          \
     BRANCH_ARRAY(mc_truth_pt, nmc_truth, F)                         \
@@ -138,6 +147,7 @@ private:
 				 debug_njet_ue_estimation, F)						\
     BRANCH_ARRAY(debug_jet_ue_estimation_area_raw,					\
 				 debug_njet_ue_estimation, F)						\
+    /* */															\
     BRANCH(njet, l)                                                 \
     BRANCH_ARRAY(debug_jet_tag_dr_square, njet, F)					\
     BRANCH_ARRAY(jet_e_raw, njet, F)                                \
@@ -266,10 +276,12 @@ private:
 
     std::vector<bool> _emcal_mask; //!
 
+	void *_emcal_cell_position; //!
+	std::vector<double> _emcal_cell_area; //!
+	std::vector<std::set<size_t> > _emcal_cell_incident; //!
+
     AliAnalysisAlien *_alien_plugin; //!
     bool _metadata_filled; //!
-
-    TRandom3 _prng; //!
 public:
     AliAnalysisTaskNTGJ(void);
     AliAnalysisTaskNTGJ(const char *name);

@@ -117,6 +117,8 @@ A full 17664 (=&nbsp;10&nbsp;&times;&nbsp;48&nbsp;&times;&nbsp;24 + 6&nbsp;&time
 | `track_dca_xy`                 | `__fp16[ntrack]`         | Distance of closest approach to the primary vertex in the _x_&ndash;_y_-plane (cm) |
 | `track_dca_z`                  | `__fp16[ntrack]`         | Distance of closest approach to the primary vertex in the _z_-direction (cm) |
 | `track_mc_truth_index`         | `unsigned short[ntrack]` | Index of the matched Monte Carlo truth particle, in `mc_truth_`*     |
+| `track_voronoi_area`           | `__fp16[ntrack]`         | The Voronoi diagram area occupied by the track in the _&eta;_&ndash;_y_-plane |
+| `track_voronoi_diameter`       | `__fp16[ntrack]`         | The diameter (least upper bound of the distances between vertices) of the Voronoi diagram area occupied by the track in the _&eta;_&ndash;_y_-plane |
 
 ## Muon Tracks
 

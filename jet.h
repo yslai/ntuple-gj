@@ -38,9 +38,8 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
 		CGAL::Exact_predicates_inexact_constructions_kernel>
 		polygon_t;
 
-	void voronoi_area_diameter(
+	void voronoi_area_incident(
 		std::vector<double> &particle_area,
-		std::vector<double> &particle_diameter_square,
 		std::vector<std::set<size_t> > &particle_incident,
 		const std::vector<point_2d_t> &
 		particle_pseudorapidity_azimuth)
@@ -56,9 +55,13 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
 				 particle_pseudorapidity_azimuth.begin();
 			 iterator != particle_pseudorapidity_azimuth.end();
 			 iterator++) {
-			// Make two additional replicas with azimuth +/- 2 pi (and
-			// use only the middle) to mimick the azimuthal cyclicity
+			// Reflect at ALICE TPC boundary of |eta| = 0.9, to
+			// cut-off the tesselation at the boundary condition via
+			// "mirror tracks"
 			for (int j = -1; j <= 1; j++) {
+				// Make two additional replicas with azimuth +/- 2 pi
+				// (and use only the middle) to mimick the cyclical
+				// boundary condition
 				for (int k = -1; k <= 1; k++) {
 					const point_2d_t
 						p((2 * (j & 1) - 1) * iterator->x() +
@@ -74,7 +77,6 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
 		}
 
 		particle_area.clear();
-		particle_diameter_square.clear();
 		particle_incident = std::vector<std::set<size_t> >(
 			particle_pseudorapidity_azimuth.size(),
 			std::set<size_t>());
@@ -91,7 +93,6 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
 			const voronoi_diagram_t::Face_handle *face =
 				boost::get<voronoi_diagram_t::Face_handle>(&result);
 			double polygon_area;
-			double polygon_diameter_square;
 
 			if (face != NULL) {
 				voronoi_diagram_t::Ccb_halfedge_circulator
@@ -117,43 +118,13 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
 					}
 				}
 				while (++circulator != circulator_start);
-				if (unbounded) {
-					polygon_area = INFINITY;
-					polygon_diameter_square = INFINITY;
-				}
-				else {
-					polygon_area = polygon.area();
-					polygon_diameter_square = 0;
-
-					for (polygon_t::Vertex_iterator
-							 iterator_vertex_outer =
-							 polygon.vertices_begin();
-						 iterator_vertex_outer !=
-							 polygon.vertices_end();
-						 iterator_vertex_outer++) {
-						for (polygon_t::Vertex_iterator
-								 iterator_vertex_inner =
-								 iterator_vertex_outer + 1;
-							 iterator_vertex_inner !=
-								 polygon.vertices_end();
-							 iterator_vertex_inner++) {
-							polygon_diameter_square = std::max(
-								polygon_diameter_square,
-								squared_distance(
-									*iterator_vertex_inner,
-									*iterator_vertex_outer));
-						}
-					}
-
-				}
+				polygon_area = unbounded ?
+					INFINITY : polygon.area();
 			}
 			else {
 				polygon_area = NAN;
-				polygon_diameter_square = NAN;
 			}
 			particle_area.push_back(fabs(polygon_area));
-			particle_diameter_square.push_back(
-				polygon_diameter_square);
 		}
 	}
 
@@ -240,9 +211,9 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
 			row++;
 		}
 
-		TDecompSVD svd(a);
+		TDecompSVD a_svd(a);
 		Bool_t status;
-		TVectorD x = svd.Solve(b, status);
+		TVectorD x = a_svd.Solve(b, status);
 		std::vector<double> ret;
 
 		if (status != kFALSE) {
@@ -277,29 +248,6 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
 
 		return s;
 	}
-
-	double jet_rho_eta(double x)
-	{
-		static const double p[] = {
-			7.36714e+01, 3.91305e+01, 4.70740e-01, 1.31745e+00,
-			-2.84544e+00, 6.96231e-01, 3.98891e-02
-		};
-		const double f = p[0] *
-			((erf(p[1] * (fabs(x) - p[2])) + 1) *
-			 (1 + p[3] * tan(p[4] * (abs(x) - p[5]))) /
-			 (1 + p[3] * tan(p[4] * (p[2] - p[5]))) +
-			 (erf(p[1] * (p[2] - fabs(x))) + 1) *
-			 (1 + p[6] * (2 * std::pow(abs(x / p[2]), 2) - 1)));
-		const double f0 = p[0] *
-			((erf(-p[1] * p[2]) + 1) *
-			 (1 + p[3] * tan(-p[4] * p[5])) /
-			 (1 + p[3] * tan(p[4] * (p[2] - p[5]))) +
-			 (erf(p[1] * (p[2] - 0)) + 1) *
-			 (1 - p[6]));
-
-		return f / f0;		
-	}
-
 
     // fastjet::PseudoJet user indices -2 and -3 are used to tag the
     // EM particles/EMCAL clusters and muons. The index -1 is already
