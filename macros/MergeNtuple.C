@@ -3,7 +3,7 @@ set +o posix; function join_by { local d=$1; shift; echo -n "$1";
     shift; printf "%s" "${@/#/$d}"; }
 root=root; root6="$ROOT_BASEDIR/root6-1/bin/root";
 [[ -x "$root6" ]] && root="$root6"; exec $root -l -b -q \
-    "$0($(join_by \",\" \"$*\" | /usr/bin/sed \
+    "$0($(join_by \",\" \"$*\" | /bin/sed \
 s/\"\\\([0-9]\\+\\\)\"/\\1/g\;s/^\"\"\$//))"; exit 0
 #endif
 

@@ -2,7 +2,7 @@
 set +o posix; function join_by { local d=$1; shift; echo -n "$1";
     shift; printf "%s" "${@/#/$d}"; }
 root=root; exec $root -l -b -q "$0($(join_by \",\" \"$*\" | \
-/usr/bin/sed s/\"\\\([0-9]\\+\\\)\"/\\1/g\;s/^\"\"\$//))"; exit 0
+/bin/sed s/\"\\\([0-9]\\+\\\)\"/\\1/g\;s/^\"\"\$//))"; exit 0
 #endif
 
 #include <TROOT.h>
@@ -16,6 +16,10 @@ void runNTGJ(const char *run_mode = "full")
     gROOT->ProcessLine(".include $ALICE_ROOT/../../fastjet/latest/"
                        "include");
     gROOT->ProcessLine(".include $ALICE_ROOT/../../cgal/latest/"
+                       "include");
+    gROOT->ProcessLine(".include $ALICE_ROOT/../../GMP/latest/"
+                       "include");
+    gROOT->ProcessLine(".include $ALICE_ROOT/../../MPFR/latest/"
                        "include");
 
     // Load base root libraries
