@@ -36,14 +36,17 @@ void runNTGJ(const char *run_mode = "full")
 
     for (const char **p = package; *p != NULL; p++) {
         if (strncmp(*p, "GCC::", 5) != 0) {
+            TString ps(*p);
             TString include = "$ALICE_ROOT/../../" +
-                TString(*p).ReplaceAll("::", "/") + "/include";
+                ps.ReplaceAll("::", "/") + "/include";
 
-            if (!gSystem->AccessPathName(include.ReplaceAll(
+            if (gSystem->AccessPathName(include.ReplaceAll(
                 "$ALICE_ROOT", gSystem->Getenv("ALICE_ROOT")))) {
                 // Assuming a non-CVMFS installation, where the
-                // symbolic "latest" should exist
-                include = "latest";
+                // symbolic "latest" should exist (note
+                // TString::ReplaceAll already modified the content)
+                include = "$ALICE_ROOT/../../" +
+                    ps(0, ps.Index("/")) + "/latest/include";
             }
             gROOT->ProcessLine(".include " + include);
         }
