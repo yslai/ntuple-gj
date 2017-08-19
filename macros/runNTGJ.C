@@ -13,14 +13,41 @@ void runNTGJ(const char *run_mode = "full")
     gROOT->ProcessLine(".include $ROOTSYS/include");
     gROOT->ProcessLine(".include $ALICE_ROOT/include");
     gROOT->ProcessLine(".include $ALICE_PHYSICS/include");
-    gROOT->ProcessLine(".include $ALICE_ROOT/../../fastjet/latest/"
-                       "include");
-    gROOT->ProcessLine(".include $ALICE_ROOT/../../cgal/latest/"
-                       "include");
-    gROOT->ProcessLine(".include $ALICE_ROOT/../../GMP/latest/"
-                       "include");
-    gROOT->ProcessLine(".include $ALICE_ROOT/../../MPFR/latest/"
-                       "include");
+
+    const char *package[] = {
+        "fastjet::v3.2.1_1.024-alice1-4",
+        // Compiling against CGAL requires explicit include paths to
+        // Boost, MPFR, and GMP
+        "cgal::v4.6.3-18",
+        "boost::v1.59.0-14",
+        "MPFR::v3.1.3-4",
+        "GMP::v6.0.0-2",
+        // The grid ROOT package tend to lack a GCC 4.9.x =
+        // CXXABI_1.3.8 dependency (see also
+        // https://gcc.gnu.org/onlinedocs/libstdc++/manual/abi.html),
+        // which causes jobs to fail at run time with the message:
+        //
+        //   root: /usr/lib64/libstdc++.so.6: version `CXXABI_1.3.8'
+        //   not found (required by root)
+        //   Output file AnalysisResults.root not found. Job FAILED !
+        "GCC-Toolchain::v4.9.3-alice3-1",
+        NULL
+    };
+
+    for (const char **p = package; *p != NULL; p++) {
+        if (strncmp(*p, "GCC::", 5) != 0) {
+            TString include = "$ALICE_ROOT/../../" +
+                TString(*p).ReplaceAll("::", "/") + "/include";
+
+            if (!gSystem->AccessPathName(include.ReplaceAll(
+                "$ALICE_ROOT", gSystem->Getenv("ALICE_ROOT")))) {
+                // Assuming a non-CVMFS installation, where the
+                // symbolic "latest" should exist
+                include = "latest";
+            }
+            gROOT->ProcessLine(".include " + include);
+        }
+    }
 
     // Load base root libraries
     gSystem->Load("libTree");
@@ -60,13 +87,23 @@ void runNTGJ(const char *run_mode = "full")
     plugin->SetGridWorkingDir("workdir");
     plugin->SetGridOutputDir("outputdir");
 
-    plugin->SetAliROOTVersion("v5-09-04-1");
-    plugin->SetAliPhysicsVersion("v5-09-04-01-1");
-    plugin->AddExternalPackage("fastjet::v3.2.1_1.024-alice1-3");
-    plugin->AddIncludePath("-I. -I$ALICE_ROOT/include "
-                           "-I$ALICE_ROOT/../../fastjet/"
-                           "v3.2.1_1.024-alice1-3/include "
-                           "-I$ALICE_PHYSICS/include");
+    plugin->SetAliROOTVersion("v5-09-11-1");
+    plugin->SetAliPhysicsVersion("v5-09-11-01-1");
+    for (const char **p = package; *p != NULL; p++) {
+        plugin->AddExternalPackage(*p);
+    }
+
+    TString include_path("-I. -I$ALICE_ROOT/include "
+                         "-I$ALICE_PHYSICS/include ");
+
+    for (const char **p = package; *p != NULL; p++) {
+        if (strncmp(*p, "GCC::", 5) != 0) {
+            include_path += "-I$ALICE_ROOT/../../" +
+                TString(*p).ReplaceAll("::", "/") + "/include ";
+        }
+    }
+
+    plugin->AddIncludePath(include_path);
 
     plugin->SetAdditionalLibs(
         "AliAnalysisTaskNTGJ.h "
@@ -125,6 +162,9 @@ void runNTGJ(const char *run_mode = "full")
         plugin->AddRunNumber(*r);
     }
 
+    // Honor alien_CLOSE_SE for the output also, e.g. when
+    // alien_CLOSE_SE=ALICE::LBL::EOS is set for NERSC.
+
     const char *alien_close_se = gSystem->Getenv("alien_CLOSE_SE");
 
     if (alien_close_se != NULL) {
@@ -139,9 +179,12 @@ void runNTGJ(const char *run_mode = "full")
             alien_close_se, file, alien_close_se));
     }
 
+    gSystem->Setenv("alien_CLOSE_SE", "ALICE::GSI::SE");
+
     plugin->SetRunMode(run_mode);
     mgr->SetGridHandler(plugin);
     gROOT->Macro("macros/AddAliAnalysisTaskNTGJ.C");
+ 
     if (mgr->InitAnalysis()) {
         mgr->StartAnalysis("grid");
     }
