@@ -1,6 +1,6 @@
-* How to Use the Ntuplizer
+# How to Use the Ntuplizer
 
-** Run the Ntuplizer
+## Run the Ntuplizer
 
 Open the `macros/runNTGJ.C` in an editor.
 
@@ -28,7 +28,7 @@ or:
 
 The macro will automatically execute e.g. `root -l -b -q ./macros/runNTGJ.C("full")`.
 
-* Run the Ntuple Merger
+## Run the Ntuple Merger
 
 Do not attempt to merge ntuples on the Grid. They will inevitably fail as ALICE always call `hadd` to merge, which is in-memory. Instead, another macro is provided for disk-resident merging. For example, to merge `rx/lhc16h2a_bis-246994-1/001/AnalysisResults.root`, `rx/lhc16h2a_bis-246994-1/002/AnalysisResults.root`, etc., execute:
 
