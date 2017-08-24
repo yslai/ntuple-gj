@@ -81,8 +81,7 @@ private:
     BRANCH_ARRAY(cluster_pt, ncluster, F)                           \
     BRANCH_ARRAY(cluster_eta, ncluster, F)                          \
     BRANCH_ARRAY(cluster_phi, ncluster, F)                          \
-    BRANCH_ARRAY(cluster_m02, ncluster, F)                          \
-    BRANCH_ARRAY(cluster_m20, ncluster, F)                          \
+    BRANCH_ARRAY2(cluster_lambda_square, ncluster, 2, F)            \
     BRANCH_ARRAY(cluster_tof, ncluster, F)                          \
     BRANCH_ARRAY(cluster_ncell, ncluster, I)                        \
     BRANCH_ARRAY(cluster_cell_id_max, ncluster, s)                  \

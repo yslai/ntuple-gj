@@ -182,8 +182,6 @@ void runNTGJ(const char *run_mode = "full")
             alien_close_se, file, alien_close_se));
     }
 
-    gSystem->Setenv("alien_CLOSE_SE", "ALICE::GSI::SE");
-
     plugin->SetRunMode(run_mode);
     mgr->SetGridHandler(plugin);
     gROOT->Macro("macros/AddAliAnalysisTaskNTGJ.C");

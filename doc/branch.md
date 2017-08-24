@@ -8,7 +8,7 @@ The following C style notation are used below to describe the less obvious data 
 * C string array: `const char (*)[]`
 * IEEE 754-2008 binary16 (&ldquo;half precision&rdquo;) stored in binary32: `__fp16`
 
-Otherwise LP64 is assumed, i.e.:
+Otherwise the x86-64 standard LP64 convention is used, with:
 
 * 32 bit signed integer: `int`
 * 64 bit signed integer: `long`
@@ -36,8 +36,19 @@ To efficiently use available space, unsigned data types are used extensively. In
 | `centrality`         | `float[9]`         | Centrality using: {V0M, CL0, CL1, V0Mplus05, V0Mplus10, V0Mminus05, V0Mminus10, SPDClustersCorr, SPDTracklets} |
 | `event_plane_psi_v0` | `float[3]`         | V0 event plane angle &Psi;<sub>_n_</sub>, _n_&nbsp;=&nbsp;1, &hellip; 3, for the directed/elliptic/triangular flows  |
 | `event_plane_q_v0`   | `double[3][2]`     | V0 event plane _Q_-vector _Q_<sub>_n_</sub>, _n_&nbsp;=&nbsp;1, &hellip; 3, for the directed/elliptic/triangular flows |
-| `has_misalignment_matrix` | `bool`        | True if the EMCAL misalignment matrix was loaded |
-| `primary_vertex`     | `double[3]`        | The primary vertex position (cm)          |
+| `has_misalignment_matrix` | `bool`        | True if the Electromagnet Calorimeter (EMCAL) misalignment matrix was loaded |
+| `cell_eta`                | `__fp16[ncluster]` | EMCAL cell pseudorapidity _&eta;_                                           |
+| `cell_phi`                | `__fp16[ncluster]` | EMCAL cell azimuth _&straightphi;_                                          |
+| `cell_voronoi_area`       | `__fp16[ntrack]`   | The Voronoi diagram area occupied by the EMCAL cell in the _&eta;_&ndash;_&straightphi;_-plane |
+| `primary_vertex`     | `double[3]`        | The _x_, _y_, and _z_ compoents of the primary vertex position (cm) |
+| `primary_vertex_sigma` | `double[3]`      | The _x_, _y_, and _z_ uncertainties of the primary vertex position (cm) |
+| `primary_vertex_ncontributor` | `int`     | The number of tracks that contributed to the primary vertex determination |
+| `primary_vertex_spd`   | `double[3]`      | The _x_, _y_, and _z_ compoents of the Silicon Pixel Detector (SPD) primary vertex position (cm) |
+| `primary_vertex_spd_sigma` | `double[3]`  | The _x_, _y_, and _z_ uncertainties of the SPD primary vertex position (cm) |
+| `primary_vertex_spd_ncontributor` | `int` | The number of tracklets that contributed to the SPD primary vertex determination |
+| `npileup_vertex_spd`   | `int`            | The number of SPD pileup vertices |
+| `pileup_vertex_spd_ncontributor` | `int`  | The number tracklets that contributed to the SPD pileup vertices determination |
+| `pileup_vertex_spd_min_z_distance` | `double` | The minimum _z_ distance between any of the SPD pileup vertices and the SPD primary vertex (cm) |
 | `eg_signal_process_id` | `int`            | The code of the process of the current event, HepMC&rsquo;s `GenEvent::signal_process_id()` and e.g. PYTHIA 8&rsquo;s `Info::code()` |
 | `eg_mpi`             | `int`              | The number of hard interactions of the current event, HepMC&rsquo;s `GenEvent::mpi()` and e.g. PYTHIA 8&rsquo;s `Info::nMPI()` |
 | `eg_pt_hat`          | `float`            | The rest frame transverse momentum _p&#770;_<sub>&perp;</sub> (GeV/_c_) of the current event, e.g. PYTHIA 8&rsquo;s `Info::pTHat()` |
@@ -61,8 +72,7 @@ To efficiently use available space, unsigned data types are used extensively. In
 | `cluster_pt`             | `__fp16[ncluster]`             | Cluster transverse momentum _p_<sub>T</sub> (GeV/_c_)                    |
 | `cluster_eta`            | `__fp16[ncluster]`             | Cluster pseudorapidity _&eta;_                                           |
 | `cluster_phi`            | `__fp16[ncluster]`             | Cluster azimuth _&straightphi;_                                          |
-| `cluster_m02`            | `__fp16[ncluster]`             | Minor axis of the cluster dispersion (_&lambda;_<sub>0</sub>)<sup>2</sup> |
-| `cluster_m20`            | `__fp16[ncluster]`             | Major axis of the cluster dispersion (_&lambda;_<sub>1</sub>)<sup>2</sup> |
+| `cluster_lambda`         | `__fp16[ncluster][2]`          | Minor (`[0]`) and major (`[1]`) axes of the cluster dispersion (_&lambda;_<sub>0</sub>)<sup>2</sup> and (_&lambda;_<sub>1</sub>)<sup>2</sup> |
 | `cluster_tof`            | `__fp16[ncluster]`             | Cluster time-of-flight _T_<sub>0</sub> (s)                               |
 | `cluster_ncell`          | `int[ncluster]`                | Number of cells (towers) in the cluster                                  |
 | `cluster_cell_id_max`    | `unsigned short[ncluster]`     | Index of the cell (tower) in the cluster with the highest energy         |
@@ -70,7 +80,7 @@ To efficiently use available space, unsigned data types are used extensively. In
 | `cluster_e_cross`        | `__fp16[ncluster]`             | Energy sum of the 4 cross-shaped cells (towers) adjacent to the cell in the cluster with the highest energy (GeV) |
 | `cluster_nmc_truth`      | `unsigned short[ncluster]`     | Number of matched Monte Carlo (MC) truth particles, in `mc_truth_`*      |
 | `cluster_mc_truth_index` | `unsigned short[ncluster][32]` | Indices of the matched MC truth particles, in `mc_truth_`*               |
-| `cluster_iso_tpc_01`     | `__fp16[ncluster]`             | TPC isolation transverse momentum _p_<sub>T,iso</sub> (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.1 |
+| `cluster_iso_tpc_01`     | `__fp16[ncluster]`             | Time Projection Chamber (TPC) isolation transverse momentum _p_<sub>T,iso</sub> (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.1 |
 | `cluster_iso_tpc_02`     | `__fp16[ncluster]`             | TPC isolation transverse momentum _p_<sub>T,iso</sub> (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.2 |
 | `cluster_iso_tpc_03`     | `__fp16[ncluster]`             | TPC isolation transverse momentum _p_<sub>T,iso</sub> (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.3 |
 | `cluster_iso_tpc_04`     | `__fp16[ncluster]`             | TPC isolation transverse momentum _p_<sub>T,iso</sub> (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.4 |
@@ -89,7 +99,7 @@ In the definitions above, _R_<sub>0</sub>&nbsp;=&nbsp;_&delta;_<sub>0</sub> in S
 
 ## EMCAL Cells
 
-A full 17664 (=&nbsp;10&nbsp;&times;&nbsp;48&nbsp;&times;&nbsp;24 + 6&nbsp;&times;&nbsp;32&nbsp;&times;&nbsp;24 + 4&nbsp;&times;&nbsp;48&nbsp;&times;&nbsp;8, for the 10 full-`iphi` EMCAL, 6 full-`iphi` DCAL, and 4 one-third-`iphi` EMCAL/DCAL supermodules) entries array is stored per event.
+A full 17664 (=&nbsp;10&nbsp;&times;&nbsp;48&nbsp;&times;&nbsp;24 + 6&nbsp;&times;&nbsp;32&nbsp;&times;&nbsp;24 + 4&nbsp;&times;&nbsp;48&nbsp;&times;&nbsp;8, for the 10 full-`iphi` EMCAL, 6 full-`iphi` Di-Jet Calorimeter (DCAL), and 4 one-third-`iphi` EMCAL/DCAL supermodules) entries array is stored per event.
 
 | Name                  | Type                    | Description                                                           |
 | --------------------- | ----------------------- | --------------------------------------------------------------------- |
@@ -113,12 +123,11 @@ A full 17664 (=&nbsp;10&nbsp;&times;&nbsp;48&nbsp;&times;&nbsp;24 + 6&nbsp;&time
 | `track_tpc_ncluster`           | `unsigned char[ntrack]`  | Number of (actual) TPC clusters in the track                         |
 | `track_tpc_ncluster_dedx`      | `unsigned char[ntrack]`  | Number of TPC clusters used to obtain the _dE_/_dx_                  |
 | `track_tpc_ncluster_findable`  | `unsigned char[ntrack]`  | Number of potentially findable TPC clusters                          |
-| `track_its_ncluster`           | `unsigned char[ntrack]`  | Number of (actual) ITS clusters                                      |
+| `track_its_ncluster`           | `unsigned char[ntrack]`  | Number of (actual) Inner Tracking System (ITS) clusters                                      |
 | `track_dca_xy`                 | `__fp16[ntrack]`         | Distance of closest approach to the primary vertex in the _x_&ndash;_y_-plane (cm) |
 | `track_dca_z`                  | `__fp16[ntrack]`         | Distance of closest approach to the primary vertex in the _z_-direction (cm) |
 | `track_mc_truth_index`         | `unsigned short[ntrack]` | Index of the matched Monte Carlo truth particle, in `mc_truth_`*     |
-| `track_voronoi_area`           | `__fp16[ntrack]`         | The Voronoi diagram area occupied by the track in the _&eta;_&ndash;_y_-plane |
-| `track_voronoi_diameter`       | `__fp16[ntrack]`         | The diameter (least upper bound of the distances between vertices) of the Voronoi diagram area occupied by the track in the _&eta;_&ndash;_y_-plane |
+| `track_voronoi_area`           | `__fp16[ntrack]`         | The Voronoi diagram area occupied by the track in the _&eta;_&ndash;_&straightphi;_-plane |
 
 ## Muon Tracks
 
@@ -156,6 +165,8 @@ const bool pass_cut = muon_track_p_dca[i] < sigma_p_dca_resolution_effect
 | `mc_truth_pdg_code`        | `__fp16[nmc_truth]` | The particle species, according to Particle Data Group&rsquo;s MC Number Scheme |
 | `mc_truth_status`          | `__fp16[nmc_truth]` | The HepMC status code of the particle                  |
 | `mc_truth_generator_index` | `__fp16[nmc_truth]` | Index of the generator that produced the particle      |
+| `mc_truth_voronoi_area`    | `__fp16[nmc_truth]` | The Voronoi diagram area occupied by the particle in the _&eta;_&ndash;_&straightphi;_-plane |
+| `charged_mc_truth_voronoi_area` | `__fp16[nmc_truth]` | The Voronoi diagram area occupied by the charged particle (and among only the charged MC truth particles) in the _&eta;_&ndash;_&straightphi;_-plane |
 
 ## Jets
 
@@ -206,5 +217,5 @@ const bool pass_cut = muon_track_p_dca[i] < sigma_p_dca_resolution_effect
 | `jet_truth_multiplicity`  | `__fp16[njet]`         | MC truth jet multiplicity                                           |
 | `jet_truth_width_sigma`   | `__fp16[njet][2]`      | MC truth normalized major (`[0]`) and minor (`[1]`) axes of the 2-dimensional &#10216;_j_<sub>T</sub>&#10217; |
 | `jet_truth_ptd`           | `__fp16[njet]`         | MC truth jet _p_<sub>T</sub>_D_                                     |
-| `met_tpc`                 | `double[2]`            | TPC _&#582;_<sub>T</sub>                                            |
-| `met_truth`               | `double[2]`            | MC truth _&#582;_<sub>T</sub>                                       |
+| `met_tpc`                 | `double[2]`            | The _x_ and _y_ components of the TPC _&#582;_<sub>T</sub> (GeV)    |
+| `met_truth`               | `double[2]`            | The _x_ and _y_ components of the MC truth _&#582;_<sub>T</sub> (GeV) |

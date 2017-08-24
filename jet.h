@@ -21,6 +21,8 @@
 #include <fastjet/PseudoJet.hh>
 #pragma GCC diagnostic pop
 
+#include <special_function.h>
+
 namespace {
 
     typedef CGAL::Delaunay_triangulation_2<
@@ -129,47 +131,81 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
     }
 
     void
-    append_quantile(std::set<std::vector<fastjet::PseudoJet>::
-                    const_iterator> &jet_truncated,
-                    std::vector<std::pair<
+    append_quantile(std::vector<fastjet::PseudoJet> &constituent_truncated,
+                    std::set<int> &constituent_truncated_user_index,
+                    const std::vector<std::pair<
                     double, std::vector<fastjet::PseudoJet>::
-                    const_iterator> > rho_vs_jet,
+                    const_iterator> > &rho_vs_jet_unsorted,
+                    const fastjet::ClusterSequenceArea cluster_sequence,
+                    const std::vector<double> &particle_area,
                     double quantile)
     {
-        if (!rho_vs_jet.empty()) {
-            std::sort(rho_vs_jet.begin(), rho_vs_jet.end());
+        if (rho_vs_jet_unsorted.empty()) {
+            return;
+        }
 
-            const size_t iterator_margin =
-                floor(0.5 * (1 - quantile) * rho_vs_jet.size());
+        std::vector<std::pair<
+            double, std::vector<fastjet::PseudoJet>::
+            const_iterator> > rho_vs_jet = rho_vs_jet_unsorted;
 
-            for (std::vector<std::pair<
-                     double, std::vector<fastjet::PseudoJet>::
-                     const_iterator> >::const_iterator
-                     iterator =
-                     rho_vs_jet.begin() + iterator_margin;
-                 iterator != rho_vs_jet.end() - iterator_margin;
-                 iterator++) {
-                jet_truncated.insert(iterator->second);
+        std::sort(rho_vs_jet.begin(), rho_vs_jet.end());
+
+        const size_t iterator_margin =
+            floor(0.5 * (1 - quantile) * rho_vs_jet.size());
+
+        for (std::vector<std::pair<
+                 double, std::vector<fastjet::PseudoJet>::
+                 const_iterator> >::const_iterator
+                 iterator_rho_vs_jet =
+                 rho_vs_jet.begin() + iterator_margin;
+             iterator_rho_vs_jet !=
+                 rho_vs_jet.end() - iterator_margin;
+             iterator_rho_vs_jet++) {
+            std::vector<fastjet::PseudoJet> constituent =
+                cluster_sequence.
+                constituents(*iterator_rho_vs_jet->second);
+
+            for (std::vector<fastjet::PseudoJet>::const_iterator
+                     iterator_constituent = constituent.begin();
+                 iterator_constituent != constituent.end();
+                 iterator_constituent++) {
+                const int index = iterator_constituent->user_index();
+
+                if (index >= 0 && static_cast<size_t>(index) <
+                    particle_area.size() &&
+                    std::isfinite(particle_area[index]) &&
+                    constituent_truncated_user_index.find(index) ==
+                    constituent_truncated_user_index.end()) {
+                    constituent_truncated.push_back(*iterator_constituent);
+                    constituent_truncated_user_index.insert(index);
+                }
             }
         }
     }
 
-    std::vector<double> ue_estimation_truncated_mean(
+    std::pair<std::vector<double>, std::vector<double> >
+    ue_estimation_truncated_mean(
         std::vector<fastjet::PseudoJet> jet,
-        size_t order_fourier = 3, double quantile = 0.5)
+        fastjet::ClusterSequenceArea cluster_sequence,
+        std::vector<double> particle_area,
+        size_t order_pseudorapidity_chebyshev = 4,
+        size_t order_azimuth_fourier = 3,
+        double quantile = 0.5)
     {
         // Since the windows are staggered by 2x, there are 2 *
         // quantile * jet.size() / nwindow per window;
 
-        const unsigned int nwindow_phi =
+        const unsigned int nwindow_azimuth =
             std::max(1U, std::min(48U, static_cast<unsigned int>(
                 floor(quantile * jet.size()))));
-        const double window_width = 4 * M_PI / nwindow_phi;
-        std::set<std::vector<fastjet::PseudoJet>::const_iterator>
-            jet_truncated;
+        const double azimuth_window_width =
+            4 * M_PI / nwindow_azimuth;
+        std::vector<fastjet::PseudoJet> constituent_truncated;
+        std::set<int> constituent_truncated_user_index;
 
-        for (size_t i = 0; i < nwindow_phi; i++) {
-            const double phi_0 = i * (2 * M_PI / nwindow_phi) - M_PI;
+        for (size_t i = 0; i < nwindow_azimuth; i++) {
+            const double azimuth_window_center =
+                i * (2 * M_PI / nwindow_azimuth) - M_PI;
             std::vector<std::pair<
                 double, std::vector<fastjet::PseudoJet>::
                 const_iterator> > rho_vs_jet;
@@ -178,8 +214,8 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                      iterator = jet.begin();
                  iterator != jet.end(); iterator++) {
                 if (angular_range_reduce(
-                        iterator->phi_std() - phi_0) <
-                    window_width) {
+                        iterator->phi_std() - azimuth_window_center) <
+                    azimuth_window_width) {
                     rho_vs_jet.push_back(
                         std::pair<double, std::vector<
                         fastjet::PseudoJet>::const_iterator>(
@@ -187,34 +223,53 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                             iterator));
                 }
             }
-            append_quantile(jet_truncated, rho_vs_jet, quantile);
+            append_quantile(constituent_truncated,
+                            constituent_truncated_user_index,
+                            rho_vs_jet, cluster_sequence,
+                            particle_area, quantile);
         }
 
-        std::vector<double> ret;
+        std::vector<double> pseudorapidity_dependence;
 
-        if (!jet_truncated.empty()) {
-            order_fourier =
-                std::min(order_fourier,
-                         (jet_truncated.size() - 1) / 2);
+        if (!constituent_truncated.empty()) {
+            order_pseudorapidity_chebyshev =
+                std::min(order_pseudorapidity_chebyshev,
+                         constituent_truncated.size() - 1);
 
-            TMatrixD a(jet_truncated.size(), 2 * order_fourier + 1);
-            TVectorD b(jet_truncated.size());
-
-            TMatrixDColumn(a, 0) = 1;
-
+            TMatrixD a(constituent_truncated.size(),
+                       order_pseudorapidity_chebyshev + 1);
+            TVectorD b(constituent_truncated.size());
             size_t row = 0;
 
-            for (std::set<std::vector<fastjet::PseudoJet>::
-                     const_iterator>::const_iterator iterator =
-                     jet_truncated.begin();
-                 iterator != jet_truncated.end(); iterator++) {
-                const double phi = (*iterator)->phi_std();
+            for (std::vector<fastjet::PseudoJet>::const_iterator
+                     iterator = constituent_truncated.begin();
+                 iterator != constituent_truncated.end();
+                 iterator++) {
+                const double area =
+                    particle_area[iterator->user_index()];
+                // The convenience of ALICE central tracks being from
+                // pseudorapidity -0.9 to 0.9 (close to -1 to 1) is
+                // taken advantage to avoid a linear transform for the
+                // Chebyshev polynomials
+                const double x = iterator->pseudorapidity();
 
-                for (size_t j = 0; j < order_fourier; j++) {
-                    a(row, 2 * j + 1) = cos((j + 1) * phi);
-                    a(row, 2 * j + 2) = sin((j + 1) * phi);
+                a(row, 0) = area;
+                if (order_pseudorapidity_chebyshev >= 1) {
+                    a(row, 1) = x * area;
                 }
-                b(row) = (*iterator)->perp() / (*iterator)->area();
+
+                // t[0] is T_n(x), t[1] is T_{n - 1}(x)
+                double t[2] = { x, 1 };
+
+                for (size_t j = 2;
+                     j < order_pseudorapidity_chebyshev + 1; j++) {
+                    const double tn1 = 2 * x * t[0] - t[1];
+
+                    a(row, j) = tn1 * area;
+                    t[0] = tn1;
+                    t[1] = t[0];
+                }
+                b(row) = iterator->perp();
                 row++;
             }
 
@@ -223,37 +278,100 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
             TVectorD x = a_svd.Solve(b, status);
 
             if (status != kFALSE) {
-                for (size_t i = 0; i < 2 * order_fourier + 1; i++) {
-                    ret.push_back(x(i));
+                for (size_t i = 0;
+                     i < order_pseudorapidity_chebyshev + 1; i++) {
+                    pseudorapidity_dependence.push_back(x(i));
                 }
             }
         }
 
-        return ret;
+        std::vector<double> azimuth_dependence;
+
+        if (!constituent_truncated.empty()) {
+            order_azimuth_fourier =
+                std::min(order_azimuth_fourier,
+                         (constituent_truncated.size() - 1) / 2);
+
+            TMatrixD a(constituent_truncated.size(),
+                       2 * order_azimuth_fourier + 1);
+            TVectorD b(constituent_truncated.size());
+            size_t row = 0;
+
+            for (std::vector<fastjet::PseudoJet>::const_iterator
+                     iterator = constituent_truncated.begin();
+                 iterator != constituent_truncated.end();
+                 iterator++) {
+                const double azimuth = iterator->phi_std();
+                const double area =
+                    particle_area[iterator->user_index()];
+
+                a(row, 0) = area;
+                for (size_t j = 0; j < order_azimuth_fourier; j++) {
+                    a(row, 2 * j + 1) = cos((j + 1) * azimuth) * area;
+                    a(row, 2 * j + 2) = sin((j + 1) * azimuth) * area;
+                }
+                b(row) = iterator->perp();
+                row++;
+            }
+
+            TDecompSVD a_svd(a);
+            Bool_t status;
+            TVectorD x = a_svd.Solve(b, status);
+
+            if (status != kFALSE) {
+                for (size_t i = 0; i < 2 * order_azimuth_fourier + 1;
+                     i++) {
+                    azimuth_dependence.push_back(x(i));
+                }
+            }
+        }
+
+        return std::pair<
+            std::vector<double>, std::vector<double> >(
+                pseudorapidity_dependence, azimuth_dependence);
     }
 
-    double evaluate_ue(std::vector<double> ue_estimate,
-                       double azimuth, double r = 0)
+    double evaluate_ue(std::pair<std::vector<double>,
+                       std::vector<double> > ue_estimate,
+                       double pseudorapidity, double azimuth)
     {
-        if (ue_estimate.empty()) {
+        if (ue_estimate.first.empty() ||
+            ue_estimate.second.empty()) {
             return 0;
         }
 
-        double s = ue_estimate[0];
+        double p = ue_estimate.first[0];
 
-        for (size_t i = 0; i < (ue_estimate.size() - 1) / 2; i++) {
-            const double v =
-                sqrt(std::pow(ue_estimate[2 * i + 2], 2) +
-                     std::pow(ue_estimate[2 * i + 1], 2));
-            const double psi = atan2(ue_estimate[2 * i + 2],
-                                     ue_estimate[2 * i + 1]);
-            const double k = i + 1;
-
-            s += r == 0 ? 1.0 : (2 * j1(k * r) / (k * r)) *
-                v * cos(k * azimuth - psi);
+        if (ue_estimate.first.size() >= 1) {
+            p += ue_estimate.first[1] * pseudorapidity;
         }
 
-        return s;
+        const double x = pseudorapidity;
+        // t[0] is T_n(x), t[1] is T_{n - 1}(x)
+        double t[2] = { x, 1 };
+
+        for (size_t i = 2; i < ue_estimate.first.size(); i++) {
+            const double tn1 = 2 * x * t[0] - t[1];
+
+            p += ue_estimate.first[i] * tn1;
+            t[0] = tn1;
+            t[1] = t[0];
+        }
+
+        double a = ue_estimate.second[0];
+
+        for (size_t i = 0; i < (ue_estimate.second.size() - 1) / 2; i++) {
+            const double v =
+                sqrt(std::pow(ue_estimate.second[2 * i + 2], 2) +
+                     std::pow(ue_estimate.second[2 * i + 1], 2));
+            const double psi = atan2(ue_estimate.second[2 * i + 2],
+                                     ue_estimate.second[2 * i + 1]);
+            const double k = i + 1;
+
+            a += v * cos(k * azimuth - psi);
+        }
+
+        return p * a / ue_estimate.second[0];
     }
 
     // fastjet::PseudoJet user indices -2 and -3 are used to tag the
@@ -338,7 +456,8 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
              iterator_constituent != constituent.end();
              iterator_constituent++) {
             const double perp =
-                constituent_perp(*iterator_constituent);
+                constituent_perp(*iterator_constituent,
+                                 scale_em_ghost);
 
             sum_1 += perp;
             sum_2 += std::pow(perp, 2);
@@ -365,7 +484,8 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
              iterator_constituent != constituent.end();
              iterator_constituent++) {
             const double perp_2 =
-                std::pow(constituent_perp(*iterator_constituent), 2);
+                std::pow(constituent_perp(*iterator_constituent,
+                                          scale_em_ghost), 2);
             const double dpseudorapidity =
                 iterator_constituent->pseudorapidity() -
                 jet.pseudorapidity();
@@ -389,20 +509,6 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
         sigma[0] = sqrt(c / (q * sum_2));
         // Minor axis, x1
         sigma[1] = sqrt(q / (-sum_2));
-    }
-
-    void jet_width_sigma_h(float sigma[],
-                           const fastjet::PseudoJet jet,
-                           const std::vector<fastjet::PseudoJet>
-                           constituent,
-                           double scale_em_ghost = 1)
-    {
-        double sigma_d[2];
-
-        jet_width_sigma(sigma_d, jet, constituent, scale_em_ghost);
-        for (size_t i = 0; i < 2; i++) {
-            sigma[i] = half(sigma_d[i]);
-        }
     }
 
 }
