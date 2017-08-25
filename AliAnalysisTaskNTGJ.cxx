@@ -1141,7 +1141,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     const std::vector<fastjet::PseudoJet> jet_reco_tagged =
         cluster_sequence_reco_tagged.inclusive_jets(0);
 
-    static const double jet_kt_d_ue_estimation = 0.2;
+    static const double jet_kt_d_ue_estimation = 0.3;
     const fastjet::ClusterSequenceArea
         cluster_sequence_ue_estimation(
             particle_reco,
@@ -1172,8 +1172,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
     std::pair<std::vector<double>, std::vector<double> >
         ue_estimate = ue_estimation_truncated_mean(
-            jet_ue_estimation, cluster_sequence_ue_estimation,
-            particle_reco_area);
+            cluster_sequence_ue_estimation, particle_reco_area);
 
     _branch_ncluster = 0;
     for (Int_t i = 0; i < calo_cluster.GetEntriesFast(); i++) {

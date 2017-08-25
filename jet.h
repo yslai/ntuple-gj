@@ -8,6 +8,7 @@
 #include <map>
 
 #include <TDecompSVD.h>
+#include <TPolyLine.h>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Weffc++"
@@ -40,19 +41,11 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
         CGAL::Exact_predicates_inexact_constructions_kernel>
         polygon_t;
 
-    void voronoi_area_incident(
-        std::vector<double> &particle_area,
-        std::vector<std::set<size_t> > &particle_incident,
-        const std::vector<point_2d_t> &
-        particle_pseudorapidity_azimuth)
+    void voronoi_insert_alice_tpc(
+        voronoi_diagram_t &diagram,
+        std::map<voronoi_diagram_t::Face_handle, size_t> &face_index,
+        const std::vector<point_2d_t> particle_pseudorapidity_azimuth)
     {
-        // Make the Voronoi diagram
-
-        voronoi_diagram_t diagram;
-
-        // Reverse Voronoi face lookup
-        std::map<voronoi_diagram_t::Face_handle, size_t> face_index;
-
         for (std::vector<point_2d_t>::const_iterator iterator =
                  particle_pseudorapidity_azimuth.begin();
              iterator != particle_pseudorapidity_azimuth.end();
@@ -66,8 +59,7 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                 // boundary condition
                 for (int k = -1; k <= 1; k++) {
                     const point_2d_t
-                        p((2 * (j & 1) - 1) * iterator->x() +
-                          j * (2 * 0.9),
+                        p(iterator->x() * (1 - 2 * (j & 1)) + j * (2 * 0.9),
                           iterator->y() + k * (2 * M_PI));
                     const voronoi_diagram_t::Face_handle
                         handle = diagram.insert(p);
@@ -77,6 +69,18 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                 }
             }
         }
+    }
+
+    void voronoi_area_incident(
+        std::vector<double> &particle_area,
+        std::vector<std::set<size_t> > &particle_incident,
+        const std::vector<point_2d_t> particle_pseudorapidity_azimuth)
+    {
+        voronoi_diagram_t diagram;
+        std::map<voronoi_diagram_t::Face_handle, size_t> face_index;
+
+        voronoi_insert_alice_tpc(diagram, face_index,
+                                 particle_pseudorapidity_azimuth);
 
         particle_area.clear();
         particle_incident = std::vector<std::set<size_t> >(
@@ -130,13 +134,65 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
         }
     }
 
+    void voronoi_polygon(
+        std::vector<TPolyLine> &polyline,
+        const std::vector<point_2d_t> &
+        particle_pseudorapidity_azimuth)
+    {
+        voronoi_diagram_t diagram;
+        std::map<voronoi_diagram_t::Face_handle, size_t> face_index;
+
+        voronoi_insert_alice_tpc(diagram, face_index,
+                                 particle_pseudorapidity_azimuth);
+
+        // Extract the Voronoi cells as polygon and calculate the
+        // area associated with individual particles
+
+        for (std::vector<point_2d_t>::const_iterator iterator =
+                 particle_pseudorapidity_azimuth.begin();
+             iterator != particle_pseudorapidity_azimuth.end();
+             iterator++) {
+            const voronoi_diagram_t::Locate_result result =
+                diagram.locate(*iterator);
+            const voronoi_diagram_t::Face_handle *face =
+                boost::get<voronoi_diagram_t::Face_handle>(&result);
+            std::vector<double> x;
+            std::vector<double> y;
+
+            if (face != NULL) {
+                voronoi_diagram_t::Ccb_halfedge_circulator
+                    circulator_start = (*face)->outer_ccb();
+
+                voronoi_diagram_t::Ccb_halfedge_circulator
+                    circulator = circulator_start;
+
+                // Circle around the edges and extract the polygon
+                // vertices
+                do {
+                    if (circulator->has_target()) {
+                        x.push_back(circulator->target()->point().x());
+                        y.push_back(circulator->target()->point().y());
+                    }
+                }
+                while (++circulator != circulator_start);
+            }
+            if (!x.empty()) {
+                x.push_back(x.front());
+                y.push_back(y.front());
+            }
+            polyline.push_back(TPolyLine(x.size(), &x[0], &y[0]));
+        }
+    }
+
     void
-    append_quantile(std::vector<fastjet::PseudoJet> &constituent_truncated,
+    append_quantile(std::vector<fastjet::PseudoJet> &
+                    constituent_truncated,
                     std::set<int> &constituent_truncated_user_index,
                     const std::vector<std::pair<
                     double, std::vector<fastjet::PseudoJet>::
                     const_iterator> > &rho_vs_jet_unsorted,
-                    const fastjet::ClusterSequenceArea cluster_sequence,
+                    const fastjet::ClusterSequenceArea
+                    cluster_sequence,
                     const std::vector<double> &particle_area,
                     double quantile)
     {
@@ -176,32 +232,34 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                     std::isfinite(particle_area[index]) &&
                     constituent_truncated_user_index.find(index) ==
                     constituent_truncated_user_index.end()) {
-                    constituent_truncated.push_back(*iterator_constituent);
+                    constituent_truncated.push_back(
+                        *iterator_constituent);
                     constituent_truncated_user_index.insert(index);
                 }
             }
         }
     }
 
-    std::pair<std::vector<double>, std::vector<double> >
-    ue_estimation_truncated_mean(
-        std::vector<fastjet::PseudoJet> jet,
+    void constituent_quantile(
+        std::vector<fastjet::PseudoJet> &constituent_truncated,
+        std::set<int> &constituent_truncated_user_index,
         fastjet::ClusterSequenceArea cluster_sequence,
-        std::vector<double> particle_area,
-        size_t order_pseudorapidity_chebyshev = 4,
-        size_t order_azimuth_fourier = 3,
-        double quantile = 0.5)
+        std::vector<double> particle_area, double quantile)
     {
+        const std::vector<fastjet::PseudoJet> jet =
+            cluster_sequence.inclusive_jets(0);
+
+        static const unsigned int nwindow_azimuth_max = 24U;
+
         // Since the windows are staggered by 2x, there are 2 *
         // quantile * jet.size() / nwindow per window;
 
         const unsigned int nwindow_azimuth =
-            std::max(1U, std::min(48U, static_cast<unsigned int>(
-                floor(quantile * jet.size()))));
+            std::max(1U, std::min(
+                nwindow_azimuth_max, static_cast<unsigned int>(
+                    floor(quantile * jet.size()))));
         const double azimuth_window_width =
-            4 * M_PI / nwindow_azimuth;
-        std::vector<fastjet::PseudoJet> constituent_truncated;
-        std::set<int> constituent_truncated_user_index;
+            2 * M_PI / nwindow_azimuth;
 
         for (size_t i = 0; i < nwindow_azimuth; i++) {
             const double azimuth_window_center =
@@ -228,6 +286,23 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                             rho_vs_jet, cluster_sequence,
                             particle_area, quantile);
         }
+    }
+
+    std::pair<std::vector<double>, std::vector<double> >
+    ue_estimation_truncated_mean(
+        fastjet::ClusterSequenceArea cluster_sequence,
+        std::vector<double> particle_area,
+        size_t order_pseudorapidity_chebyshev = 4,
+        size_t order_azimuth_fourier = 3,
+        double quantile = 0.5)
+    {
+        std::vector<fastjet::PseudoJet> constituent_truncated;
+        std::set<int> constituent_truncated_user_index;
+
+        constituent_quantile(constituent_truncated,
+                             constituent_truncated_user_index,
+                             cluster_sequence, particle_area,
+                             quantile);
 
         std::vector<double> pseudorapidity_dependence;
 
@@ -329,6 +404,24 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
         return std::pair<
             std::vector<double>, std::vector<double> >(
                 pseudorapidity_dependence, azimuth_dependence);
+    }
+
+    std::set<int> ue_user_index_truncated_mean(
+        fastjet::ClusterSequenceArea cluster_sequence,
+        std::vector<double> particle_area,
+        size_t order_pseudorapidity_chebyshev = 4,
+        size_t order_azimuth_fourier = 3,
+        double quantile = 0.5)
+    {
+        std::vector<fastjet::PseudoJet> constituent_truncated;
+        std::set<int> constituent_truncated_user_index;
+
+        constituent_quantile(constituent_truncated,
+                             constituent_truncated_user_index,
+                             cluster_sequence, particle_area,
+                             quantile);
+
+        return constituent_truncated_user_index;
     }
 
     double evaluate_ue(std::pair<std::vector<double>,

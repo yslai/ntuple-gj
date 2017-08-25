@@ -36,4 +36,6 @@ Do not attempt to merge ntuples on the Grid. They will inevitably fail as ALICE 
 ./macros/MergeNtuple.C "rx/lhc16h2a_bis-246994-1/*/*.root" merged_output.root
 ```
 
-Note to quote the wildcard. The wildcard is expanded via shell, and is not limited to ROOT&rsquo;s expansion (which does not allow multiple directories).
+Note to quote the wildcard, in order to prevent its expansion by the shell before calling the macro. The wildcard is then expanded (macro internally) via shell, and is not limited to ROOT&rsquo;s `TChain` expansion (which does not allow merging across multiple directories).
+
+`MergeNtuple.C` will prefer ROOT 6, if it is available in the local `aliBuild` environment. It is also possible to compile `MergeNtuple.C` via ROOT ACLiC.
