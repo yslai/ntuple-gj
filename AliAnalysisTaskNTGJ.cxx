@@ -42,13 +42,18 @@
 #ifndef __CINT__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Weffc++"
-#include "fastjet/PseudoJet.hh"
-#include "fastjet/JetDefinition.hh"
-#include "fastjet/AreaDefinition.hh"
-#include "fastjet/ClusterSequenceArea.hh"
+#include <fastjet/PseudoJet.hh>
+#include <fastjet/JetDefinition.hh>
+#include <fastjet/AreaDefinition.hh>
+#include <fastjet/ClusterSequenceArea.hh>
 
 #include "eLut.cpp"
 #include "half.cpp"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Woverloaded-virtual"
+#pragma GCC diagnostic ignored "-Wtype-limits"
+#include "keras_model.cc"
+#pragma GCC diagnostic pop
 #pragma GCC diagnostic pop
 #include "special_function.h"
 #include "emcal.h"
@@ -1456,7 +1461,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 pt_raw_ue += evaluate_ue(
                     ue_estimate,
                     iterator_constituent->pseudorapidity(),
-                    iterator_constituent->phi_std());
+                    iterator_constituent->phi_std()) *
+                    particle_reco_area[index];
             }
         }
 

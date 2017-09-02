@@ -53,7 +53,7 @@ To efficiently use available space, unsigned data types are used extensively. In
 | `eg_mpi`             | `int`              | The number of hard interactions of the current event, HepMC&rsquo;s `GenEvent::mpi()` and e.g. PYTHIA 8&rsquo;s `Info::nMPI()` |
 | `eg_pt_hat`          | `float`            | The rest frame transverse momentum _p&#770;_<sub>&perp;</sub> (GeV/_c_) of the current event, e.g. PYTHIA 8&rsquo;s `Info::pTHat()` |
 | `eg_cross_section`   | `float`            | Cross section _&sigma;_ (mb) of the current event, e.g. PYTHIA 8&rsquo;s `Info::sigmaGen()` and HERWIG 7&rsquo;s `EventHandler::integratedXSec() / Units::millibarn` |
-| `eg_weight`          | `float`            | Weight of the current event, HepMC&rsquo;s `GenEvent::weights().front()` and e.g. PYTHIA 8&rsquo;s `Info::weight()` and HERWIG 7&rsquo;s `EventHandler::histogramScale()` |
+| `eg_weight`          | `float`            | Weight of the current event, HepMC&rsquo;s `GenEvent::weights().front()` and e.g. PYTHIA 8&rsquo;s `Info::weight()` and HERWIG 7&rsquo;s `EventHandler::weight() / MEBase::reWeight()` |
 | `eg_primary_vertex`  | `float[3]`         | The generator truth primary vertex, HepMC&rsquo;s `GenEvent::signal_process_vertex()->point3d()` |
 | `eg_ntrial`          | `int`              | Number of trial until the current event is generated (ALICE SW specific) |
 | `eg_scale_pdf`       | `float`            | The scale _Q_ for the of the current event, as used for the calculation of parton distribution functions (PDFs), HepMC&rsquo;s `GenEvent::event_scale()` and e.g. PYTHIA 8&rsquo;s `Info::scalup()` (not stored by ALICE SW) |

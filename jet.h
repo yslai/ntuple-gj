@@ -6,6 +6,7 @@
 #include <vector>
 #include <set>
 #include <map>
+#include <algorithm>
 
 #include <TDecompSVD.h>
 #include <TPolyLine.h>
@@ -244,7 +245,8 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
         std::vector<fastjet::PseudoJet> &constituent_truncated,
         std::set<int> &constituent_truncated_user_index,
         fastjet::ClusterSequenceArea cluster_sequence,
-        std::vector<double> particle_area, double quantile)
+        std::vector<double> particle_area,
+        size_t order_azimuth_fourier, double quantile)
     {
         const std::vector<fastjet::PseudoJet> jet =
             cluster_sequence.inclusive_jets(0);
@@ -271,8 +273,8 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
             for (std::vector<fastjet::PseudoJet>::const_iterator
                      iterator = jet.begin();
                  iterator != jet.end(); iterator++) {
-                if (angular_range_reduce(
-                        iterator->phi_std() - azimuth_window_center) <
+                if (fabs(angular_range_reduce(
+                        iterator->phi_std() - azimuth_window_center)) <
                     azimuth_window_width) {
                     rho_vs_jet.push_back(
                         std::pair<double, std::vector<
@@ -281,11 +283,46 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                             iterator));
                 }
             }
-            append_quantile(constituent_truncated,
-                            constituent_truncated_user_index,
-                            rho_vs_jet, cluster_sequence,
-                            particle_area, quantile);
+			append_quantile(constituent_truncated,
+							constituent_truncated_user_index,
+							rho_vs_jet, cluster_sequence,
+							particle_area, quantile);
+		}
+
+		const size_t nwindow_azimuth_nyquist =
+			4 * order_azimuth_fourier;
+        const double azimuth_window_width_nyquist =
+            2 * M_PI / nwindow_azimuth_nyquist;
+		std::vector<fastjet::PseudoJet> constituent_guard;
+
+        for (size_t i = 0; i < nwindow_azimuth_nyquist; i++) {
+            const double azimuth_window_center =
+                i * (2 * M_PI / nwindow_azimuth_nyquist) - M_PI;
+			size_t count = 0;
+
+            for (std::vector<fastjet::PseudoJet>::const_iterator
+                     iterator = constituent_truncated.begin();
+                 iterator != constituent_truncated.end();
+				 iterator++) {
+                if (fabs(angular_range_reduce(
+                        iterator->phi_std() - azimuth_window_center)) <
+                    azimuth_window_width_nyquist) {
+                    count++;
+                }
+            }
+			fprintf(stderr, "%s:%d: %lu %g %g %lu\n", __FILE__, __LINE__, i, azimuth_window_center - azimuth_window_width_nyquist, azimuth_window_center + azimuth_window_width_nyquist, count);
+			if (count <= 4) {
+				for (int j = -9; j <= 9; j += 3) {
+					fastjet::PseudoJet p;
+
+					p.reset_PtYPhiM(1, 0.1 * j, azimuth_window_center, 0);
+					constituent_guard.push_back(p);
+				}
+			}
         }
+		constituent_truncated.insert(
+			constituent_truncated.end(),
+			constituent_guard.begin(), constituent_guard.end());
     }
 
     std::pair<std::vector<double>, std::vector<double> >
@@ -302,9 +339,10 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
         constituent_quantile(constituent_truncated,
                              constituent_truncated_user_index,
                              cluster_sequence, particle_area,
-                             quantile);
+							 order_azimuth_fourier, quantile);
 
         std::vector<double> pseudorapidity_dependence;
+		static const double sqrt_area_empty = 1;
 
         if (!constituent_truncated.empty()) {
             order_pseudorapidity_chebyshev =
@@ -320,17 +358,33 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                      iterator = constituent_truncated.begin();
                  iterator != constituent_truncated.end();
                  iterator++) {
-                const double area =
-                    particle_area[iterator->user_index()];
+#if 0
+				if (!(iterator->user_index() >= 0 &&
+					  static_cast<size_t>(iterator->user_index()) <
+					  particle_area.size())) {
+					fprintf(stderr, "%s:%d: !(0 <= %d < %lu)\n",
+							__FILE__, __LINE__,
+							iterator->user_index(),
+							particle_area.size());
+				}
+#endif
+
+				const double sqrt_area =
+					iterator->user_index() >= 0 ?
+					sqrt(particle_area[iterator->user_index()]) :
+					sqrt_area_empty;
+
+                a(row, 0) = sqrt_area;
+
                 // The convenience of ALICE central tracks being from
                 // pseudorapidity -0.9 to 0.9 (close to -1 to 1) is
                 // taken advantage to avoid a linear transform for the
                 // Chebyshev polynomials
+
                 const double x = iterator->pseudorapidity();
 
-                a(row, 0) = area;
                 if (order_pseudorapidity_chebyshev >= 1) {
-                    a(row, 1) = x * area;
+                    a(row, 1) = x * sqrt_area;
                 }
 
                 // t[0] is T_n(x), t[1] is T_{n - 1}(x)
@@ -340,11 +394,12 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                      j < order_pseudorapidity_chebyshev + 1; j++) {
                     const double tn1 = 2 * x * t[0] - t[1];
 
-                    a(row, j) = tn1 * area;
-                    t[0] = tn1;
+                    a(row, j) = tn1 * sqrt_area;
                     t[1] = t[0];
+                    t[0] = tn1;
                 }
-                b(row) = iterator->perp();
+                b(row) = iterator->user_index() >= 0 ?
+					iterator->perp() / sqrt_area : 0;
                 row++;
             }
 
@@ -376,16 +431,21 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                      iterator = constituent_truncated.begin();
                  iterator != constituent_truncated.end();
                  iterator++) {
-                const double azimuth = iterator->phi_std();
-                const double area =
-                    particle_area[iterator->user_index()];
+				const double sqrt_area =
+					iterator->user_index() >= 0 ?
+					sqrt(particle_area[iterator->user_index()]) :
+					sqrt_area_empty;
 
-                a(row, 0) = area;
+                a(row, 0) = sqrt_area;
+
+                const double azimuth = iterator->phi_std();
+
                 for (size_t j = 0; j < order_azimuth_fourier; j++) {
-                    a(row, 2 * j + 1) = cos((j + 1) * azimuth) * area;
-                    a(row, 2 * j + 2) = sin((j + 1) * azimuth) * area;
+                    a(row, 2 * j + 1) = cos((j + 1) * azimuth) * sqrt_area;
+                    a(row, 2 * j + 2) = sin((j + 1) * azimuth) * sqrt_area;
                 }
-                b(row) = iterator->perp();
+                b(row) = iterator->user_index() >= 0 ?
+					iterator->perp() / sqrt_area : 0;
                 row++;
             }
 
@@ -419,7 +479,7 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
         constituent_quantile(constituent_truncated,
                              constituent_truncated_user_index,
                              cluster_sequence, particle_area,
-                             quantile);
+                             order_azimuth_fourier, quantile);
 
         return constituent_truncated_user_index;
     }
@@ -464,7 +524,7 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
             a += v * cos(k * azimuth - psi);
         }
 
-        return p * a / ue_estimate.second[0];
+        return std::max(0.0, p * a / ue_estimate.second[0]);
     }
 
     // fastjet::PseudoJet user indices -2 and -3 are used to tag the
