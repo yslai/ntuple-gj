@@ -120,6 +120,7 @@ private:
     BRANCH_ARRAY(track_tpc_ncluster_dedx, ntrack, b)                \
     BRANCH_ARRAY(track_tpc_ncluster_findable, ntrack, b)            \
     BRANCH_ARRAY(track_its_ncluster, ntrack, b)                     \
+    BRANCH_ARRAY(track_its_chi_square, ntrack, F)                   \
     BRANCH_ARRAY(track_dca_xy, ntrack, F)                           \
     BRANCH_ARRAY(track_dca_z, ntrack, F)                            \
     BRANCH_ARRAY(track_mc_truth_index, ntrack, s)                   \
@@ -291,6 +292,8 @@ private:
     void *_emcal_cell_position; //!
     std::vector<double> _emcal_cell_area; //!
     std::vector<std::set<size_t> > _emcal_cell_incident; //!
+
+	void *_keras_model_photon_discrimination;
 
     AliAnalysisAlien *_alien_plugin; //!
     bool _metadata_filled; //!

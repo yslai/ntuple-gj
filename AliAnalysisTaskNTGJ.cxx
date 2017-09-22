@@ -49,11 +49,11 @@
 
 #include "eLut.cpp"
 #include "half.cpp"
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Woverloaded-virtual"
-#pragma GCC diagnostic ignored "-Wtype-limits"
+
 #include "keras_model.cc"
-#pragma GCC diagnostic pop
+
+// #include "tiny_dnn/tiny_dnn.h"
+
 #pragma GCC diagnostic pop
 #include "special_function.h"
 #include "emcal.h"
@@ -150,6 +150,7 @@ ClassImp(AliAnalysisTaskNTGJ);
     _emcal_cell_position(NULL),                             \
     _emcal_cell_area(std::vector<double>()),                \
     _emcal_cell_incident(std::vector<std::set<size_t> >()), \
+    _keras_model_photon_discrimination(NULL),               \
     _alien_plugin(NULL),                                    \
     _metadata_filled(false)
 
@@ -204,6 +205,10 @@ AliAnalysisTaskNTGJ::~AliAnalysisTaskNTGJ(void)
     if (_emcal_cell_position != NULL) {
         delete reinterpret_cast<std::vector<point_2d_t> *>
             (_emcal_cell_position);
+    }
+    if (_keras_model_photon_discrimination != NULL) {
+        delete reinterpret_cast<KerasModel *>
+            (_keras_model_photon_discrimination);
     }
 
     delete _reco_util;
@@ -404,9 +409,10 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             }
         }
 
-        // "2015 PbPb" cuts, see GetStandardITSTPCTrackCuts2015PbPb()
-        // in AliRoot/ANALYSIS/ANALYSISalice/AliESDtrackCuts.cxx .
-        // Both clusterCut = 0 or 1 cases are kept, but the options
+        // "2015 PbPb" cuts, see
+        // AliESDtrackCuts::GetStandardITSTPCTrackCuts2015PbPb() in
+        // AliRoot/ANALYSIS/ANALYSISalice/AliESDtrackCuts.cxx . Both
+        // clusterCut = 0 or 1 cases are kept, but the options
         // selPrimaries = kTRUE, cutAcceptanceEdges = kTRUE,
         // removeDistortedRegions = kFALSE are fixed
 
@@ -440,6 +446,21 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             _track_cut.back().SetRequireSigmaToVertex(kFALSE);
             _track_cut.back().SetMaxChi2PerClusterITS(36);
         }
+
+		// Relaxed version of the union of
+		// AliESDtrackCuts::GetStandardITSPureSATrackCuts2009() and
+		// AliESDtrackCuts::GetStandardITSPureSATrackCuts2010() in
+		// AliRoot/ANALYSIS/ANALYSISalice/AliESDtrackCuts.cxx
+
+		_track_cut.push_back(AliESDtrackCuts("AliESDtrackCuts"));
+
+		// _track_cut.back().SetRequireITSStandAlone(kFALSE);
+		_track_cut.back().SetRequireITSPureStandAlone(kTRUE);
+		// _track_cut.back().SetRequireITSRefit(kTRUE); 
+		// _track_cut.back().SetMinNClustersITS(4);
+		// _track_cut.back().SetClusterRequirementITS(
+		// 	AliESDtrackCuts::kSPD, AliESDtrackCuts::kAny);
+		// esdTrackCuts->SetMaxChi2PerClusterITS(2.5);
     }
 
     AliVVZERO *v0 = event->GetVZEROData();
@@ -567,6 +588,10 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             _branch_cell_voronoi_area[cell_id] = NAN;
         }
     }
+
+	if (_keras_model_photon_discrimination == NULL) {
+		_keras_model_photon_discrimination = new KerasModel;
+	}
 
     AliMCEvent *mc_truth_event = MCEvent();
 
@@ -791,10 +816,18 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
             // Store tracks passing PWG-JE *or* "2015 PbPb" cuts
 
-            if (_track_cut[0].AcceptTrack(t) ||
-                _track_cut[1].AcceptTrack(t) ||
-                _track_cut[2].AcceptTrack(t) ||
-                _track_cut[3].AcceptTrack(t)) {
+			bool store_track = false;
+
+			for (std::vector<AliESDtrackCuts>::iterator iterator =
+					 _track_cut.begin();
+				 iterator != _track_cut.end(); iterator++) {
+				if (iterator->AcceptTrack(t)) {
+					store_track = true;
+					break;
+				}
+			}
+
+            if (store_track) {
                 _branch_track_e[_branch_ntrack] = half(t->E());
                 _branch_track_pt[_branch_ntrack] = half(t->Pt());
                 _branch_track_eta[_branch_ntrack] = half(t->Eta());
@@ -841,12 +874,14 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                     std::min(static_cast<UShort_t>(UCHAR_MAX),
                              std::max(static_cast<UShort_t>(0),
                                       t->GetTPCsignalN()));
-                _branch_track_its_ncluster[_branch_ntrack] =
-                    t->GetNumberOfITSClusters();
                 _branch_track_tpc_ncluster_findable[_branch_ntrack] =
                     std::min(static_cast<UShort_t>(UCHAR_MAX),
                              std::max(static_cast<UShort_t>(0),
                                       t->GetTPCNclsF()));
+                _branch_track_its_ncluster[_branch_ntrack] =
+                    t->GetNumberOfITSClusters();
+                _branch_track_its_chi_square[_branch_ntrack] =
+                    half(t->GetITSchi2());
 
                 Double_t dz[2] = { NAN, NAN };
                 Double_t cov[3] = { NAN, NAN, NAN };
