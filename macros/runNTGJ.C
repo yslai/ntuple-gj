@@ -114,11 +114,14 @@ void runNTGJ(const char *run_mode = "full")
         "special_function.h emcal.h isolation.h jet.h bad_channel.h "
         "eLut.cpp eLut.h half.cpp halfExport.h halfFunction.h "
         "half.h halfLimits.h toFloat.h "
+        "keras_model.h keras_model.cc "
         "libCGAL.so libfastjet.so libsiscone.so "
         "libsiscone_spherical.so libfastjetplugins.so "
         "libfastjetcontribfragile.so");
     plugin->SetAnalysisSource("AliAnalysisTaskNTGJ.cxx");
     plugin->SetRunPrefix("");
+
+	// 5 TeV PbPb
 
     const int run_number_lhc15o[] = {
 
@@ -132,6 +135,8 @@ void runNTGJ(const char *run_mode = "full")
         -1
     };
 
+	// 8 TeV PYTHIA 8 QCD
+
     const int run_number_lhc16c2[] = {
     
         180720,
@@ -143,6 +148,20 @@ void runNTGJ(const char *run_mode = "full")
         -1
     };
 
+	const int run_number_lhc16k[] = {
+
+		258537,
+
+#if 0
+		258499, 258477, 258456, 258454, 258426, 258393, 258387, 258359, 258336, 258299, 258278, 258274, 258273, 258271, 258270, 258258, 258257, 258256, 258204, 258203, 258202, 258198, 258197, 258178, 258117, 258114, 258113, 258109, 258108, 258107, 258063, 258062, 258059, 258049, 258048, 258045, 258042, 258019, 258017, 258014, 258012, 257963, 257960, 257958, 257957, 257939, 257937, 257936, 257893, 257892, 257855, 257850, 257803, 257800, 257799, 257798, 257797, 257773, 257765, 257754, 257737, 257735, 257734, 257733, 257724, 257697, 257694, 257692, 257691, 257689, 257687, 257682, 257642, 257606, 257605, 257594, 257590, 257587, 257566, 257562, 257561, 257560, 257541, 257540, 257539, 257537, 257531, 257530, 257492, 257491, 257490, 257487, 257474, 257457, 257320, 257260, 257224, 257209, 257206, 257204, 257145, 257144, 257142, 257141, 257140, 257139, 257138, 257137, 257136, 257100, 257092, 257084, 257083, 257082, 257080, 257077, 257026, 257021, 257012, 257011, 256944, 256942, 256941, 256697, 256695, 256694, 256692, 256691, 256684, 256681, 256677, 256676, 256658, 256620, 256619, 256592, 256591, 256589, 256567, 256565, 256564, 256562, 256561, 256560, 256556, 256554, 256552, 256514, 256512, 256510, 256506, 256504,
+#endif
+
+		-1
+
+	};
+
+	// 5 TeV PYTHIA + HIJING QCD
+
     const int run_number_lhc16h2a_bis[] = {
     
         246994,
@@ -152,14 +171,19 @@ void runNTGJ(const char *run_mode = "full")
 
     const int *run_number;
 
-    plugin->SetGridDataDir("/alice/sim/2016/LHC16h2a_bis/1");
+    plugin->SetGridDataDir("/alice/sim/2016/LHC16c2/16");
     plugin->SetDataPattern("*/*/AliESDs.root");
-    run_number = run_number_lhc16h2a_bis;
+    run_number = run_number_lhc16c2;
 
     // plugin->SetGridDataDir("/alice/data/2015/LHC15o");
     // plugin->SetDataPattern("/pass1/*/AliESDs.root");
     // plugin->SetRunPrefix("000");
     // run_number = run_number_lhc15o;
+
+    // plugin->SetGridDataDir("/alice/data/2016/LHC16k");
+    // plugin->SetDataPattern("/pass1/*/AliESDs.root");
+    // plugin->SetRunPrefix("000");
+    // run_number = run_number_lhc16k;
 
     for (const int *r = run_number; *r != -1; r++) {
         plugin->AddRunNumber(*r);
