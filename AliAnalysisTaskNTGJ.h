@@ -76,7 +76,7 @@ private:
     BRANCH_ARRAY(eg_pdf_x, 2, F)                                    \
     BRANCH_ARRAY(eg_pdf_x_pdf, 2, F)                                \
     /* */                                                           \
-    BRANCH(ncluster, l)                                             \
+    BRANCH(ncluster, i)                                             \
     BRANCH_ARRAY(cluster_e, ncluster, F)                            \
     BRANCH_ARRAY(cluster_pt, ncluster, F)                           \
     BRANCH_ARRAY(cluster_eta, ncluster, F)                          \
@@ -107,7 +107,7 @@ private:
     BRANCH_ARRAY(cell_tof, 17664, F)                                \
     BRANCH_ARRAY(cell_mc_truth_index, 17664, s)                     \
     /* */                                                           \
-    BRANCH(ntrack, l)                                               \
+    BRANCH(ntrack, i)                                               \
     BRANCH_ARRAY(track_e, ntrack, F)                                \
     BRANCH_ARRAY(track_pt, ntrack, F)                               \
     BRANCH_ARRAY(track_eta, ntrack, F)                              \
@@ -126,7 +126,7 @@ private:
     BRANCH_ARRAY(track_mc_truth_index, ntrack, s)                   \
     BRANCH_ARRAY(track_voronoi_area, ntrack, F)                     \
     /* */                                                           \
-    BRANCH(nmuon_track, l)                                          \
+    BRANCH(nmuon_track, i)                                          \
     BRANCH_ARRAY(muon_track_e, nmuon_track, F)                      \
     BRANCH_ARRAY(muon_track_pt, nmuon_track, F)                     \
     BRANCH_ARRAY(muon_track_eta, nmuon_track, F)                    \
@@ -138,7 +138,7 @@ private:
     BRANCH_ARRAY(muon_track_distance_sigma_slope_p, nmuon_track, F) \
     BRANCH_ARRAY(muon_track_mc_truth_index, nmuon_track, s)         \
     /* */                                                           \
-    BRANCH(nmc_truth, l)                                            \
+    BRANCH(nmc_truth, i)                                            \
     BRANCH_ARRAY(mc_truth_e, nmc_truth, F)                          \
     BRANCH_ARRAY(mc_truth_pt, nmc_truth, F)                         \
     BRANCH_ARRAY(mc_truth_eta, nmc_truth, F)                        \
@@ -146,7 +146,7 @@ private:
     BRANCH_ARRAY(mc_truth_pdg_code, nmc_truth, S)                   \
     BRANCH_ARRAY(mc_truth_status, nmc_truth, b)                     \
     BRANCH_ARRAY(mc_truth_generator_index, nmc_truth, b)            \
-    BRANCH(debug_njet_ue_estimation, l)                             \
+    BRANCH(debug_njet_ue_estimation, i)                             \
     BRANCH_ARRAY(debug_jet_ue_estimation_pt_raw,                    \
                  debug_njet_ue_estimation, F)                       \
     BRANCH_ARRAY(debug_jet_ue_estimation_eta_raw,                   \
@@ -156,7 +156,7 @@ private:
     BRANCH_ARRAY(debug_jet_ue_estimation_area_raw,                  \
                  debug_njet_ue_estimation, F)                       \
     /* */                                                           \
-    BRANCH(njet, l)                                                 \
+    BRANCH(njet, i)                                                 \
     BRANCH_ARRAY(debug_jet_tag_dr_square, njet, F)                  \
     BRANCH_ARRAY(jet_e_raw, njet, F)                                \
     BRANCH_ARRAY(jet_e, njet, F)                                    \
@@ -191,7 +191,7 @@ private:
     BRANCH_ARRAY(jet_multiplicity_truth, njet, s)                   \
     BRANCH_ARRAY2(jet_width_sigma_truth, njet, 2, F)                \
     BRANCH_ARRAY(jet_ptd_truth, njet, F)                            \
-    BRANCH(njet_truth, l)                                           \
+    BRANCH(njet_truth, i)                                           \
     BRANCH_ARRAY(jet_truth_e, njet_truth, F)                        \
     BRANCH_ARRAY(jet_truth_pt, njet_truth, F)                       \
     BRANCH_ARRAY(jet_truth_eta, njet_truth, F)                      \
