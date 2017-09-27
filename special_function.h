@@ -5,6 +5,16 @@
 
 namespace {
 
+    void kahan_sum(double &s, double &s2, const double x)
+    {
+        s2 += x;
+
+        const double t = s + s2;
+
+        s2 += s - t;
+        s = t;
+    }
+
     double angular_range_reduce(const double x)
     {
         if (!std::isfinite(x)) {

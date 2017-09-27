@@ -283,46 +283,45 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                             iterator));
                 }
             }
-			append_quantile(constituent_truncated,
-							constituent_truncated_user_index,
-							rho_vs_jet, cluster_sequence,
-							particle_area, quantile);
-		}
+            append_quantile(constituent_truncated,
+                            constituent_truncated_user_index,
+                            rho_vs_jet, cluster_sequence,
+                            particle_area, quantile);
+        }
 
-		const size_t nwindow_azimuth_nyquist =
-			4 * order_azimuth_fourier;
+        const size_t nwindow_azimuth_nyquist =
+            4 * order_azimuth_fourier;
         const double azimuth_window_width_nyquist =
             2 * M_PI / nwindow_azimuth_nyquist;
-		std::vector<fastjet::PseudoJet> constituent_guard;
+        std::vector<fastjet::PseudoJet> constituent_guard;
 
         for (size_t i = 0; i < nwindow_azimuth_nyquist; i++) {
             const double azimuth_window_center =
                 i * (2 * M_PI / nwindow_azimuth_nyquist) - M_PI;
-			size_t count = 0;
+            size_t count = 0;
 
             for (std::vector<fastjet::PseudoJet>::const_iterator
                      iterator = constituent_truncated.begin();
                  iterator != constituent_truncated.end();
-				 iterator++) {
+                 iterator++) {
                 if (fabs(angular_range_reduce(
                         iterator->phi_std() - azimuth_window_center)) <
                     azimuth_window_width_nyquist) {
                     count++;
                 }
             }
-			fprintf(stderr, "%s:%d: %lu %g %g %lu\n", __FILE__, __LINE__, i, azimuth_window_center - azimuth_window_width_nyquist, azimuth_window_center + azimuth_window_width_nyquist, count);
-			if (count <= 4) {
-				for (int j = -9; j <= 9; j += 3) {
-					fastjet::PseudoJet p;
+            if (count <= 4) {
+                for (int j = -9; j <= 9; j += 3) {
+                    fastjet::PseudoJet p;
 
-					p.reset_PtYPhiM(1, 0.1 * j, azimuth_window_center, 0);
-					constituent_guard.push_back(p);
-				}
-			}
+                    p.reset_PtYPhiM(1, 0.1 * j, azimuth_window_center, 0);
+                    constituent_guard.push_back(p);
+                }
+            }
         }
-		constituent_truncated.insert(
-			constituent_truncated.end(),
-			constituent_guard.begin(), constituent_guard.end());
+        constituent_truncated.insert(
+            constituent_truncated.end(),
+            constituent_guard.begin(), constituent_guard.end());
     }
 
     std::pair<std::vector<double>, std::vector<double> >
@@ -339,10 +338,10 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
         constituent_quantile(constituent_truncated,
                              constituent_truncated_user_index,
                              cluster_sequence, particle_area,
-							 order_azimuth_fourier, quantile);
+                             order_azimuth_fourier, quantile);
 
         std::vector<double> pseudorapidity_dependence;
-		static const double sqrt_area_empty = 1;
+        static const double sqrt_area_empty = 1;
 
         if (!constituent_truncated.empty()) {
             order_pseudorapidity_chebyshev =
@@ -358,21 +357,10 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                      iterator = constituent_truncated.begin();
                  iterator != constituent_truncated.end();
                  iterator++) {
-#if 0
-				if (!(iterator->user_index() >= 0 &&
-					  static_cast<size_t>(iterator->user_index()) <
-					  particle_area.size())) {
-					fprintf(stderr, "%s:%d: !(0 <= %d < %lu)\n",
-							__FILE__, __LINE__,
-							iterator->user_index(),
-							particle_area.size());
-				}
-#endif
-
-				const double sqrt_area =
-					iterator->user_index() >= 0 ?
-					sqrt(particle_area[iterator->user_index()]) :
-					sqrt_area_empty;
+                const double sqrt_area =
+                    iterator->user_index() >= 0 ?
+                    sqrt(particle_area[iterator->user_index()]) :
+                    sqrt_area_empty;
 
                 a(row, 0) = sqrt_area;
 
@@ -399,7 +387,7 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                     t[0] = tn1;
                 }
                 b(row) = iterator->user_index() >= 0 ?
-					iterator->perp() / sqrt_area : 0;
+                    iterator->perp() / sqrt_area : 0;
                 row++;
             }
 
@@ -431,10 +419,10 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                      iterator = constituent_truncated.begin();
                  iterator != constituent_truncated.end();
                  iterator++) {
-				const double sqrt_area =
-					iterator->user_index() >= 0 ?
-					sqrt(particle_area[iterator->user_index()]) :
-					sqrt_area_empty;
+                const double sqrt_area =
+                    iterator->user_index() >= 0 ?
+                    sqrt(particle_area[iterator->user_index()]) :
+                    sqrt_area_empty;
 
                 a(row, 0) = sqrt_area;
 
@@ -445,7 +433,7 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                     a(row, 2 * j + 2) = sin((j + 1) * azimuth) * sqrt_area;
                 }
                 b(row) = iterator->user_index() >= 0 ?
-					iterator->perp() / sqrt_area : 0;
+                    iterator->perp() / sqrt_area : 0;
                 row++;
             }
 
@@ -665,5 +653,403 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
     }
 
 }
+
+#define FILL_BRANCH_JET_TRUTH(s, jet_truth)                         \
+    _branch_njet_truth_ ## s = 0;                                   \
+    if (mc_truth_event != NULL) {                                   \
+        for (std::vector<fastjet::PseudoJet>::const_iterator        \
+                 iterator_jet = jet_truth.begin();                  \
+             iterator_jet != jet_truth.end(); iterator_jet++) {     \
+            _branch_jet_truth_ ## s ## _e                           \
+                [_branch_njet_truth_ ## s] =                        \
+                half(iterator_jet->E());                            \
+            _branch_jet_truth_ ## s ## _pt                          \
+                [_branch_njet_truth_ ## s] =                        \
+                half(iterator_jet->perp());                         \
+            _branch_jet_truth_ ## s ## _eta                         \
+                [_branch_njet_truth_ ## s] =                        \
+                half(iterator_jet->pseudorapidity());               \
+            _branch_jet_truth_ ## s ## _phi                         \
+                [_branch_njet_truth_ ## s] =                        \
+                half(iterator_jet->phi_std());                      \
+            _branch_jet_truth_ ## s ## _area                        \
+                [_branch_njet_truth_ ## s] =                        \
+                half(iterator_jet->area());                         \
+                                                                    \
+            const std::vector<fastjet::PseudoJet> constituent =     \
+                cluster_sequence_truth->                            \
+                constituents(*iterator_jet);                        \
+                                                                    \
+            _branch_jet_truth_ ## s ## _emf                         \
+                [_branch_njet_truth_ ## s] =                        \
+                half(jet_emf(constituent));                         \
+            _branch_jet_truth_ ## s ## _multiplicity                \
+                [_branch_njet_truth_ ## s] =                        \
+                jet_multiplicity(constituent);                      \
+                                                                    \
+            double sigma_d[2];                                      \
+                                                                    \
+            jet_width_sigma(sigma_d, *iterator_jet, constituent);   \
+                                                                    \
+            for (size_t i = 0; i < 2; i++) {                        \
+                _branch_jet_truth_ ## s ## _width_sigma             \
+                    [_branch_njet_truth_ ## s][i] =                 \
+                    half(sigma_d[i]);                               \
+            }                                                       \
+                                                                    \
+            _branch_jet_truth_ ## s ## _ptd                         \
+                [_branch_njet_truth_ ## s] =                        \
+                half(jet_ptd(constituent));                         \
+                                                                    \
+            _branch_njet_truth_ ## s++;                             \
+            if (_branch_njet_truth_ ## s >= NJET_MAX) {             \
+                break;                                              \
+            }                                                       \
+        }                                                           \
+    }
+
+#define TAG_PARTICLE_RECO_JET_TRUTH(particle_reco_tagged,           \
+                                    jet_truth)                      \
+    if (mc_truth_event != NULL) {                                   \
+        for (std::vector<fastjet::PseudoJet>::const_iterator        \
+                 iterator_jet = jet_truth.begin();                  \
+             iterator_jet != jet_truth.end(); iterator_jet++) {     \
+            const std::vector<fastjet::PseudoJet> constituent =     \
+                cluster_sequence_truth->                            \
+                constituents(*iterator_jet);                        \
+                                                                    \
+            for (std::vector<fastjet::PseudoJet>::const_iterator    \
+                     iterator_constituent = constituent.begin();    \
+                 iterator_constituent != constituent.end();         \
+                 iterator_constituent++) {                          \
+                                                                    \
+                particle_reco_tagged.push_back(                     \
+                    *iterator_constituent * scale_ghost);           \
+                /* Positive user indices are used to tag the truth  \
+                 * jet */                                           \
+                particle_reco_tagged.back().set_user_index(         \
+                    iterator_jet - jet_truth.begin());              \
+            }                                                       \
+        }                                                           \
+    }
+
+#define FILL_BRANCH_JET(s, jet_reco, cluster_sequence_reco,         \
+                        jet_reco_tagged,                            \
+                        cluster_sequence_reco_tagged,               \
+                        t, jet_truth,                               \
+                        particle_reco_area, ue_estimate)            \
+    _branch_njet_ ## s = 0;                                         \
+    for (std::vector<fastjet::PseudoJet>::const_iterator            \
+             iterator_jet = jet_reco.begin();                       \
+         iterator_jet != jet_reco.end(); iterator_jet++) {          \
+        std::vector<fastjet::PseudoJet>::const_iterator             \
+            iterator_jet_tagged = jet_reco_tagged.end();            \
+        double dr_2_min = INFINITY;                                 \
+                                                                    \
+        for (std::vector<fastjet::PseudoJet>::const_iterator        \
+                 it = jet_reco_tagged.begin();                      \
+             it != jet_reco_tagged.end(); it++) {                   \
+            const double dr_2 =                                     \
+                iterator_jet->squared_distance(*it);                \
+            if (dr_2 < dr_2_min) {                                  \
+                iterator_jet_tagged = it;                           \
+                dr_2_min = dr_2;                                    \
+            }                                                       \
+        }                                                           \
+                                                                    \
+        _branch_debug_jet_ ## s ## _tag_dr_square                   \
+            [_branch_njet_ ## s] = dr_2_min;                        \
+                                                                    \
+        if (!(iterator_jet->perp() >= _stored_jet_min_pt_raw)) {    \
+            continue;                                               \
+        }                                                           \
+                                                                    \
+        /* Jet quantities follow HEP convention (not ALICE so far): \
+         * - Suffix _raw = raw, jet-uncalibrated detector quantity  \
+         * - Suffix _charged = calibrated, "charged particle-level" \
+         *   quantity                                               \
+         * - No suffix = jet-calibrated, particle-level quantity */ \
+                                                                    \
+        _branch_jet_ ## s ## _e_raw[_branch_njet_ ## s] =           \
+            half(iterator_jet->E());                                \
+        _branch_jet_ ## s ## _e[_branch_njet_ ## s] = NAN;          \
+                                                                    \
+        std::vector<fastjet::PseudoJet> constituent =               \
+            cluster_sequence_reco.constituents(*iterator_jet);      \
+        double area = 0;                                            \
+        double pt_raw_ue = 0;                                       \
+                                                                    \
+        for (std::vector<fastjet::PseudoJet>::const_iterator        \
+                 iterator_constituent = constituent.begin();        \
+             iterator_constituent != constituent.end();             \
+             iterator_constituent++) {                              \
+            const int index = iterator_constituent->user_index();   \
+                                                                    \
+            if (index >= 0 && static_cast<size_t>(index) <          \
+                particle_reco_area.size()) {                        \
+                area += particle_reco_area[index];                  \
+                pt_raw_ue += evaluate_ue(                           \
+                    ue_estimate,                                    \
+                    iterator_constituent->pseudorapidity(),         \
+                    iterator_constituent->phi_std()) *              \
+                    particle_reco_area[index];                      \
+            }                                                       \
+        }                                                           \
+                                                                    \
+        _branch_jet_ ## s ## _pt_raw_ue[_branch_njet_ ## s] =       \
+            half(pt_raw_ue);                                        \
+        _branch_jet_ ## s ## _pt_raw[_branch_njet_ ## s] =          \
+            half(iterator_jet->perp() - pt_raw_ue);                 \
+        _branch_jet_ ## s ## _pt[_branch_njet_ ## s] = NAN;         \
+        _branch_jet_ ## s ## _e_charged[_branch_njet_ ## s] = NAN;  \
+        _branch_jet_ ## s ## _pt_charged[_branch_njet_ ## s] = NAN; \
+        _branch_jet_ ## s ## _eta_raw[_branch_njet_ ## s] =         \
+            half(iterator_jet->pseudorapidity());                   \
+        _branch_jet_ ## s ## _eta[_branch_njet_ ## s] =             \
+            half(iterator_jet->pseudorapidity());                   \
+        _branch_jet_ ## s ## _phi[_branch_njet_ ## s] =             \
+            half(iterator_jet->phi_std());                          \
+        _branch_jet_ ## s ## _area_raw[_branch_njet_ ## s] =        \
+            half(area);                                             \
+        _branch_jet_ ## s ## _area[_branch_njet_ ## s] =            \
+            half(area);                                             \
+                                                                    \
+        /* Calculate the electro magnetic fraction (EMF), but       \
+         * without a particle-flow-based removal of energy double   \
+         * counting. Note the EM ghosts are scaled back here. */    \
+                                                                    \
+        _branch_jet_ ## s ## _emf_raw[_branch_njet_ ## s] = NAN;    \
+        _branch_jet_ ## s ## _emf[_branch_njet_ ## s] = NAN;        \
+        _branch_jet_ ## s ## _multiplicity_raw                      \
+            [_branch_njet_ ## s] = 0;                               \
+        _branch_jet_ ## s ## _multiplicity[_branch_njet_ ## s] =    \
+            NAN;                                                    \
+        std::fill(_branch_jet_ ## s ## _width_sigma_raw             \
+                  [_branch_njet_ ## s],                             \
+                  _branch_jet_ ## s ## _width_sigma_raw             \
+                  [_branch_njet_ ## s] + 2, NAN);                   \
+        std::fill(_branch_jet_ ## s ## _width_sigma                 \
+                  [_branch_njet_ ## s],                             \
+                  _branch_jet_ ## s ## _width_sigma                 \
+                  [_branch_njet_ ## s] + 2, NAN);                   \
+        _branch_jet_ ## s ## _ptd_raw[_branch_njet_ ## s] = NAN;    \
+        _branch_jet_ ## s ## _ptd[_branch_njet_ ## s] = NAN;        \
+                                                                    \
+        if (iterator_jet_tagged != jet_reco_tagged.end()) {         \
+            constituent = cluster_sequence_reco_tagged.             \
+                constituents(*iterator_jet_tagged);                 \
+                                                                    \
+            _branch_jet_ ## s ## _emf_raw[_branch_njet_ ## s] =     \
+                jet_emf(constituent, scale_ghost);                  \
+            _branch_jet_ ## s ## _multiplicity_raw                  \
+                [_branch_njet_ ## s] =                              \
+                jet_multiplicity(constituent);                      \
+                                                                    \
+            double sigma_d[2];                                      \
+                                                                    \
+            jet_width_sigma(sigma_d, *iterator_jet, constituent);   \
+                                                                    \
+            for (size_t i = 0; i < 2; i++) {                        \
+                _branch_jet_ ## s ## _width_sigma                   \
+                    [_branch_njet_ ## s][i] = half(sigma_d[i]);     \
+            }                                                       \
+                                                                    \
+            _branch_jet_ ## s ## _ptd_raw[_branch_njet_ ## s] =     \
+                jet_ptd(constituent, scale_ghost);                  \
+        }                                                           \
+                                                                    \
+        _branch_jet_ ## s ## _e_truth[_branch_njet_ ## s] = NAN;    \
+        _branch_jet_ ## s ## _pt_truth[_branch_njet_ ## s] = NAN;   \
+        _branch_jet_ ## s ## _eta_truth[_branch_njet_ ## s] = NAN;  \
+        _branch_jet_ ## s ## _phi_truth[_branch_njet_ ## s] = NAN;  \
+        _branch_jet_ ## s ## _emf_truth[_branch_njet_ ## s] = NAN;  \
+        /* Defaulting this to USHRT_MAX appears to be too           \
+         * unnatural */                                             \
+        _branch_jet_ ## s ## _multiplicity_truth                    \
+            [_branch_njet_ ## s] = 0;                               \
+        std::fill(_branch_jet_ ## s ## _width_sigma_truth           \
+                  [_branch_njet_ ## s],                             \
+                  _branch_jet_ ## s ## _width_sigma_truth           \
+                  [_branch_njet_ ## s] + 2, NAN);                   \
+        _branch_jet_ ## s ## _ptd_truth[_branch_njet_ ## s] = NAN;  \
+                                                                    \
+        const size_t index_reco = iterator_jet - jet_reco.begin();  \
+                                                                    \
+        if (mc_truth_event != NULL &&                               \
+            iterator_jet_tagged != jet_reco_tagged.end()) {         \
+            std::map<int, double> z_ghost;                          \
+                                                                    \
+            for (std::vector<fastjet::PseudoJet>::const_iterator    \
+                     iterator_constituent = constituent.begin();    \
+                 iterator_constituent != constituent.end();         \
+                 iterator_constituent++) {                          \
+                const int index_jet_truth =                         \
+                    iterator_constituent->user_index();             \
+                                                                    \
+                if (index_jet_truth >= 0) {                         \
+                    if (z_ghost.find(index_jet_truth) ==            \
+                        z_ghost.end()) {                            \
+                        z_ghost[index_jet_truth] =                  \
+                            iterator_constituent->perp() /          \
+                            scale_ghost;                            \
+                    }                                               \
+                    else {                                          \
+                        z_ghost[index_jet_truth] +=                 \
+                            iterator_constituent->perp() /          \
+                            scale_ghost;                            \
+                    }                                               \
+                }                                                   \
+            }                                                       \
+                                                                    \
+            /* z_truth = fraction of truth constituents inside the  \
+             * area of the reco jet, relative to the truth jet (not \
+             * necessarily within the reco jet) */                  \
+                                                                    \
+            std::vector<std::pair<double, int> > z_truth;           \
+                                                                    \
+            for (std::map<int, double>::const_iterator iterator =   \
+                     z_ghost.begin();                               \
+                 iterator != z_ghost.end(); iterator++) {           \
+                if (jet_truth[iterator->first].perp() > 0) {        \
+                    z_truth.push_back(std::pair<double, int>(       \
+                        iterator->second /                          \
+                        jet_truth[iterator->first].perp(),          \
+                        iterator->first));                          \
+                }                                                   \
+            }                                                       \
+            std::sort(z_truth.begin(), z_truth.end());              \
+                                                                    \
+            /* Note that z_truth is now in *acending* order. Any    \
+             * information beyond 2 truth -> 1 reco jet mapping is  \
+             * not really useful, we only need to know how fuzzy    \
+             * the mapping was */                                   \
+                                                                    \
+            std::fill(_branch_jet_ ## s ## _truth_index_z_truth     \
+                      [_branch_njet_ ## s],                         \
+                      _branch_jet_ ## s ## _truth_index_z_truth     \
+                      [_branch_njet_ ## s] + 2, -1);                \
+            std::fill(_branch_jet_ ## s ## _truth_z_truth           \
+                      [_branch_njet_ ## s],                         \
+                      _branch_jet_ ## s ## _truth_z_truth           \
+                      [_branch_njet_ ## s] + 2, NAN);               \
+            for (size_t j = 0;                                      \
+                 j < std::min(2UL, z_truth.size()); j++) {          \
+                _branch_jet_ ## s ## _truth_z_truth                 \
+                    [_branch_njet_ ## s][j] =                       \
+                    half(z_truth.rbegin()[j].first);                \
+                _branch_jet_ ## s ## _truth_index_z_truth           \
+                    [_branch_njet_ ## s][j] =                       \
+                    z_truth.rbegin()[j].second;                     \
+            }                                                       \
+                                                                    \
+            /* z_reco = fraction of truth constituents inside the   \
+             * area of the reco jet, relative to the total truth    \
+             * particles inside the reco jet */                     \
+                                                                    \
+            double sum_z_ghost = 0;                                 \
+                                                                    \
+            for (std::map<int, double>::const_iterator iterator =   \
+                     z_ghost.begin();                               \
+                 iterator != z_ghost.end(); iterator++) {           \
+                sum_z_ghost += iterator->second;                    \
+            }                                                       \
+                                                                    \
+            std::vector<std::pair<double, int> > z_reco;            \
+                                                                    \
+            if (sum_z_ghost > 0) {                                  \
+                for (std::map<int, double>::iterator iterator =     \
+                         z_ghost.begin();                           \
+                     iterator != z_ghost.end(); iterator++) {       \
+                    iterator->second /= sum_z_ghost;                \
+                }                                                   \
+                for (std::map<int, double>::const_iterator          \
+                         iterator = z_ghost.begin();                \
+                     iterator != z_ghost.end(); iterator++) {       \
+                    z_reco.push_back(std::pair<double, int>(        \
+                        iterator->second, iterator->first));        \
+                }                                                   \
+            }                                                       \
+            std::sort(z_reco.begin(), z_reco.end());                \
+                                                                    \
+            /* Note that z_truth is now in *acending* order */      \
+                                                                    \
+            std::fill(_branch_jet_ ## s ## _truth_index_z_reco      \
+                      [_branch_njet_ ## s],                         \
+                      _branch_jet_ ## s ## _truth_index_z_reco      \
+                      [_branch_njet_ ## s] + 2, -1);                \
+            std::fill(_branch_jet_ ## s ## _truth_z_reco            \
+                      [_branch_njet_ ## s],                         \
+                      _branch_jet_ ## s ## _truth_z_reco            \
+                      [_branch_njet_ ## s] + 2, NAN);               \
+            for (size_t j = 0;                                      \
+                 j < std::min(2UL, z_reco.size()); j++) {           \
+                _branch_jet_ ## s ## _truth_z_reco                  \
+                    [_branch_njet_ ## s][j] =                       \
+                    half(z_reco.rbegin()[j].first);                 \
+                _branch_jet_ ## s ## _truth_index_z_reco            \
+                    [_branch_njet_ ## s][j] =                       \
+                    z_reco.rbegin()[j].second;                      \
+            }                                                       \
+                                                                    \
+            /* A simplified z_reco matching, which is a more        \
+             * rigorous version of the CMS delta R < D matching,    \
+             * for jet energy correction derivation. */             \
+                                                                    \
+            _branch_jet_ ## s ## _e_truth[_branch_njet_ ## s] =     \
+                NAN;                                                \
+            _branch_jet_ ## s ## _pt_truth[_branch_njet_ ## s] =    \
+                NAN;                                                \
+            _branch_jet_ ## s ## _eta_truth[_branch_njet_ ## s] =   \
+                NAN;                                                \
+            _branch_jet_ ## s ## _phi_truth[_branch_njet_ ## s] =   \
+                NAN;                                                \
+            _branch_jet_ ## s ## _area_truth[_branch_njet_ ## s] =  \
+                NAN;                                                \
+            _branch_jet_ ## s ## _emf_truth[_branch_njet_ ## s] =   \
+                NAN;                                                \
+                                                                    \
+            if (!z_reco.empty() &&                                  \
+                z_reco.rbegin()[0].second >= 0 &&                   \
+                static_cast<size_t>(z_reco.rbegin()[0].second) <    \
+                _branch_njet_truth_ ## t) {                         \
+                const size_t k = z_reco.rbegin()[0].second;         \
+                                                                    \
+                _branch_jet_ ## s ## _e_truth[_branch_njet_ ## s] = \
+                    _branch_jet_truth_ ## t ## _e[k];               \
+                _branch_jet_ ## s ## _pt_truth                      \
+                    [_branch_njet_ ## s] =                          \
+                    _branch_jet_truth_ ## t ## _pt[k];              \
+                _branch_jet_ ## s ## _eta_truth                     \
+                    [_branch_njet_ ## s] =                          \
+                    _branch_jet_truth_ ## t ## _eta[k];             \
+                _branch_jet_ ## s ## _phi_truth                     \
+                    [_branch_njet_ ## s] =                          \
+                    _branch_jet_truth_ ## t ## _phi[k];             \
+                _branch_jet_ ## s ## _area_truth                    \
+                    [_branch_njet_ ## s] =                          \
+                    _branch_jet_truth_ ## t ## _area[k];            \
+                _branch_jet_ ## s ## _emf_truth                     \
+                    [_branch_njet_ ## s] =                          \
+                    _branch_jet_truth_ ## t ## _emf[k];             \
+                _branch_jet_ ## s ## _multiplicity_truth            \
+                    [_branch_njet_ ## s] =                          \
+                    _branch_jet_truth_ ## t ## _multiplicity[k];    \
+                for (size_t j = 0; j < 2; j++) {                    \
+                    _branch_jet_ ## s ## _width_sigma_truth         \
+                        [_branch_njet_ ## s][j] =                   \
+                        _branch_jet_truth_ ## t ## _width_sigma     \
+                        [k][j];                                     \
+                }                                                   \
+                _branch_jet_ ## s ## _ptd_truth                     \
+                    [_branch_njet_ ## s] =                          \
+                    _branch_jet_truth_ ## t ## _ptd[k];             \
+            }                                                       \
+        }                                                           \
+        _branch_njet_ ## s++;                                       \
+        if (_branch_njet_ ## s >= NJET_MAX) {                       \
+            break;                                                  \
+        }                                                           \
+    }
+
 
 #endif // JET_H_

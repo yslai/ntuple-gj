@@ -156,52 +156,98 @@ private:
     BRANCH_ARRAY(debug_jet_ue_estimation_area_raw,                  \
                  debug_njet_ue_estimation, F)                       \
     /* */                                                           \
-    BRANCH(njet, i)                                                 \
-    BRANCH_ARRAY(debug_jet_tag_dr_square, njet, F)                  \
-    BRANCH_ARRAY(jet_e_raw, njet, F)                                \
-    BRANCH_ARRAY(jet_e, njet, F)                                    \
-    BRANCH_ARRAY(jet_e_charged, njet, F)                            \
-    BRANCH_ARRAY(jet_pt_raw_ue, njet, F)                            \
-    BRANCH_ARRAY(jet_pt_raw, njet, F)                               \
-    BRANCH_ARRAY(jet_pt, njet, F)                                   \
-    BRANCH_ARRAY(jet_pt_charged, njet, F)                           \
-    BRANCH_ARRAY(jet_eta_raw, njet, F)                              \
-    BRANCH_ARRAY(jet_eta, njet, F)                                  \
-    BRANCH_ARRAY(jet_phi, njet, F)                                  \
-    BRANCH_ARRAY(jet_area_raw, njet, F)                             \
-    BRANCH_ARRAY(jet_area, njet, F)                                 \
-    BRANCH_ARRAY(jet_emf_raw, njet, F)                              \
-    BRANCH_ARRAY(jet_emf, njet, F)                                  \
-    BRANCH_ARRAY(jet_multiplicity_raw, njet, s)                     \
-    BRANCH_ARRAY(jet_multiplicity, njet, F)                         \
-    BRANCH_ARRAY2(jet_width_sigma_raw, njet, 2, F)                  \
-    BRANCH_ARRAY2(jet_width_sigma, njet, 2, F)                      \
-    BRANCH_ARRAY(jet_ptd_raw, njet, F)                              \
-    BRANCH_ARRAY(jet_ptd, njet, F)                                  \
-    BRANCH_ARRAY2(jet_truth_index_z_truth, njet, 2, I)              \
-    BRANCH_ARRAY2(jet_truth_z_truth, njet, 2, F)                    \
-    BRANCH_ARRAY2(jet_truth_index_z_reco, njet, 2, I)               \
-    BRANCH_ARRAY2(jet_truth_z_reco, njet, 2, F)                     \
-    BRANCH_ARRAY(jet_e_truth, njet, F)                              \
-    BRANCH_ARRAY(jet_pt_truth, njet, F)                             \
-    BRANCH_ARRAY(jet_eta_truth, njet, F)                            \
-    BRANCH_ARRAY(jet_phi_truth, njet, F)                            \
-    BRANCH_ARRAY(jet_area_truth, njet, F)                           \
-    BRANCH_ARRAY(jet_emf_truth, njet, F)                            \
-    BRANCH_ARRAY(jet_multiplicity_truth, njet, s)                   \
-    BRANCH_ARRAY2(jet_width_sigma_truth, njet, 2, F)                \
-    BRANCH_ARRAY(jet_ptd_truth, njet, F)                            \
-    BRANCH(njet_truth, i)                                           \
-    BRANCH_ARRAY(jet_truth_e, njet_truth, F)                        \
-    BRANCH_ARRAY(jet_truth_pt, njet_truth, F)                       \
-    BRANCH_ARRAY(jet_truth_eta, njet_truth, F)                      \
-    BRANCH_ARRAY(jet_truth_phi, njet_truth, F)                      \
-    BRANCH_ARRAY(jet_truth_area, njet_truth, F)                     \
-    BRANCH_ARRAY(jet_truth_emf, njet_truth, F)                      \
-    BRANCH_ARRAY(jet_truth_multiplicity, njet, s)                   \
-    BRANCH_ARRAY2(jet_truth_width_sigma, njet, 2, F)                \
-    BRANCH_ARRAY(jet_truth_ptd, njet, F)                            \
+    BRANCH(njet_ak04tpc, i)											\
+    BRANCH_ARRAY(debug_jet_ak04tpc_tag_dr_square, njet_ak04tpc, F)  \
+    BRANCH_ARRAY(jet_ak04tpc_e_raw, njet_ak04tpc, F)                \
+    BRANCH_ARRAY(jet_ak04tpc_e, njet_ak04tpc, F)                    \
+    BRANCH_ARRAY(jet_ak04tpc_e_charged, njet_ak04tpc, F)            \
+    BRANCH_ARRAY(jet_ak04tpc_pt_raw_ue, njet_ak04tpc, F)            \
+    BRANCH_ARRAY(jet_ak04tpc_pt_raw, njet_ak04tpc, F)               \
+    BRANCH_ARRAY(jet_ak04tpc_pt, njet_ak04tpc, F)                   \
+    BRANCH_ARRAY(jet_ak04tpc_pt_charged, njet_ak04tpc, F)           \
+    BRANCH_ARRAY(jet_ak04tpc_eta_raw, njet_ak04tpc, F)              \
+    BRANCH_ARRAY(jet_ak04tpc_eta, njet_ak04tpc, F)                  \
+    BRANCH_ARRAY(jet_ak04tpc_phi, njet_ak04tpc, F)                  \
+    BRANCH_ARRAY(jet_ak04tpc_area_raw, njet_ak04tpc, F)             \
+    BRANCH_ARRAY(jet_ak04tpc_area, njet_ak04tpc, F)                 \
+    BRANCH_ARRAY(jet_ak04tpc_emf_raw, njet_ak04tpc, F)              \
+    BRANCH_ARRAY(jet_ak04tpc_emf, njet_ak04tpc, F)                  \
+    BRANCH_ARRAY(jet_ak04tpc_multiplicity_raw, njet_ak04tpc, s)     \
+    BRANCH_ARRAY(jet_ak04tpc_multiplicity, njet_ak04tpc, F)         \
+    BRANCH_ARRAY2(jet_ak04tpc_width_sigma_raw, njet_ak04tpc, 2, F)  \
+    BRANCH_ARRAY2(jet_ak04tpc_width_sigma, njet_ak04tpc, 2, F)      \
+    BRANCH_ARRAY(jet_ak04tpc_ptd_raw, njet_ak04tpc, F)              \
+    BRANCH_ARRAY(jet_ak04tpc_ptd, njet_ak04tpc, F)                  \
+    BRANCH_ARRAY2(jet_ak04tpc_truth_index_z_truth, njet_ak04tpc,    \
+                  2, I)                                             \
+    BRANCH_ARRAY2(jet_ak04tpc_truth_z_truth, njet_ak04tpc, 2, F)    \
+    BRANCH_ARRAY2(jet_ak04tpc_truth_index_z_reco, njet_ak04tpc,     \
+                  2, I)                                             \
+    BRANCH_ARRAY2(jet_ak04tpc_truth_z_reco, njet_ak04tpc, 2, F)     \
+    BRANCH_ARRAY(jet_ak04tpc_e_truth, njet_ak04tpc, F)              \
+    BRANCH_ARRAY(jet_ak04tpc_pt_truth, njet_ak04tpc, F)             \
+    BRANCH_ARRAY(jet_ak04tpc_eta_truth, njet_ak04tpc, F)            \
+    BRANCH_ARRAY(jet_ak04tpc_phi_truth, njet_ak04tpc, F)            \
+    BRANCH_ARRAY(jet_ak04tpc_area_truth, njet_ak04tpc, F)           \
+    BRANCH_ARRAY(jet_ak04tpc_emf_truth, njet_ak04tpc, F)            \
+    BRANCH_ARRAY(jet_ak04tpc_multiplicity_truth, njet_ak04tpc, s)   \
+    BRANCH_ARRAY2(jet_ak04tpc_width_sigma_truth, njet_ak04tpc,		\
+				  2, F)												\
+    BRANCH_ARRAY(jet_ak04tpc_ptd_truth, njet_ak04tpc, F)            \
+    /* */                                                           \
+    BRANCH(njet_ak04its, i)											\
+    BRANCH_ARRAY(debug_jet_ak04its_tag_dr_square, njet_ak04its, F)  \
+    BRANCH_ARRAY(jet_ak04its_e_raw, njet_ak04its, F)                \
+    BRANCH_ARRAY(jet_ak04its_e, njet_ak04its, F)                    \
+    BRANCH_ARRAY(jet_ak04its_e_charged, njet_ak04its, F)            \
+    BRANCH_ARRAY(jet_ak04its_pt_raw_ue, njet_ak04its, F)            \
+    BRANCH_ARRAY(jet_ak04its_pt_raw, njet_ak04its, F)               \
+    BRANCH_ARRAY(jet_ak04its_pt, njet_ak04its, F)                   \
+    BRANCH_ARRAY(jet_ak04its_pt_charged, njet_ak04its, F)           \
+    BRANCH_ARRAY(jet_ak04its_eta_raw, njet_ak04its, F)              \
+    BRANCH_ARRAY(jet_ak04its_eta, njet_ak04its, F)                  \
+    BRANCH_ARRAY(jet_ak04its_phi, njet_ak04its, F)                  \
+    BRANCH_ARRAY(jet_ak04its_area_raw, njet_ak04its, F)             \
+    BRANCH_ARRAY(jet_ak04its_area, njet_ak04its, F)                 \
+    BRANCH_ARRAY(jet_ak04its_emf_raw, njet_ak04its, F)              \
+    BRANCH_ARRAY(jet_ak04its_emf, njet_ak04its, F)                  \
+    BRANCH_ARRAY(jet_ak04its_multiplicity_raw, njet_ak04its, s)     \
+    BRANCH_ARRAY(jet_ak04its_multiplicity, njet_ak04its, F)         \
+    BRANCH_ARRAY2(jet_ak04its_width_sigma_raw, njet_ak04its, 2, F)  \
+    BRANCH_ARRAY2(jet_ak04its_width_sigma, njet_ak04its, 2, F)      \
+    BRANCH_ARRAY(jet_ak04its_ptd_raw, njet_ak04its, F)              \
+    BRANCH_ARRAY(jet_ak04its_ptd, njet_ak04its, F)                  \
+    BRANCH_ARRAY2(jet_ak04its_truth_index_z_truth, njet_ak04its,    \
+                  2, I)                                             \
+    BRANCH_ARRAY2(jet_ak04its_truth_z_truth, njet_ak04its, 2, F)    \
+    BRANCH_ARRAY2(jet_ak04its_truth_index_z_reco, njet_ak04its,     \
+                  2, I)                                             \
+    BRANCH_ARRAY2(jet_ak04its_truth_z_reco, njet_ak04its, 2, F)     \
+    BRANCH_ARRAY(jet_ak04its_e_truth, njet_ak04its, F)              \
+    BRANCH_ARRAY(jet_ak04its_pt_truth, njet_ak04its, F)             \
+    BRANCH_ARRAY(jet_ak04its_eta_truth, njet_ak04its, F)            \
+    BRANCH_ARRAY(jet_ak04its_phi_truth, njet_ak04its, F)            \
+    BRANCH_ARRAY(jet_ak04its_area_truth, njet_ak04its, F)           \
+    BRANCH_ARRAY(jet_ak04its_emf_truth, njet_ak04its, F)            \
+    BRANCH_ARRAY(jet_ak04its_multiplicity_truth, njet_ak04its, s)   \
+    BRANCH_ARRAY2(jet_ak04its_width_sigma_truth, njet_ak04its,      \
+                  2, F)                                             \
+    BRANCH_ARRAY(jet_ak04its_ptd_truth, njet_ak04its, F)            \
+    /* */                                                           \
+    BRANCH(njet_truth_ak04, i)                                      \
+    BRANCH_ARRAY(jet_truth_ak04_e, njet_truth_ak04, F)              \
+    BRANCH_ARRAY(jet_truth_ak04_pt, njet_truth_ak04, F)             \
+    BRANCH_ARRAY(jet_truth_ak04_eta, njet_truth_ak04, F)            \
+    BRANCH_ARRAY(jet_truth_ak04_phi, njet_truth_ak04, F)            \
+    BRANCH_ARRAY(jet_truth_ak04_area, njet_truth_ak04, F)           \
+    BRANCH_ARRAY(jet_truth_ak04_emf, njet_truth_ak04, F)            \
+    BRANCH_ARRAY(jet_truth_ak04_multiplicity, njet_truth_ak04, s)   \
+    BRANCH_ARRAY2(jet_truth_ak04_width_sigma, njet_truth_ak04,      \
+                  2, F)                                             \
+    BRANCH_ARRAY(jet_truth_ak04_ptd, njet_truth_ak04, F)            \
+    /* */                                                           \
     BRANCH_ARRAY(met_tpc, 2, D)                                     \
+    BRANCH_ARRAY(met_its, 2, D)                                     \
     BRANCH_ARRAY(met_truth, 2, D)                                   \
 
 
@@ -217,15 +263,16 @@ private:
 #define l ULong_t
 #define O Bool_t
 
-#define ntrigger_class NTRIGGER_CLASS_MAX
-#define ncluster NCLUSTER_MAX
-#define ntrack NTRACK_MAX
-#define nmuon_track NTRACK_MAX
-#define nmc_truth NMC_TRUTH_MAX
-#define debug_njet_ue_estimation NJET_MAX
-#define njet NJET_MAX
-#define njet_truth NJET_MAX
-#define full_emcal_ncell EMCAL_NCELL
+#define ntrigger_class      NTRIGGER_CLASS_MAX
+#define ncluster            NCLUSTER_MAX
+#define ntrack              NTRACK_MAX
+#define nmuon_track         NTRACK_MAX
+#define nmc_truth           NMC_TRUTH_MAX
+#define debug_njet_ue_estimation    NJET_MAX
+#define njet_ak04tpc        NJET_MAX
+#define njet_ak04its        NJET_MAX
+#define njet_truth_ak04     NJET_MAX
+#define full_emcal_ncell    EMCAL_NCELL
 
 #define BRANCH(b, t)                            \
     t _branch_ ## b;
@@ -251,8 +298,9 @@ private:
 #undef ntrack
 #undef nmc_truth
 #undef debug_njet_ue_estimation
-#undef njet
-#undef njet_truth
+#undef njet_ak04tpc
+#undef njet_ak04its
+#undef njet_truth_ak04
 #undef full_emcal_ncell
 
 #undef C
@@ -323,6 +371,7 @@ public:
     void SetStoredTrackMinPt(double min_pt = -INFINITY);
     void SetStoredJetMinPtRaw(double min_pt_raw = -INFINITY);
     ClassDef(AliAnalysisTaskNTGJ, 1);
+
 };
 
 #endif // ALIANALYSISTASKPHOTONDISC_H_

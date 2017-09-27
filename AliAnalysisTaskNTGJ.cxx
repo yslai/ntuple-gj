@@ -447,20 +447,20 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             _track_cut.back().SetMaxChi2PerClusterITS(36);
         }
 
-		// Relaxed version of the union of
-		// AliESDtrackCuts::GetStandardITSPureSATrackCuts2009() and
-		// AliESDtrackCuts::GetStandardITSPureSATrackCuts2010() in
-		// AliRoot/ANALYSIS/ANALYSISalice/AliESDtrackCuts.cxx
+        // Relaxed version of the union of
+        // AliESDtrackCuts::GetStandardITSPureSATrackCuts2009() and
+        // AliESDtrackCuts::GetStandardITSPureSATrackCuts2010() in
+        // AliRoot/ANALYSIS/ANALYSISalice/AliESDtrackCuts.cxx
 
-		_track_cut.push_back(AliESDtrackCuts("AliESDtrackCuts"));
+        _track_cut.push_back(AliESDtrackCuts("AliESDtrackCuts"));
 
-		// _track_cut.back().SetRequireITSStandAlone(kFALSE);
-		_track_cut.back().SetRequireITSPureStandAlone(kTRUE);
-		// _track_cut.back().SetRequireITSRefit(kTRUE); 
-		// _track_cut.back().SetMinNClustersITS(4);
-		// _track_cut.back().SetClusterRequirementITS(
-		// 	AliESDtrackCuts::kSPD, AliESDtrackCuts::kAny);
-		// esdTrackCuts->SetMaxChi2PerClusterITS(2.5);
+        // _track_cut.back().SetRequireITSStandAlone(kFALSE);
+        _track_cut.back().SetRequireITSPureStandAlone(kTRUE);
+        // _track_cut.back().SetRequireITSRefit(kTRUE); 
+        // _track_cut.back().SetMinNClustersITS(4);
+        // _track_cut.back().SetClusterRequirementITS(
+        //  AliESDtrackCuts::kSPD, AliESDtrackCuts::kAny);
+        // esdTrackCuts->SetMaxChi2PerClusterITS(2.5);
     }
 
     AliVVZERO *v0 = event->GetVZEROData();
@@ -589,9 +589,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         }
     }
 
-	if (_keras_model_photon_discrimination == NULL) {
-		_keras_model_photon_discrimination = new KerasModel;
-	}
+    if (_keras_model_photon_discrimination == NULL) {
+        _keras_model_photon_discrimination = new KerasModel;
+    }
 
     AliMCEvent *mc_truth_event = MCEvent();
 
@@ -786,12 +786,19 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         }
     }
 
-    std::vector<fastjet::PseudoJet> particle_reco;
+    std::vector<fastjet::PseudoJet> particle_reco_tpc;
+    std::vector<fastjet::PseudoJet> particle_reco_its;
 
     std::fill(_branch_met_tpc, _branch_met_tpc + 2, 0);
+    std::fill(_branch_met_its, _branch_met_its + 2, 0);
 
-    std::map<size_t, size_t> track_reco_index;
-    std::vector<size_t> reco_stored_track_index;
+    std::map<size_t, size_t> track_reco_index_tpc;
+    std::vector<size_t> reco_stored_track_index_tpc;
+    std::map<size_t, size_t> track_reco_index_its;
+    std::vector<size_t> reco_stored_track_index_its;
+
+    double met_tpc_kahan_error[2] = { 0, 0 };
+    double met_its_kahan_error[2] = { 0, 0 };
 
     _branch_ntrack = 0;
     if (esd_event != NULL) {
@@ -806,26 +813,41 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
             if (_track_cut[0].AcceptTrack(t) ||
                 _track_cut[1].AcceptTrack(t)) {
-                track_reco_index[i] = particle_reco.size();
-                reco_stored_track_index.push_back(_branch_ntrack);
-                particle_reco.push_back(fastjet::PseudoJet(
+                track_reco_index_tpc[i] = particle_reco_tpc.size();
+                reco_stored_track_index_tpc.push_back(_branch_ntrack);
+                particle_reco_tpc.push_back(fastjet::PseudoJet(
                     t->Px(), t->Py(), t->Pz(), t->P()));
-                _branch_met_tpc[0] += t->Px();
-                _branch_met_tpc[1] += t->Py();
+                kahan_sum(_branch_met_tpc[0], met_tpc_kahan_error[0],
+                          t->Px());
+                kahan_sum(_branch_met_tpc[1], met_tpc_kahan_error[1],
+                          t->Py());
+            }
+
+            // Apply ITS only cut (track cut 4)
+
+            if (_track_cut[4].AcceptTrack(t)) {
+                track_reco_index_its[i] = particle_reco_its.size();
+                reco_stored_track_index_its.push_back(_branch_ntrack);
+                particle_reco_its.push_back(fastjet::PseudoJet(
+                    t->Px(), t->Py(), t->Pz(), t->P()));
+                kahan_sum(_branch_met_its[0], met_its_kahan_error[0],
+                          t->Px());
+                kahan_sum(_branch_met_its[1], met_its_kahan_error[1],
+                          t->Py());
             }
 
             // Store tracks passing PWG-JE *or* "2015 PbPb" cuts
 
-			bool store_track = false;
+            bool store_track = false;
 
-			for (std::vector<AliESDtrackCuts>::iterator iterator =
-					 _track_cut.begin();
-				 iterator != _track_cut.end(); iterator++) {
-				if (iterator->AcceptTrack(t)) {
-					store_track = true;
-					break;
-				}
-			}
+            for (std::vector<AliESDtrackCuts>::iterator iterator =
+                     _track_cut.begin();
+                 iterator != _track_cut.end(); iterator++) {
+                if (iterator->AcceptTrack(t)) {
+                    store_track = true;
+                    break;
+                }
+            }
 
             if (store_track) {
                 _branch_track_e[_branch_ntrack] = half(t->E());
@@ -922,28 +944,55 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     }
     // FIXME: AOD not handled
 
-    std::vector<point_2d_t> particle_reco_area_estimation;
+    std::vector<point_2d_t> particle_reco_area_estimation_tpc;
 
     for (std::vector<fastjet::PseudoJet>::const_iterator iterator =
-             particle_reco.begin();
-         iterator != particle_reco.end(); iterator++) {
-        particle_reco_area_estimation.push_back(
+             particle_reco_tpc.begin();
+         iterator != particle_reco_tpc.end(); iterator++) {
+        particle_reco_area_estimation_tpc.push_back(
             point_2d_t(iterator->pseudorapidity(),
                        iterator->phi_std()));
     }
 
-    std::vector<double> particle_reco_area;
-    std::vector<std::set<size_t> > particle_reco_incident;
+    std::vector<point_2d_t> particle_reco_area_estimation_its;
 
-    voronoi_area_incident(particle_reco_area,
-                          particle_reco_incident,
-                          particle_reco_area_estimation);
+    for (std::vector<fastjet::PseudoJet>::const_iterator iterator =
+             particle_reco_its.begin();
+         iterator != particle_reco_its.end(); iterator++) {
+        particle_reco_area_estimation_its.push_back(
+            point_2d_t(iterator->pseudorapidity(),
+                       iterator->phi_std()));
+    }
 
-    for (size_t i = 0; i < particle_reco_area.size(); i++) {
-        if (i < reco_stored_track_index.size() &&
-            reco_stored_track_index[i] < _branch_ntrack) {
-            _branch_track_voronoi_area[reco_stored_track_index[i]] =
-                half(particle_reco_area[i]);
+    std::vector<double> particle_reco_area_tpc;
+    std::vector<std::set<size_t> > particle_reco_incident_tpc;
+
+    voronoi_area_incident(particle_reco_area_tpc,
+                          particle_reco_incident_tpc,
+                          particle_reco_area_estimation_tpc);
+
+    for (size_t i = 0; i < particle_reco_area_tpc.size(); i++) {
+        if (i < reco_stored_track_index_tpc.size() &&
+            reco_stored_track_index_tpc[i] < _branch_ntrack) {
+            _branch_track_voronoi_area
+                [reco_stored_track_index_tpc[i]] =
+                half(particle_reco_area_tpc[i]);
+        }
+    }
+
+    std::vector<double> particle_reco_area_its;
+    std::vector<std::set<size_t> > particle_reco_incident_its;
+
+    voronoi_area_incident(particle_reco_area_its,
+                          particle_reco_incident_its,
+                          particle_reco_area_estimation_its);
+
+    for (size_t i = 0; i < particle_reco_area_its.size(); i++) {
+        if (i < reco_stored_track_index_its.size() &&
+            reco_stored_track_index_its[i] < _branch_ntrack) {
+            _branch_track_voronoi_area
+                [reco_stored_track_index_its[i]] =
+                half(particle_reco_area_its[i]);
         }
     }
 
@@ -958,10 +1007,10 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
           esd_event->GetBeamParticle(1) == BEAM_PARTICLE_P) :
         false;
 
-    static const double jet_antikt_d = 0.4;
+    static const double jet_antikt_d_04 = 0.4;
 
     std::vector<fastjet::PseudoJet> particle_truth;
-    std::vector<fastjet::PseudoJet> jet_truth;
+    std::vector<fastjet::PseudoJet> jet_truth_ak04;
     fastjet::ClusterSequenceArea *cluster_sequence_truth = NULL;
 
     _branch_nmc_truth = 0;
@@ -980,8 +1029,10 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
     std::fill(_branch_met_truth, _branch_met_truth + 2, 0);
 
-    std::vector<fastjet::PseudoJet> particle_reco_tagged =
-        particle_reco;
+    std::vector<fastjet::PseudoJet> particle_reco_tagged_ak04tpc =
+        particle_reco_tpc;
+    std::vector<fastjet::PseudoJet> particle_reco_tagged_ak04its =
+        particle_reco_its;
 
     // A value of 2^(-30) < 10^(-9) would map a 10 TeV particle to
     // less than 10 MeV, sufficient to remove any significant momentum
@@ -993,6 +1044,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     static const double scale_ghost = pow(2.0, -30.0);
 
     if (mc_truth_event != NULL) {
+        double met_truth_kahan_error[2] = { 0, 0 };
+
         for (std::vector<Int_t>::const_iterator iterator =
                  reverse_stored_mc_truth_index.begin();
              iterator != reverse_stored_mc_truth_index.end();
@@ -1027,8 +1080,10 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                         particle_truth.back().set_user_index(-3);
                         break;
                     }
-                    _branch_met_truth[0] += p->Px();
-                    _branch_met_truth[1] += p->Py();
+                    kahan_sum(_branch_met_truth[0],
+                              met_truth_kahan_error[0], p->Px());
+                    kahan_sum(_branch_met_truth[1],
+                              met_truth_kahan_error[1], p->Py());
                 }
             }
             _branch_mc_truth_e[_branch_nmc_truth] = half(p->E());
@@ -1058,9 +1113,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         cluster_sequence_truth = new fastjet::ClusterSequenceArea(
             particle_truth,
             fastjet::JetDefinition(fastjet::JetDefinition(
-                fastjet::antikt_algorithm, jet_antikt_d)),
+                fastjet::antikt_algorithm, jet_antikt_d_04)),
             fastjet::VoronoiAreaSpec());
-        jet_truth = cluster_sequence_truth->inclusive_jets(0);
+        jet_truth_ak04 = cluster_sequence_truth->inclusive_jets(0);
     }
 
     // The reco jets will contain EMCAL clusters as ghosts. The idea
@@ -1092,109 +1147,93 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             const fastjet::PseudoJet
                 pj(p.Px(), p.Py(), p.Pz(), p.P());
 
-            particle_reco_tagged.push_back(pj * scale_ghost);
-            particle_reco_tagged.back().set_user_index(USER_INDEX_EM);
+            particle_reco_tagged_ak04tpc.push_back(pj * scale_ghost);
+            particle_reco_tagged_ak04tpc.back().
+                set_user_index(USER_INDEX_EM);
+            particle_reco_tagged_ak04its.push_back(pj * scale_ghost);
+            particle_reco_tagged_ak04its.back().
+                set_user_index(USER_INDEX_EM);
         }
     }
 
-    _branch_njet_truth = 0;
+    FILL_BRANCH_JET_TRUTH(ak04, jet_truth_ak04);
+    TAG_PARTICLE_RECO_JET_TRUTH(particle_reco_tagged_ak04tpc,
+                                jet_truth_ak04);
+    TAG_PARTICLE_RECO_JET_TRUTH(particle_reco_tagged_ak04its,
+                                jet_truth_ak04);
 
-    if (mc_truth_event != NULL) {
-        for (std::vector<fastjet::PseudoJet>::const_iterator
-                 iterator_jet = jet_truth.begin();
-             iterator_jet != jet_truth.end(); iterator_jet++) {
-
-            _branch_jet_truth_e[_branch_njet_truth] =
-                half(iterator_jet->E());
-            _branch_jet_truth_pt[_branch_njet_truth] =
-                half(iterator_jet->perp());
-            _branch_jet_truth_eta[_branch_njet_truth] =
-                half(iterator_jet->pseudorapidity());
-            _branch_jet_truth_phi[_branch_njet_truth] =
-                half(iterator_jet->phi_std());
-            _branch_jet_truth_area[_branch_njet_truth] =
-                half(iterator_jet->area());
-
-            const std::vector<fastjet::PseudoJet> constituent =
-                cluster_sequence_truth->constituents(*iterator_jet);
-
-            _branch_jet_truth_emf[_branch_njet_truth] =
-                half(jet_emf(constituent));
-            _branch_jet_truth_multiplicity[_branch_njet_truth] =
-                jet_multiplicity(constituent);
-
-            double sigma_d[2];
-
-            jet_width_sigma(sigma_d, *iterator_jet, constituent);
-
-            for (size_t i = 0; i < 2; i++) {
-                _branch_jet_truth_width_sigma[_branch_njet_truth][i] =
-                    half(sigma_d[i]);
-            }
-
-            _branch_jet_truth_ptd[_branch_njet_truth] =
-                half(jet_ptd(constituent));
-
-            // Part for reco-generator truth tagging
-
-            for (std::vector<fastjet::PseudoJet>::const_iterator
-                     iterator_constituent = constituent.begin();
-                 iterator_constituent != constituent.end();
-                 iterator_constituent++) {
-
-                particle_reco_tagged.push_back(
-                    *iterator_constituent * scale_ghost);
-                // Positive user indices are used to tag the truth jet
-                particle_reco_tagged.back().set_user_index(
-                    iterator_jet - jet_truth.begin());
-            }
-
-            _branch_njet_truth++;
-            if (_branch_njet_truth >= NJET_MAX) {
-                break;
-            }
-        }
-    }
     if (cluster_sequence_truth != NULL) {
         delete cluster_sequence_truth;
     }
 
-    for (size_t i = 0; i < particle_reco.size(); i++) {
-        particle_reco[i].set_user_index(static_cast<int>(i));
+    for (size_t i = 0; i < particle_reco_tpc.size(); i++) {
+        particle_reco_tpc[i].set_user_index(static_cast<int>(i));
     }
 
     const fastjet::ClusterSequenceArea
-        cluster_sequence_reco(
-            particle_reco,
+        cluster_sequence_reco_ak04tpc(
+            particle_reco_tpc,
             fastjet::JetDefinition(fastjet::JetDefinition(
-                fastjet::antikt_algorithm, jet_antikt_d)),
+                fastjet::antikt_algorithm, jet_antikt_d_04)),
             fastjet::VoronoiAreaSpec());
-    const std::vector<fastjet::PseudoJet> jet_reco =
-        cluster_sequence_reco.inclusive_jets(0);
+    const std::vector<fastjet::PseudoJet> jet_reco_ak04tpc =
+        cluster_sequence_reco_ak04tpc.inclusive_jets(0);
 
     const fastjet::ClusterSequenceArea
-        cluster_sequence_reco_tagged(
-            particle_reco_tagged,
+        cluster_sequence_reco_tagged_ak04tpc(
+            particle_reco_tagged_ak04tpc,
             fastjet::JetDefinition(fastjet::JetDefinition(
-                fastjet::antikt_algorithm, jet_antikt_d)),
+                fastjet::antikt_algorithm, jet_antikt_d_04)),
             fastjet::VoronoiAreaSpec());
-    const std::vector<fastjet::PseudoJet> jet_reco_tagged =
-        cluster_sequence_reco_tagged.inclusive_jets(0);
+    const std::vector<fastjet::PseudoJet> jet_reco_tagged_ak04tpc =
+        cluster_sequence_reco_tagged_ak04tpc.inclusive_jets(0);
+
+    for (size_t i = 0; i < particle_reco_its.size(); i++) {
+        particle_reco_its[i].set_user_index(static_cast<int>(i));
+    }
+
+    const fastjet::ClusterSequenceArea
+        cluster_sequence_reco_ak04its(
+            particle_reco_its,
+            fastjet::JetDefinition(fastjet::JetDefinition(
+                fastjet::antikt_algorithm, jet_antikt_d_04)),
+            fastjet::VoronoiAreaSpec());
+    const std::vector<fastjet::PseudoJet> jet_reco_ak04its =
+        cluster_sequence_reco_ak04its.inclusive_jets(0);
+
+    const fastjet::ClusterSequenceArea
+        cluster_sequence_reco_tagged_ak04its(
+            particle_reco_tagged_ak04its,
+            fastjet::JetDefinition(fastjet::JetDefinition(
+                fastjet::antikt_algorithm, jet_antikt_d_04)),
+            fastjet::VoronoiAreaSpec());
+    const std::vector<fastjet::PseudoJet> jet_reco_tagged_ak04its =
+        cluster_sequence_reco_tagged_ak04its.inclusive_jets(0);
 
     static const double jet_kt_d_ue_estimation = 0.3;
     const fastjet::ClusterSequenceArea
-        cluster_sequence_ue_estimation(
-            particle_reco,
+        cluster_sequence_ue_estimation_tpc(
+            particle_reco_tpc,
             fastjet::JetDefinition(fastjet::JetDefinition(
                 fastjet::kt_algorithm, jet_kt_d_ue_estimation)),
             fastjet::VoronoiAreaSpec());
-    const std::vector<fastjet::PseudoJet> jet_ue_estimation =
-        cluster_sequence_ue_estimation.inclusive_jets(0);
+    const std::vector<fastjet::PseudoJet> jet_ue_estimation_tpc =
+        cluster_sequence_ue_estimation_tpc.inclusive_jets(0);
+    const fastjet::ClusterSequenceArea
+        cluster_sequence_ue_estimation_its(
+            particle_reco_its,
+            fastjet::JetDefinition(fastjet::JetDefinition(
+                fastjet::kt_algorithm, jet_kt_d_ue_estimation)),
+            fastjet::VoronoiAreaSpec());
+    const std::vector<fastjet::PseudoJet> jet_ue_estimation_its =
+        cluster_sequence_ue_estimation_its.inclusive_jets(0);
+
+    // FIXME: Maybe also store ITS UE?
 
     _branch_debug_njet_ue_estimation = 0;
     for (std::vector<fastjet::PseudoJet>::const_iterator
-             iterator_jet = jet_ue_estimation.begin();
-        iterator_jet != jet_ue_estimation.end(); iterator_jet++) {
+             iterator_jet = jet_ue_estimation_tpc.begin();
+        iterator_jet != jet_ue_estimation_tpc.end(); iterator_jet++) {
         _branch_debug_jet_ue_estimation_pt_raw
             [_branch_debug_njet_ue_estimation] =
             iterator_jet->perp();
@@ -1211,8 +1250,12 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     }
 
     std::pair<std::vector<double>, std::vector<double> >
-        ue_estimate = ue_estimation_truncated_mean(
-            cluster_sequence_ue_estimation, particle_reco_area);
+        ue_estimate_tpc = ue_estimation_truncated_mean(
+            cluster_sequence_ue_estimation_tpc, particle_reco_area_tpc);
+
+    std::pair<std::vector<double>, std::vector<double> >
+        ue_estimate_its = ue_estimation_truncated_mean(
+            cluster_sequence_ue_estimation_its, particle_reco_area_its);
 
     _branch_ncluster = 0;
     for (Int_t i = 0; i < calo_cluster.GetEntriesFast(); i++) {
@@ -1292,12 +1335,13 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                         std::pow(dazimuth, 2);
                     const double track_pt_minus_ue =
                         dr_2 < 0.4 * 0.4 ?
-                        track_reco_index.find(j) !=
-                        track_reco_index.end() ?
+                        track_reco_index_tpc.find(j) !=
+                        track_reco_index_tpc.end() ?
                         t->Pt() -
-                        evaluate_ue(ue_estimate, t->Eta(),
+                        evaluate_ue(ue_estimate_tpc, t->Eta(),
                                     t->Phi()) *
-                        particle_reco_area[track_reco_index[j]] :
+                        particle_reco_area_tpc
+                        [track_reco_index_tpc[j]] :
                         0 : NAN;
 
                     if (dr_2 < 0.1 * 0.1) {
@@ -1420,305 +1464,18 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
     calo_cluster.Delete();
 
-    _branch_njet = 0;
-    for (std::vector<fastjet::PseudoJet>::const_iterator
-             iterator_jet = jet_reco.begin();
-        iterator_jet != jet_reco.end(); iterator_jet++) {
-
-        std::vector<fastjet::PseudoJet>::const_iterator
-            iterator_jet_tagged = jet_reco_tagged.end();
-        double dr_2_min = INFINITY;
-
-        for (std::vector<fastjet::PseudoJet>::const_iterator
-             it = jet_reco_tagged.begin();
-             it != jet_reco_tagged.end(); it++) {
-            const double dr_2 =
-                iterator_jet->squared_distance(*it);
-
-            if (dr_2 < dr_2_min) {
-                iterator_jet_tagged = it;
-                dr_2_min = dr_2;
-            }
-        }
-
-        _branch_debug_jet_tag_dr_square[_branch_njet] = dr_2_min;
-
-#if 0
-        // Skip jets that only consists of tagging ghosts
-        size_t ghost_only = true;
-
-        for (std::vector<fastjet::PseudoJet>::const_iterator
-                 iterator_constituent = constituent.begin();
-             iterator_constituent != constituent.end();
-             iterator_constituent++) {
-            switch (iterator_constituent->user_index()) {
-            case USER_INDEX_DEFAULT_OR_TRACK:
-            case USER_INDEX_EM:
-                ghost_only = false;
-                break;
-            }
-        }
-        if (ghost_only) {
-            continue;
-        }
-#endif
-
-        if (!(iterator_jet->perp() >= _stored_jet_min_pt_raw)) {
-            continue;
-        }
-
-        // Jet quantities follow HEP convention (not ALICE so far):
-        //
-        // - Suffix _raw = raw, jet-uncalibrated detector quantity
-        //
-        // - Suffix _charged = calibrated, "charged particle-level"
-        //   quantity
-        //
-        // - No suffix = jet-calibrated, particle-level quantity
-
-        _branch_jet_e_raw[_branch_njet] = half(iterator_jet->E());
-        _branch_jet_e[_branch_njet] = NAN;
-
-        std::vector<fastjet::PseudoJet> constituent =
-            cluster_sequence_reco.constituents(*iterator_jet);
-        double area = 0;
-        double pt_raw_ue = 0;
-
-        for (std::vector<fastjet::PseudoJet>::const_iterator
-                 iterator_constituent = constituent.begin();
-             iterator_constituent != constituent.end();
-             iterator_constituent++) {
-            const int index = iterator_constituent->user_index();
-
-            if (index >= 0 && static_cast<size_t>(index) <
-                particle_reco_area.size()) {
-                area += particle_reco_area[index];
-                pt_raw_ue += evaluate_ue(
-                    ue_estimate,
-                    iterator_constituent->pseudorapidity(),
-                    iterator_constituent->phi_std()) *
-                    particle_reco_area[index];
-            }
-        }
-
-        _branch_jet_pt_raw_ue[_branch_njet] = half(pt_raw_ue);
-        _branch_jet_pt_raw[_branch_njet] =
-            half(iterator_jet->perp() - pt_raw_ue);
-        _branch_jet_pt[_branch_njet] = NAN;
-        _branch_jet_e_charged[_branch_njet] = NAN;
-        _branch_jet_pt_charged[_branch_njet] = NAN;
-        _branch_jet_eta_raw[_branch_njet] =
-            half(iterator_jet->pseudorapidity());
-        _branch_jet_eta[_branch_njet] =
-            half(iterator_jet->pseudorapidity());
-        _branch_jet_phi[_branch_njet] =
-            half(iterator_jet->phi_std());
-        _branch_jet_area_raw[_branch_njet] = half(area);
-        _branch_jet_area[_branch_njet] = half(area);
-
-        // Calculate the electro magnetic fraction (EMF), but without
-        // a particle-flow-based removal of energy double counting.
-        // Note the EM ghosts are scaled back here.
-
-        _branch_jet_emf_raw[_branch_njet] = NAN;
-        _branch_jet_emf[_branch_njet] = NAN;
-        _branch_jet_multiplicity_raw[_branch_njet] = 0;
-        _branch_jet_multiplicity[_branch_njet] = NAN;
-        std::fill(_branch_jet_width_sigma_raw[_branch_njet],
-                  _branch_jet_width_sigma_raw[_branch_njet] + 2, NAN);
-        std::fill(_branch_jet_width_sigma[_branch_njet],
-                  _branch_jet_width_sigma[_branch_njet] + 2, NAN);
-        _branch_jet_ptd_raw[_branch_njet] = NAN;
-        _branch_jet_ptd[_branch_njet] = NAN;
-
-        if (iterator_jet_tagged != jet_reco_tagged.end()) {
-            constituent = cluster_sequence_reco_tagged.
-                constituents(*iterator_jet_tagged);
-
-            _branch_jet_emf_raw[_branch_njet] =
-                jet_emf(constituent, scale_ghost);
-            _branch_jet_multiplicity_raw[_branch_njet] =
-                jet_multiplicity(constituent);
-
-            double sigma_d[2];
-
-            jet_width_sigma(sigma_d, *iterator_jet, constituent);
-
-            for (size_t i = 0; i < 2; i++) {
-                _branch_jet_truth_width_sigma[_branch_njet_truth][i] =
-                    half(sigma_d[i]);
-            }
-
-            _branch_jet_ptd_raw[_branch_njet] =
-                jet_ptd(constituent, scale_ghost);
-        }
-
-        _branch_jet_e_truth[_branch_njet] = NAN;
-        _branch_jet_pt_truth[_branch_njet] = NAN;
-        _branch_jet_eta_truth[_branch_njet] = NAN;
-        _branch_jet_phi_truth[_branch_njet] = NAN;
-        _branch_jet_emf_truth[_branch_njet] = NAN;
-        // Defaulting this to USHRT_MAX appears to be too unnatural
-        _branch_jet_multiplicity_truth[_branch_njet] = 0;
-        std::fill(_branch_jet_width_sigma_truth[_branch_njet],
-                  _branch_jet_width_sigma_truth[_branch_njet] + 2, NAN);
-        _branch_jet_ptd_truth[_branch_njet] = NAN;
-
-        const size_t index_reco = iterator_jet - jet_reco.begin();
-
-        if (mc_truth_event != NULL &&
-            iterator_jet_tagged != jet_reco_tagged.end()) {
-            std::map<int, double> z_ghost;
-
-            for (std::vector<fastjet::PseudoJet>::const_iterator
-                     iterator_constituent = constituent.begin();
-                iterator_constituent != constituent.end();
-                iterator_constituent++) {
-                const int index_jet_truth =
-                    iterator_constituent->user_index();
-
-                if (index_jet_truth >= 0) {
-                    if (z_ghost.find(index_jet_truth) ==
-                        z_ghost.end()) {
-                        z_ghost[index_jet_truth] =
-                            iterator_constituent->perp() /
-                            scale_ghost;
-                    }
-                    else {
-                        z_ghost[index_jet_truth] +=
-                            iterator_constituent->perp() /
-                            scale_ghost;
-                    }
-                }
-            }
-
-            // z_truth = fraction of truth constituents inside the
-            // area of the reco jet, relative to the truth jet (not
-            // necessarily within the reco jet)
-
-            std::vector<std::pair<double, int> > z_truth;
-
-            for (std::map<int, double>::const_iterator iterator =
-                     z_ghost.begin();
-                 iterator != z_ghost.end(); iterator++) {
-                if (jet_truth[iterator->first].perp() > 0) {
-                    z_truth.push_back(std::pair<double, int>(
-                        iterator->second /
-                        jet_truth[iterator->first].perp(),
-                        iterator->first));
-                }
-            }
-            std::sort(z_truth.begin(), z_truth.end());
-
-            // Note that z_truth is now in *acending* order. Any
-            // information beyond 2 truth -> 1 reco jet mapping is not
-            // really useful, we only need to know how fuzzy the
-            // mapping was
-
-            std::fill(
-                _branch_jet_truth_index_z_truth[_branch_njet],
-                _branch_jet_truth_index_z_truth[_branch_njet] + 2,
-                -1);
-            std::fill(
-                _branch_jet_truth_z_truth[_branch_njet],
-                _branch_jet_truth_z_truth[_branch_njet] + 2, NAN);
-            for (size_t j = 0;
-                 j < std::min(2UL, z_truth.size()); j++) {
-                _branch_jet_truth_z_truth[_branch_njet][j] =
-                    half(z_truth.rbegin()[j].first);
-                _branch_jet_truth_index_z_truth[_branch_njet][j] =
-                    z_truth.rbegin()[j].second;
-            }
-
-            // z_reco = fraction of truth constituents inside the area
-            // of the reco jet, relative to the total truth particles
-            // inside the reco jet
-
-            double sum_z_ghost = 0;
-
-            for (std::map<int, double>::const_iterator iterator =
-                     z_ghost.begin();
-                 iterator != z_ghost.end(); iterator++) {
-                sum_z_ghost += iterator->second;
-            }
-
-            std::vector<std::pair<double, int> > z_reco;
-
-            if (sum_z_ghost > 0) {
-                for (std::map<int, double>::iterator iterator =
-                         z_ghost.begin();
-                     iterator != z_ghost.end(); iterator++) {
-                    iterator->second /= sum_z_ghost;
-                }
-                for (std::map<int, double>::const_iterator iterator =
-                         z_ghost.begin();
-                     iterator != z_ghost.end(); iterator++) {
-                    z_reco.push_back(std::pair<double, int>(
-                        iterator->second, iterator->first));
-                }
-            }
-            std::sort(z_reco.begin(), z_reco.end());
-
-            // Note that z_truth is now in *acending* order
-
-            std::fill(
-                _branch_jet_truth_index_z_reco[_branch_njet],
-                _branch_jet_truth_index_z_reco[_branch_njet] + 2,
-                -1);
-            std::fill(
-                _branch_jet_truth_z_reco[_branch_njet],
-                _branch_jet_truth_z_reco[_branch_njet] + 2, NAN);
-            for (size_t j = 0;
-                 j < std::min(2UL, z_reco.size()); j++) {
-                _branch_jet_truth_z_reco[_branch_njet][j] =
-                    half(z_reco.rbegin()[j].first);
-                _branch_jet_truth_index_z_reco[_branch_njet][j] =
-                    z_reco.rbegin()[j].second;
-            }
-
-            // A simplified z_reco matching, which is a more rigorous
-            // version of the CMS delta R matching, for jet energy
-            // correction derivation.
-
-            _branch_jet_e_truth[_branch_njet] = NAN;
-            _branch_jet_pt_truth[_branch_njet] = NAN;
-            _branch_jet_eta_truth[_branch_njet] = NAN;
-            _branch_jet_phi_truth[_branch_njet] = NAN;
-            _branch_jet_area_truth[_branch_njet] = NAN;
-            _branch_jet_emf_truth[_branch_njet] = NAN;
-
-            if (!z_reco.empty() && z_reco.rbegin()[0].second >= 0 &&
-                static_cast<size_t>(z_reco.rbegin()[0].second) <
-                _branch_njet_truth) {
-                const size_t k = z_reco.rbegin()[0].second;
-
-                _branch_jet_e_truth[_branch_njet] =
-                    _branch_jet_truth_e[k];
-                _branch_jet_pt_truth[_branch_njet] =
-                    _branch_jet_truth_pt[k];
-                _branch_jet_eta_truth[_branch_njet] =
-                    _branch_jet_truth_eta[k];
-                _branch_jet_phi_truth[_branch_njet] =
-                    _branch_jet_truth_phi[k];
-                _branch_jet_area_truth[_branch_njet] =
-                    _branch_jet_truth_area[k];
-                _branch_jet_emf_truth[_branch_njet] =
-                    _branch_jet_truth_emf[k];
-                _branch_jet_multiplicity_truth[_branch_njet] =
-                    _branch_jet_truth_multiplicity[k];
-                for (size_t j = 0; j < 2; j++) {
-                    _branch_jet_width_sigma_truth[_branch_njet][j] =
-                        _branch_jet_truth_width_sigma[k][j];
-                }
-                _branch_jet_ptd_truth[_branch_njet] =
-                    _branch_jet_truth_ptd[k];
-            }
-        }
-        _branch_njet++;
-        if (_branch_njet >= NJET_MAX) {
-            break;
-        }
-    }
+    FILL_BRANCH_JET(ak04tpc, jet_reco_ak04tpc,
+                    cluster_sequence_reco_ak04tpc,
+                    jet_reco_tagged_ak04tpc,
+                    cluster_sequence_reco_tagged_ak04tpc,
+                    ak04, jet_truth_ak04,
+                    particle_reco_area_tpc, ue_estimate_tpc);
+    FILL_BRANCH_JET(ak04its, jet_reco_ak04its,
+                    cluster_sequence_reco_ak04its,
+                    jet_reco_tagged_ak04its,
+                    cluster_sequence_reco_tagged_ak04its,
+                    ak04, jet_truth_ak04,
+                    particle_reco_area_its, ue_estimate_its);
 
     std::fill(_branch_cell_e, _branch_cell_e + EMCAL_NCELL, NAN);
     std::fill(_branch_cell_tof, _branch_cell_tof + EMCAL_NCELL, NAN);
