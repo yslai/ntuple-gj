@@ -93,9 +93,16 @@ private:
     BRANCH_ARRAY(cluster_iso_tpc_02, ncluster, F)                   \
     BRANCH_ARRAY(cluster_iso_tpc_03, ncluster, F)                   \
     BRANCH_ARRAY(cluster_iso_tpc_04, ncluster, F)                   \
+    BRANCH_ARRAY(cluster_iso_its_01, ncluster, F)                   \
+    BRANCH_ARRAY(cluster_iso_its_02, ncluster, F)                   \
+    BRANCH_ARRAY(cluster_iso_its_03, ncluster, F)                   \
+    BRANCH_ARRAY(cluster_iso_its_04, ncluster, F)                   \
     BRANCH_ARRAY(cluster_frixione_tpc_04_02, ncluster, F)           \
     BRANCH_ARRAY(cluster_frixione_tpc_04_05, ncluster, F)           \
     BRANCH_ARRAY(cluster_frixione_tpc_04_10, ncluster, F)           \
+    BRANCH_ARRAY(cluster_frixione_its_04_02, ncluster, F)           \
+    BRANCH_ARRAY(cluster_frixione_its_04_05, ncluster, F)           \
+    BRANCH_ARRAY(cluster_frixione_its_04_10, ncluster, F)           \
     BRANCH_ARRAY(cluster_iso_01_truth, ncluster, F)                 \
     BRANCH_ARRAY(cluster_iso_02_truth, ncluster, F)                 \
     BRANCH_ARRAY(cluster_iso_03_truth, ncluster, F)                 \
@@ -156,7 +163,7 @@ private:
     BRANCH_ARRAY(debug_jet_ue_estimation_area_raw,                  \
                  debug_njet_ue_estimation, F)                       \
     /* */                                                           \
-    BRANCH(njet_ak04tpc, i)											\
+    BRANCH(njet_ak04tpc, i)                                         \
     BRANCH_ARRAY(debug_jet_ak04tpc_tag_dr_square, njet_ak04tpc, F)  \
     BRANCH_ARRAY(jet_ak04tpc_e_raw, njet_ak04tpc, F)                \
     BRANCH_ARRAY(jet_ak04tpc_e, njet_ak04tpc, F)                    \
@@ -191,11 +198,11 @@ private:
     BRANCH_ARRAY(jet_ak04tpc_area_truth, njet_ak04tpc, F)           \
     BRANCH_ARRAY(jet_ak04tpc_emf_truth, njet_ak04tpc, F)            \
     BRANCH_ARRAY(jet_ak04tpc_multiplicity_truth, njet_ak04tpc, s)   \
-    BRANCH_ARRAY2(jet_ak04tpc_width_sigma_truth, njet_ak04tpc,		\
-				  2, F)												\
+    BRANCH_ARRAY2(jet_ak04tpc_width_sigma_truth, njet_ak04tpc,      \
+                  2, F)                                             \
     BRANCH_ARRAY(jet_ak04tpc_ptd_truth, njet_ak04tpc, F)            \
     /* */                                                           \
-    BRANCH(njet_ak04its, i)											\
+    BRANCH(njet_ak04its, i)                                         \
     BRANCH_ARRAY(debug_jet_ak04its_tag_dr_square, njet_ak04its, F)  \
     BRANCH_ARRAY(jet_ak04its_e_raw, njet_ak04its, F)                \
     BRANCH_ARRAY(jet_ak04its_e, njet_ak04its, F)                    \
@@ -341,7 +348,7 @@ private:
     std::vector<double> _emcal_cell_area; //!
     std::vector<std::set<size_t> > _emcal_cell_incident; //!
 
-	void *_keras_model_photon_discrimination;
+    void *_keras_model_photon_discrimination;
 
     AliAnalysisAlien *_alien_plugin; //!
     bool _metadata_filled; //!

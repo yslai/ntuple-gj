@@ -1290,7 +1290,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
         for (UInt_t j = 0; j < std::min(32U, c->GetNLabels()); j++) {
             _branch_cluster_mc_truth_index[_branch_ncluster][j] =
-                c->GetLabelAt(j);
+                SAFE_MC_TRUTH_INDEX_TO_USHRT(c->GetLabelAt(j));
             cluster_mc_truth_index.insert(c->GetLabelAt(j));
         }
 
@@ -1313,7 +1313,13 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             double cluster_iso_tpc_03 = 0;
             double cluster_iso_tpc_04 = 0;
 
-            std::vector<std::pair<double, double> > delta_vs_iso;
+            double cluster_iso_its_01 = 0;
+            double cluster_iso_its_02 = 0;
+            double cluster_iso_its_03 = 0;
+            double cluster_iso_its_04 = 0;
+
+            std::vector<std::pair<double, double> > delta_vs_iso_tpc;
+            std::vector<std::pair<double, double> > delta_vs_iso_its;
 
             for (Int_t j = 0; j < esd_event->GetNumberOfTracks(); j++) {
                 AliESDtrack *t = esd_event->GetTrack(j);
@@ -1355,7 +1361,42 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                     }
                     if (dr_2 < 0.4 * 0.4) {
                         cluster_iso_tpc_04 += track_pt_minus_ue;
-                        delta_vs_iso.push_back(
+                        delta_vs_iso_tpc.push_back(
+                            std::pair<double, double>(
+                                sqrt(dr_2), track_pt_minus_ue));
+                    }
+                }
+                if (_track_cut[4].AcceptTrack(t)) {
+                    const double dpseudorapidity = t->Eta() - p.Eta();
+                    const double dazimuth = angular_range_reduce(
+                        angular_range_reduce(t->Phi()) -
+                        angular_range_reduce(p.Phi()));
+                    const double dr_2 =
+                        std::pow(dpseudorapidity, 2) +
+                        std::pow(dazimuth, 2);
+                    const double track_pt_minus_ue =
+                        dr_2 < 0.4 * 0.4 ?
+                        track_reco_index_its.find(j) !=
+                        track_reco_index_its.end() ?
+                        t->Pt() -
+                        evaluate_ue(ue_estimate_its, t->Eta(),
+                                    t->Phi()) *
+                        particle_reco_area_its
+                        [track_reco_index_its[j]] :
+                        0 : NAN;
+
+                    if (dr_2 < 0.1 * 0.1) {
+                        cluster_iso_its_01 += track_pt_minus_ue;
+                    }
+                    if (dr_2 < 0.2 * 0.2) {
+                        cluster_iso_its_02 += track_pt_minus_ue;
+                    }
+                    if (dr_2 < 0.3 * 0.3) {
+                        cluster_iso_its_03 += track_pt_minus_ue;
+                    }
+                    if (dr_2 < 0.4 * 0.4) {
+                        cluster_iso_its_04 += track_pt_minus_ue;
+                        delta_vs_iso_its.push_back(
                             std::pair<double, double>(
                                 sqrt(dr_2), track_pt_minus_ue));
                     }
@@ -1370,21 +1411,53 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             _branch_cluster_iso_tpc_04[_branch_ncluster] =
                 half(cluster_iso_tpc_04);
 
+            _branch_cluster_iso_its_01[_branch_ncluster] =
+                half(cluster_iso_its_01);
+            _branch_cluster_iso_its_02[_branch_ncluster] =
+                half(cluster_iso_its_02);
+            _branch_cluster_iso_its_03[_branch_ncluster] =
+                half(cluster_iso_its_03);
+            _branch_cluster_iso_its_04[_branch_ncluster] =
+                half(cluster_iso_its_04);
+
             _branch_cluster_frixione_tpc_04_02[_branch_ncluster] =
-                half(frixione_iso_max_x_e_eps(delta_vs_iso, 0.4, 0.2));
+                half(frixione_iso_max_x_e_eps(delta_vs_iso_tpc,
+                                              0.4, 0.2));
             _branch_cluster_frixione_tpc_04_05[_branch_ncluster] =
-                half(frixione_iso_max_x_e_eps(delta_vs_iso, 0.4, 0.5));
+                half(frixione_iso_max_x_e_eps(delta_vs_iso_tpc,
+                                              0.4, 0.5));
             _branch_cluster_frixione_tpc_04_10[_branch_ncluster] =
-                half(frixione_iso_max_x_e_eps(delta_vs_iso, 0.4, 1.0));
+                half(frixione_iso_max_x_e_eps(delta_vs_iso_tpc,
+                                              0.4, 1.0));
+
+            _branch_cluster_frixione_its_04_02[_branch_ncluster] =
+                half(frixione_iso_max_x_e_eps(delta_vs_iso_its,
+                                              0.4, 0.2));
+            _branch_cluster_frixione_its_04_05[_branch_ncluster] =
+                half(frixione_iso_max_x_e_eps(delta_vs_iso_its,
+                                              0.4, 0.5));
+            _branch_cluster_frixione_its_04_10[_branch_ncluster] =
+                half(frixione_iso_max_x_e_eps(delta_vs_iso_its,
+                                              0.4, 1.0));
         }
         else {
             _branch_cluster_iso_tpc_01[_branch_ncluster] = NAN;
             _branch_cluster_iso_tpc_02[_branch_ncluster] = NAN;
             _branch_cluster_iso_tpc_03[_branch_ncluster] = NAN;
             _branch_cluster_iso_tpc_04[_branch_ncluster] = NAN;
+
+            _branch_cluster_iso_its_01[_branch_ncluster] = NAN;
+            _branch_cluster_iso_its_02[_branch_ncluster] = NAN;
+            _branch_cluster_iso_its_03[_branch_ncluster] = NAN;
+            _branch_cluster_iso_its_04[_branch_ncluster] = NAN;
+
             _branch_cluster_frixione_tpc_04_02[_branch_ncluster] = NAN;
             _branch_cluster_frixione_tpc_04_05[_branch_ncluster] = NAN;
             _branch_cluster_frixione_tpc_04_10[_branch_ncluster] = NAN;
+
+            _branch_cluster_frixione_its_04_02[_branch_ncluster] = NAN;
+            _branch_cluster_frixione_its_04_05[_branch_ncluster] = NAN;
+            _branch_cluster_frixione_its_04_10[_branch_ncluster] = NAN;
         }
 
         if (mc_truth_event != NULL) {
