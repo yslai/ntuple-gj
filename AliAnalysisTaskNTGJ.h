@@ -155,6 +155,10 @@ private:
     BRANCH_ARRAY(mc_truth_pdg_code, nmc_truth, S)                   \
     BRANCH_ARRAY(mc_truth_status, nmc_truth, b)                     \
     BRANCH_ARRAY(mc_truth_generator_index, nmc_truth, b)            \
+    /* BRANCH_ARRAY(mc_truth_physical_primary, nmc_truth, O) */     \
+    /* BRANCH_ARRAY(mc_truth_first_parent, nmc_truth, I) */         \
+    /* BRANCH_ARRAY(mc_truth_first_child, nmc_truth, I) */          \
+    /* BRANCH_ARRAY(mc_truth_second_child, nmc_truth, I) */         \
     BRANCH(debug_njet_ue_estimation, i)                             \
     BRANCH_ARRAY(debug_jet_ue_estimation_pt_raw,                    \
                  debug_njet_ue_estimation, F)                       \

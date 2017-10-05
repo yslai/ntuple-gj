@@ -779,13 +779,50 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
         for (Int_t i = 0;
              i < mc_truth_event->GetNumberOfTracks(); i++) {
+            // Keep only primary final state particles
             if (!mc_truth_event->IsPhysicalPrimary(i)) {
-                // Keep only primary final state particles
                 continue;
             }
+
             stored_mc_truth_index[i] = nmc_truth;
             reverse_stored_mc_truth_index.push_back(i);
             nmc_truth++;
+        }
+
+        // Assign secondaries to the primaries
+
+        for (Int_t i = 0;
+             i < mc_truth_event->GetNumberOfTracks(); i++) {
+            // Skip primaries
+            if (mc_truth_event->IsPhysicalPrimary(i)) {
+                continue;
+            }
+
+            Int_t j = i;
+            bool has_physical_primary_ancestor = false;
+
+            // Ensure termination even if there is a loop
+            for (size_t k = 0; k < 1000; k++) {
+                const AliMCParticle *p =
+                    static_cast<AliMCParticle *>(
+                        mc_truth_event->GetTrack(j));
+
+                if (p == NULL || p->Particle() == NULL) {
+                    break;
+                }
+                j = p->Particle()->GetFirstMother();
+                if (!(j >= 0 &&
+                      j < mc_truth_event->GetNumberOfTracks())) {
+                    break;
+                }
+                if (mc_truth_event->IsPhysicalPrimary(j)) {
+                    has_physical_primary_ancestor = true;
+                    break;
+                }
+            }
+            if (has_physical_primary_ancestor) {
+                stored_mc_truth_index[i] = stored_mc_truth_index[j];
+            }
         }
     }
 
@@ -1103,6 +1140,14 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                                   mc_truth_event->
                                   Particle(*iterator)->
                                   GetStatusCode()));
+            // _branch_mc_truth_physical_primary[_branch_nmc_truth] =
+            //     mc_truth_event->IsPhysicalPrimary(*iterator);
+            // _branch_mc_truth_first_parent[_branch_nmc_truth] =
+            //     p->Particle()->GetFirstMother();
+            // _branch_mc_truth_first_child[_branch_nmc_truth] =
+            //     p->Particle()->GetFirstDaughter();
+            // _branch_mc_truth_first_child[_branch_nmc_truth] =
+            //     p->Particle()->GetLastDaughter();
             _branch_mc_truth_generator_index[_branch_nmc_truth] =
                 std::min(static_cast<Short_t>(UCHAR_MAX),
                          std::max(static_cast<Short_t>(0),
