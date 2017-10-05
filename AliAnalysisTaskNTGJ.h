@@ -110,6 +110,8 @@ private:
     BRANCH_ARRAY(cluster_frixione_04_02_truth, ncluster, F)         \
     BRANCH_ARRAY(cluster_frixione_04_05_truth, ncluster, F)         \
     BRANCH_ARRAY(cluster_frixione_04_10_truth, ncluster, F)         \
+    BRANCH_ARRAY2(cluster_s_nphoton, ncluster, 4, F)                \
+    BRANCH_ARRAY2(cluster_s_ncharged_hadron, ncluster, 4, F)        \
     BRANCH_ARRAY(cell_e, 17664, F)                                  \
     BRANCH_ARRAY(cell_tof, 17664, F)                                \
     BRANCH_ARRAY(cell_mc_truth_index, 17664, s)                     \

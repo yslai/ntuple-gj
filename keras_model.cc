@@ -69,6 +69,9 @@ bool KerasLayerActivation::LoadLayer(std::ifstream* file) {
     case kTanh:
         activation_type_ = kTanh;
         break;
+    case kSoftMax:
+        activation_type_ = kSoftMax;
+        break;
     default:
         KASSERT(false, "Unsupported activation type %d", activation);
     }
@@ -125,6 +128,18 @@ bool KerasLayerActivation::Apply(Tensor* in, Tensor* out) {
     case kTanh:
         for (size_t i = 0; i < out->data_.size(); i++) {
             out->data_[i] = std::tanh(out->data_[i]);
+        }
+        break;
+    case kSoftMax:
+        {
+            float sum = 0.0;
+            for (size_t i = 0; i < out->data_.size(); i++) {
+                out->data_[i] = std::exp(out->data_[i]);
+                sum += out->data_[i];
+            }
+            for (size_t i = 0; i < out->data_.size(); i++) {
+                out->data_[i] /= sum;
+            }
         }
         break;
     default:

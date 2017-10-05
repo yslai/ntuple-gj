@@ -591,6 +591,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
     if (_keras_model_photon_discrimination == NULL) {
         _keras_model_photon_discrimination = new KerasModel;
+        reinterpret_cast<KerasModel *>(
+            _keras_model_photon_discrimination)->
+        LoadModel("photon_discr.model");
     }
 
     AliMCEvent *mc_truth_event = MCEvent();
@@ -1527,6 +1530,22 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             _branch_cluster_frixione_04_02_truth[_branch_ncluster] = NAN;
             _branch_cluster_frixione_04_05_truth[_branch_ncluster] = NAN;
             _branch_cluster_frixione_04_10_truth[_branch_ncluster] = NAN;
+        }
+
+        std::fill(_branch_cluster_s_nphoton[_branch_ncluster],
+                  _branch_cluster_s_nphoton[_branch_ncluster] + 4, NAN);
+        std::fill(_branch_cluster_s_ncharged_hadron[_branch_ncluster],
+                  _branch_cluster_s_ncharged_hadron[_branch_ncluster] + 4, NAN);
+
+        std::vector<float> output_tensor =
+            cluster_cell_keras_inference(
+                c, emcal_cell, _branch_primary_vertex, v0,
+                *reinterpret_cast<KerasModel *>(
+                    _keras_model_photon_discrimination));
+
+        if (output_tensor.size() == 2) {
+            std::copy(output_tensor.begin(), output_tensor.end(),
+                      _branch_cluster_s_nphoton[_branch_ncluster] + 1);
         }
 
         _branch_ncluster++;
