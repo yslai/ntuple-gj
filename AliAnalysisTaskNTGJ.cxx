@@ -1131,6 +1131,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             _branch_mc_truth_eta[_branch_nmc_truth] = half(p->Eta());
             _branch_mc_truth_phi[_branch_nmc_truth] =
                 half(angular_range_reduce(p->Phi()));
+            _branch_mc_truth_charge[_branch_nmc_truth] = p->Charge();
             _branch_mc_truth_pdg_code[_branch_nmc_truth] =
                 std::min(SHRT_MAX,
                          std::max(SHRT_MIN, p->PdgCode()));

@@ -152,6 +152,7 @@ private:
     BRANCH_ARRAY(mc_truth_pt, nmc_truth, F)                         \
     BRANCH_ARRAY(mc_truth_eta, nmc_truth, F)                        \
     BRANCH_ARRAY(mc_truth_phi, nmc_truth, F)                        \
+    BRANCH_ARRAY(mc_truth_charge, nmc_truth, B)                     \
     BRANCH_ARRAY(mc_truth_pdg_code, nmc_truth, S)                   \
     BRANCH_ARRAY(mc_truth_status, nmc_truth, b)                     \
     BRANCH_ARRAY(mc_truth_generator_index, nmc_truth, b)            \
