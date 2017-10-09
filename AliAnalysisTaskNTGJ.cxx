@@ -56,10 +56,32 @@
 
 #pragma GCC diagnostic pop
 #include "special_function.h"
+#include "mc_truth.h"
 #include "emcal.h"
 #include "jet.h"
 #include "isolation.h"
 #endif // __CINT__
+
+/////////////////////////////////////////////////////////////////////
+// Replacement dlfcn.h for CINT
+
+#ifndef RTLD_NOW
+#define RTLD_NOW      0x00002
+#endif // RTLD_NOW
+#ifndef RTLD_GLOBAL
+#define RTLD_GLOBAL   0x00100
+#endif // RTLD_GLOBAL
+#ifndef RTLD_NODELETE
+#define RTLD_NODELETE 0x01000
+#endif // RTLD_NODELETE
+
+extern "C" {
+extern void *dlopen(const char *, int);
+extern void *dlsym(void *, const char *);
+extern char *dlerror(void);
+}
+
+/////////////////////////////////////////////////////////////////////
 
 // FIXME: This needs to be moved to somewhere else, later on
 
@@ -150,6 +172,8 @@ ClassImp(AliAnalysisTaskNTGJ);
     _emcal_cell_position(NULL),                             \
     _emcal_cell_area(std::vector<double>()),                \
     _emcal_cell_incident(std::vector<std::set<size_t> >()), \
+    _load_intel_mklml(false),                               \
+    _libiomp5(NULL), _libmklml_gnu(NULL),                   \
     _keras_model_photon_discrimination(NULL),               \
     _alien_plugin(NULL),                                    \
     _metadata_filled(false)
@@ -589,6 +613,27 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         }
     }
 
+    if (_load_intel_mklml) {
+        if (_libiomp5 == NULL) {
+            _libiomp5 = dlopen("libiomp5_so", RTLD_NOW |
+                               RTLD_GLOBAL | RTLD_NODELETE);
+        }
+        _branch_debug_libmklml_gnu_error[0] = '\0';
+        if (_libmklml_gnu == NULL) {
+            _libmklml_gnu = dlopen("libmklml_gnu_so",
+                                   RTLD_NOW | RTLD_NODELETE);
+            if (_libmklml_gnu == NULL) {
+                snprintf(_branch_debug_libmklml_gnu_error, BUFSIZ,
+                         "%s:%d: %s\n", __FILE__, __LINE__,
+                         dlerror());
+                _branch_debug_libmklml_gnu_loaded = false;
+            }
+            else {
+                _branch_debug_libmklml_gnu_loaded = true;
+            }
+        }
+    }
+
     if (_keras_model_photon_discrimination == NULL) {
         _keras_model_photon_discrimination = new KerasModel;
         reinterpret_cast<KerasModel *>(
@@ -780,7 +825,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         for (Int_t i = 0;
              i < mc_truth_event->GetNumberOfTracks(); i++) {
             // Keep only primary final state particles
-            if (!mc_truth_event->IsPhysicalPrimary(i)) {
+            if (!final_state_primary(mc_truth_event, i)) {
                 continue;
             }
 
@@ -794,7 +839,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         for (Int_t i = 0;
              i < mc_truth_event->GetNumberOfTracks(); i++) {
             // Skip primaries
-            if (mc_truth_event->IsPhysicalPrimary(i)) {
+            if (final_state_primary(mc_truth_event, i)) {
                 continue;
             }
 
@@ -815,7 +860,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                       j < mc_truth_event->GetNumberOfTracks())) {
                     break;
                 }
-                if (mc_truth_event->IsPhysicalPrimary(j)) {
+                if (final_state_primary(mc_truth_event, j)) {
                     has_physical_primary_ancestor = true;
                     break;
                 }
@@ -1099,6 +1144,21 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                     mc_truth_event->GetTrack(*iterator));
 
             if (p == NULL) {
+                // Keep consistent indexing, though this should never
+                // happen
+                _branch_mc_truth_e[_branch_nmc_truth] = NAN;
+                _branch_mc_truth_pt[_branch_nmc_truth] = NAN;
+                _branch_mc_truth_eta[_branch_nmc_truth] = NAN;
+                _branch_mc_truth_phi[_branch_nmc_truth] = NAN;
+                _branch_mc_truth_charge[_branch_nmc_truth] =
+                    CHAR_MIN;
+                _branch_mc_truth_pdg_code[_branch_nmc_truth] =
+                    SHRT_MIN;
+                _branch_mc_truth_status[_branch_nmc_truth] =
+                    UCHAR_MAX;
+                _branch_mc_truth_generator_index[_branch_nmc_truth] =
+                    UCHAR_MAX;
+                _branch_nmc_truth++;
                 continue;
             }
 
@@ -1148,8 +1208,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                                   mc_truth_event->
                                   Particle(*iterator)->
                                   GetStatusCode()));
-            // _branch_mc_truth_physical_primary[_branch_nmc_truth] =
-            //     mc_truth_event->IsPhysicalPrimary(*iterator);
+            // _branch_mc_truth_final_state_primary[_branch_nmc_truth] =
+            //     final_state_primary(mc_truth_event, *iterator);
             // _branch_mc_truth_first_parent[_branch_nmc_truth] =
             //     p->Particle()->GetFirstMother();
             // _branch_mc_truth_first_child[_branch_nmc_truth] =
@@ -1526,7 +1586,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
             for (Int_t j = 0;
                  j < mc_truth_event->GetNumberOfTracks(); j++) {
-                if (mc_truth_event->IsPhysicalPrimary(j) &&
+                if (final_state_primary(mc_truth_event, j) &&
                     cluster_mc_truth_index.find(j) !=
                     cluster_mc_truth_index.end()) {
                     const AliMCParticle *t =

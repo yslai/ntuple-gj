@@ -8,7 +8,7 @@ root=root; exec $root -l -b -q "$0($(join_by \",\" \"$*\" | \
 #include <TROOT.h>
 #include <TSystem.h>
 
-void runNTGJ(const char *config_filename = "config.yaml",
+void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
              const char *run_mode = "test")
 {
     gROOT->ProcessLine(".include $ROOTSYS/include");
@@ -160,6 +160,11 @@ void runNTGJ(const char *config_filename = "config.yaml",
     }
     fclose(fp);
 
+	TString mklml_filename;
+
+	if (!gSystem->AccessPathName("libmklml_gnu_so")) {
+        mklml_filename = "libiomp5_so libmklml_gnu_so ";
+	}
     plugin->SetAdditionalLibs(
         "AliAnalysisTaskNTGJ.h "
         "AliAnalysisTaskNTGJ.cxx "
@@ -171,6 +176,7 @@ void runNTGJ(const char *config_filename = "config.yaml",
         "libCGAL.so libfastjet.so libsiscone.so "
         "libsiscone_spherical.so libfastjetplugins.so "
         "libfastjetcontribfragile.so " +
+		mklml_filename +
         emcal_correction_filename);
     plugin->SetAnalysisSource("AliAnalysisTaskNTGJ.cxx");
 

@@ -238,9 +238,11 @@ namespace {
 
         to_sm_nphi(sm_max, nphi_max, cell_id_max);
 
+#if 0
         if (!inside_edge(cell_id_max, 2)) {
             return std::vector<float>();
         }
+#endif
 
         TLorentzVector p;
 

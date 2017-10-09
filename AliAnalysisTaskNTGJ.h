@@ -76,6 +76,9 @@ private:
     BRANCH_ARRAY(eg_pdf_x, 2, F)                                    \
     BRANCH_ARRAY(eg_pdf_x_pdf, 2, F)                                \
     /* */                                                           \
+    BRANCH(debug_libmklml_gnu_loaded, O)                            \
+    BRANCH_STR(debug_libmklml_gnu_error)                            \
+    /* */                                                           \
     BRANCH(ncluster, i)                                             \
     BRANCH_ARRAY(cluster_e, ncluster, F)                            \
     BRANCH_ARRAY(cluster_pt, ncluster, F)                           \
@@ -356,7 +359,11 @@ private:
     std::vector<double> _emcal_cell_area; //!
     std::vector<std::set<size_t> > _emcal_cell_incident; //!
 
-    void *_keras_model_photon_discrimination;
+	bool _load_intel_mklml; //!
+	void *_libiomp5; //!
+	void *_libmklml_gnu; //!
+
+    void *_keras_model_photon_discrimination; //!
 
     AliAnalysisAlien *_alien_plugin; //!
     bool _metadata_filled; //!
