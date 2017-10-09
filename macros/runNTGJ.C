@@ -160,15 +160,16 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     }
     fclose(fp);
 
-	TString mklml_filename;
+    TString mklml_filename;
 
-	if (!gSystem->AccessPathName("libmklml_gnu_so")) {
+    if (!gSystem->AccessPathName("libmklml_gnu_so")) {
         mklml_filename = "libiomp5_so libmklml_gnu_so ";
-	}
+    }
     plugin->SetAdditionalLibs(
         "AliAnalysisTaskNTGJ.h "
         "AliAnalysisTaskNTGJ.cxx "
-        "special_function.h emcal.h isolation.h jet.h bad_channel.h "
+        "special_function.h mc_truth.h emcal.h isolation.h jet.h "
+        "bad_channel.h "
         "eLut.cpp eLut.h half.cpp halfExport.h halfFunction.h "
         "half.h halfLimits.h toFloat.h "
         "keras_model.h keras_model.cc "
@@ -176,7 +177,7 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         "libCGAL.so libfastjet.so libsiscone.so "
         "libsiscone_spherical.so libfastjetplugins.so "
         "libfastjetcontribfragile.so " +
-		mklml_filename +
+        mklml_filename +
         emcal_correction_filename);
     plugin->SetAnalysisSource("AliAnalysisTaskNTGJ.cxx");
 
