@@ -359,9 +359,9 @@ private:
     std::vector<double> _emcal_cell_area; //!
     std::vector<std::set<size_t> > _emcal_cell_incident; //!
 
-	bool _load_intel_mklml; //!
-	void *_libiomp5; //!
-	void *_libmklml_gnu; //!
+    bool _load_intel_mklml; //!
+    void *_libiomp5; //!
+    void *_libmklml_gnu; //!
 
     void *_keras_model_photon_discrimination; //!
 

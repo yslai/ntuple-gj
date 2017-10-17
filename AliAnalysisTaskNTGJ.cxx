@@ -1587,7 +1587,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             for (Int_t j = 0;
                  j < mc_truth_event->GetNumberOfTracks(); j++) {
                 if (final_state_primary(mc_truth_event, j) &&
-                    cluster_mc_truth_index.find(j) !=
+                    cluster_mc_truth_index.find(j) ==
                     cluster_mc_truth_index.end()) {
                     const AliMCParticle *t =
                         static_cast<AliMCParticle *>(
