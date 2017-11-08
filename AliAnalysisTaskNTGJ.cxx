@@ -1402,11 +1402,47 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
         // Needed for the isolation below
 
+        std::vector<std::pair<float, unsigned short> >
+            mc_truth_energy_index;
+
+        for (UInt_t j = 0; j < c->GetNLabels(); j++) {
+            const Int_t mc_truth_index = c->GetLabelAt(j);
+
+            if (mc_truth_index >= 0 &&
+                static_cast<size_t>(mc_truth_index) <
+                stored_mc_truth_index.size() &&
+                stored_mc_truth_index[mc_truth_index] !=
+                ULONG_MAX) {
+                const unsigned short u =
+                    SAFE_MC_TRUTH_INDEX_TO_USHRT(c->GetLabelAt(j));
+
+                mc_truth_energy_index.push_back(
+                    std::pair<float, unsigned short>(
+                        _branch_mc_truth_e[stored_mc_truth_index[
+                            mc_truth_index]],
+                        u));
+            }
+        }
+        std::sort(mc_truth_energy_index.begin(),
+                  mc_truth_energy_index.end());
+
+        size_t cluster_nmctruth_index = 0;
+
+        for (std::vector<std::pair<float, unsigned short> >::
+                 const_reverse_iterator iterator =
+                 mc_truth_energy_index.rbegin();
+             iterator != mc_truth_energy_index.rend(); iterator++) {
+            if (cluster_nmctruth_index >= CLUSTER_NMC_TRUTH_MAX) {
+                break;
+            }
+            _branch_cluster_mc_truth_index[_branch_ncluster]
+                [cluster_nmctruth_index] = iterator->second;
+            cluster_nmctruth_index++;
+        }
+
         std::set<Int_t> cluster_mc_truth_index;
 
-        for (UInt_t j = 0; j < std::min(32U, c->GetNLabels()); j++) {
-            _branch_cluster_mc_truth_index[_branch_ncluster][j] =
-                SAFE_MC_TRUTH_INDEX_TO_USHRT(c->GetLabelAt(j));
+        for (UInt_t j = 0; j < c->GetNLabels(); j++) {
             cluster_mc_truth_index.insert(c->GetLabelAt(j));
         }
 

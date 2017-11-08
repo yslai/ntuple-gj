@@ -25,6 +25,8 @@
 #define NMC_TRUTH_MAX       (1U << 17)
 #define NJET_MAX            (1U << 17)
 
+#define CLUSTER_NMC_TRUTH_MAX 32
+
 class AliAnalysisTaskNTGJ : public AliAnalysisTaskSE {
 private:
     TString _emcal_geometry_name; //!
@@ -91,7 +93,8 @@ private:
     BRANCH_ARRAY(cluster_e_max, ncluster, F)                        \
     BRANCH_ARRAY(cluster_e_cross, ncluster, F)                      \
     BRANCH_ARRAY(cluster_nmc_truth, ncluster, i)                    \
-    BRANCH_ARRAY2(cluster_mc_truth_index, ncluster, 32, s)          \
+    BRANCH_ARRAY2(cluster_mc_truth_index, ncluster,                 \
+                  CLUSTER_NMC_TRUTH_MAX, s)                         \
     BRANCH_ARRAY(cluster_iso_tpc_01, ncluster, F)                   \
     BRANCH_ARRAY(cluster_iso_tpc_02, ncluster, F)                   \
     BRANCH_ARRAY(cluster_iso_tpc_03, ncluster, F)                   \
