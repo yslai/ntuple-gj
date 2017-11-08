@@ -1220,6 +1220,35 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 std::min(static_cast<Short_t>(UCHAR_MAX),
                          std::max(static_cast<Short_t>(0),
                                   p->GetGeneratorIndex()));
+
+            if (p->Particle()->GetFirstMother() >= 0 &&
+                p->Particle()->GetFirstMother() <
+                mc_truth_event->GetNumberOfTracks()) {
+                const AliMCParticle *pp =
+                    static_cast<AliMCParticle *>(
+                        mc_truth_event->GetTrack(
+                            p->Particle()->GetFirstMother()));
+
+                _branch_mc_truth_first_parent_pdg_code
+                    [_branch_nmc_truth] = pp->PdgCode();
+                _branch_mc_truth_first_parent_e
+                    [_branch_nmc_truth] = half(pp->E());
+                _branch_mc_truth_first_parent_pt
+                    [_branch_nmc_truth] = half(pp->Pt());
+                _branch_mc_truth_first_parent_eta
+                    [_branch_nmc_truth] = half(pp->Eta());
+                _branch_mc_truth_first_parent_phi
+                    [_branch_nmc_truth] = half(pp->Phi());
+                _branch_mc_truth_sibling_index[_branch_nmc_truth] =
+                    *iterator ==
+                    pp->Particle()->GetFirstDaughter() ?
+                    pp->Particle()->GetLastDaughter() :
+                    *iterator ==
+                    pp->Particle()->GetLastDaughter() ?
+                    pp->Particle()->GetFirstDaughter() :
+                    USHRT_MAX;
+            }
+
             _branch_nmc_truth++;
             if (_branch_nmc_truth >= NMC_TRUTH_MAX) {
                 break;

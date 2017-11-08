@@ -167,6 +167,12 @@ private:
     /* BRANCH_ARRAY(mc_truth_first_parent, nmc_truth, I) */         \
     /* BRANCH_ARRAY(mc_truth_first_child, nmc_truth, I) */          \
     /* BRANCH_ARRAY(mc_truth_second_child, nmc_truth, I) */         \
+    BRANCH_ARRAY(mc_truth_first_parent_pdg_code, nmc_truth, S)      \
+    BRANCH_ARRAY(mc_truth_first_parent_e, nmc_truth, F)             \
+    BRANCH_ARRAY(mc_truth_first_parent_pt, nmc_truth, F)            \
+    BRANCH_ARRAY(mc_truth_first_parent_eta, nmc_truth, F)           \
+    BRANCH_ARRAY(mc_truth_first_parent_phi, nmc_truth, F)           \
+    BRANCH_ARRAY(mc_truth_sibling_index, nmc_truth, s)              \
     BRANCH(debug_njet_ue_estimation, i)                             \
     BRANCH_ARRAY(debug_jet_ue_estimation_pt_raw,                    \
                  debug_njet_ue_estimation, F)                       \
