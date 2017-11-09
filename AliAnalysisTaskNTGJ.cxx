@@ -1425,9 +1425,6 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
         _branch_cluster_nmc_truth[_branch_ncluster] =
             c->GetNLabels();
-        std::fill(_branch_cluster_mc_truth_index[_branch_ncluster],
-                  _branch_cluster_mc_truth_index[_branch_ncluster] + 32,
-                  USHRT_MAX);
 
         // Needed for the isolation below
 
@@ -1454,6 +1451,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         }
         std::sort(mc_truth_energy_index.begin(),
                   mc_truth_energy_index.end());
+        std::fill(_branch_cluster_mc_truth_index[_branch_ncluster],
+                  _branch_cluster_mc_truth_index[_branch_ncluster] +
+                  CLUSTER_NMC_TRUTH_MAX, USHRT_MAX);
 
         size_t cluster_nmctruth_index = 0;
 
