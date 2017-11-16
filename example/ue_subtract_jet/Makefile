@@ -3,6 +3,7 @@ CC =		$(CXX)
 CXXFLAGS =      -g -O -s -frounding-math
 CXXFLAGS +=     -Wextra -Wall -Werror -fPIC
 CXXFLAGS +=	-Wno-unused-variable -Wno-unused-parameter
+CXXFLAGS +=	-Wno-unused-function
 ifeq ($(findstring g++,$(CXX)),g++)
     CXXFLAGS += -no-canonical-prefixes -Wno-builtin-macro-redefined \
                 -D__DATE__="redacted" -D__TIMESTAMP__="redacted" \
@@ -21,8 +22,8 @@ LDLIBS =	$(shell root-config --libs)
 # Then, you also need a custom FastJet (which by default will not link
 # to CGAL)
 
-CGAL_ROOT =	/home/some_user/CGAL-4.6.3
-FASTJET_ROOT =	/home/some_user/fastjet-3.2.1
+#CGAL_ROOT =	/home/some_user/CGAL-4.6.3
+#FASTJET_ROOT =	/home/some_user/fastjet-3.2.1
 
 CXXFLAGS +=	-I$(CGAL_ROOT)/include \
 		-DCGAL_DISABLE_ROUNDING_MATH_CHECK
@@ -39,6 +40,8 @@ else
     CXXFLAGS +=	$(shell $(FASTJET_ROOT)/bin/fastjet-config --cxxflags)
     LDLIBS +=	$(shell $(FASTJET_ROOT)/bin/fastjet-config --libs)
 endif
+
+CXXFLAGS +=	-I$(BOOST_ROOT)/include
 
 CXXFLAGS +=     -I..
 

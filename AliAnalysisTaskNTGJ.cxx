@@ -356,7 +356,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             const AliESDRun *esd_run = esd_event->GetESDRun();
 
             if (esd_run != NULL) {
-                _branch_trigger_class.Delete();
+                // _branch_trigger_class.Delete();
                 for (size_t i = 0; i < NTRIGGER_CLASS_MAX; i++) {
                     new (_branch_trigger_class[i])
                         TObjString(esd_run->GetTriggerClass(i));
@@ -1440,7 +1440,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 stored_mc_truth_index[mc_truth_index] !=
                 ULONG_MAX) {
                 const unsigned short u =
-                    SAFE_MC_TRUTH_INDEX_TO_USHRT(c->GetLabelAt(j));
+                    SAFE_MC_TRUTH_INDEX_TO_USHRT(mc_truth_index);
 
                 mc_truth_energy_index.push_back(
                     std::pair<float, unsigned short>(

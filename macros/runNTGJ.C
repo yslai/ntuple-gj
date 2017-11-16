@@ -154,6 +154,9 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
                 }
             }
         }
+        else if (strcmp(key, "runPrefix") == 0) {
+            plugin->SetRunPrefix(value);
+        }
         else if (strcmp(key, "emcalCorrection") == 0) {
             emcal_correction_filename = value;
         }
