@@ -17,35 +17,6 @@ namespace {
 
 	typedef unsigned short index_t;
 
-	float angular_range_reduce(const float x)
-	{
-		static const float cody_waite_x_max = 1608.4954386F;
-		static const float two_pi_0 =  6.283203125F;
-		static const float two_pi_1 = -1.781759784e-5F;
-		static const float two_pi_2 = -2.22577267e-10F;
-		float ret;
-
-		if(x >= -cody_waite_x_max && x <= cody_waite_x_max) {
-			static const float inverse_two_pi = 0.1591549431F;
-
-			const float k = rintf(x * inverse_two_pi);
-			ret = ((x - (k * two_pi_0)) - k * two_pi_1) -
-				k * two_pi_2;
-		}
-		else {
-			double sin_x;
-			double cos_x;
-
-			sincos(x, &sin_x, &cos_x);
-			ret = (float)atan2(sin_x, cos_x);
-		}
-		if(ret == -(float)M_PI) {
-			ret = (float)M_PI;
-		}
-
-		return ret;
-	}
-
 	size_t nevent(const char *filename)
 	{
 		TFile *root_file = TFile::Open(filename);
@@ -84,7 +55,10 @@ namespace {
 			return std::vector<float>();
 		}
 
-		float vz;
+		double v[3];
+
+		hi_tree->SetBranchAddress("primary_vertex", v);
+
 		float centrality_v0m;
 
 		switch (nfeature) {
@@ -102,7 +76,7 @@ namespace {
 		for (size_t i = event_start; i < event_end; i++) {
 			hi_tree->GetEntry(i);
 
-			ret.push_back(vz);
+			ret.push_back(v[2]);
 			if (nfeature >= 2) {
 				ret.push_back(centrality_v0m);
 			}
@@ -118,26 +92,44 @@ namespace {
 	{
 		std::vector<float> s(n, 0);
 
-		for (size_t i = 0; i < u.size(); i += n) {
-			for (size_t j = 0; j < n; j++) {
-				s[j] += fabsf(u[i + j]);
+		for (size_t j = 0; j < n; j++) {
+			float s_j = 0;
+#ifdef _OPENMP
+#pragma omp parallel for shared(u) reduction(+: s_j)
+#endif // _OPENMP
+			for (size_t i = 0; i < u.size(); i += n) {
+				s_j += fabsf(u[i + j]);
 			}
+			s[j] = s_j;
 		}
-		for (size_t i = 0; i < v.size(); i += n) {
-			for (size_t j = 0; j < n; j++) {
-				s[j] += fabsf(v[i + j]);
+		for (size_t j = 0; j < n; j++) {
+			float s_j = 0;
+
+#ifdef _OPENMP
+#pragma omp parallel for shared(u) reduction(+: s_j)
+#endif // _OPENMP
+			for (size_t i = 0; i < v.size(); i += n) {
+				s_j += fabsf(v[i + j]);
 			}
+			s[j] += s_j;
 		}
 		for (size_t j = 0; j < n; j++) {
 			s[j] = (u.size() + v.size()) / s[j];
 
 			fprintf(stderr, "%s:%d: %lu %f\n", __FILE__, __LINE__, j, s[j]);
 		}
+
+#ifdef _OPENMP
+#pragma omp parallel for shared(u, s)
+#endif // _OPENMP
 		for (size_t i = 0; i < u.size(); i += n) {
 			for (size_t j = 0; j < n; j++) {
 				u[i + j] *= s[j];
 			}
 		}
+#ifdef _OPENMP
+#pragma omp parallel for shared(v, s)
+#endif // _OPENMP
 		for (size_t i = 0; i < v.size(); i += n) {
 			for (size_t j = 0; j < n; j++) {
 				v[i + j] *= s[j];
@@ -305,18 +297,14 @@ std::vector<index_t> gale_shapley(std::vector<std::list<index_t> > &mp,
 	return m_to_f_engaged;
 }
 
-void mix_gale_shapley(const char *filename_0 =
-					  "rx/lhc15o/001/AnalysisResults.root",
-					  const char *filename_1 =
-					  "rx/lhc15o/002/AnalysisResults.root",
-					  const int nfeature = 2,
-					  const int nduplicate = 2)
+void mix_gale_shapley(const char *filename_0, const char *filename_1,
+					  const int nfeature, const int nduplicate)
 {
 	const size_t nevent_0 = nevent(filename_0);
 	const size_t nevent_1 = nevent(filename_1);
 
-	//const size_t block_size_max = 2000;
-	const size_t block_size_max = 500;
+	const size_t block_size_max = 2000;
+	//const size_t block_size_max = 400;
 	const size_t nblock = std::min(nevent_0, nevent_1 * nduplicate) /
 		block_size_max + 1;
 
@@ -360,23 +348,12 @@ void mix_gale_shapley(const char *filename_0 =
 		for (size_t j = 0; j < m.size(); j++) {
 			const size_t k = m[j] % feature_1_size_nfeature;
 
-			fprintf(stderr, "%s:%d: %lu %lu %f %f %f %f %f %f %f %f "
-					"%f %f %f %f %f %f\n", __FILE__, __LINE__,
+			fprintf(stderr, "%s:%d: %lu %lu %f %f %f %f\n", __FILE__, __LINE__,
 					event_start_0 + j, event_start_1 + k,
 					feature_0[nfeature * j],
 					feature_1[nfeature * k],
 					feature_0[nfeature * j + 1],
-					feature_1[nfeature * k + 1],
-					feature_0[nfeature * j + 2],
-					feature_1[nfeature * k + 2],
-					feature_0[nfeature * j + 3],
-					feature_1[nfeature * k + 3],
-					feature_0[nfeature * j + 4],
-					feature_1[nfeature * k + 4],
-					feature_0[nfeature * j + 5],
-					feature_1[nfeature * k + 5],
-					feature_0[nfeature * j + 6],
-					feature_1[nfeature * k + 6]);
+					feature_1[nfeature * k + 1]);
 		}
 	}
 
