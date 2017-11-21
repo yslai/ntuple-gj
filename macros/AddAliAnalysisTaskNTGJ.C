@@ -17,6 +17,15 @@ AddAliAnalysisTaskNTGJ(TString name = "AliAnalysisTaskNTGJ")
 
 	AliMultSelectionTask *mult_selection_task = AddTaskMultSelection(kFALSE);
 
+	gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/"
+					 "AddTaskEmcalCorrectionTask.C");
+
+	AliEmcalCorrectionTask *correction_task = AddTaskEmcalCorrectionTask();
+
+	correction_task->
+		SetUserConfigurationFilename("emcal_correction.yaml");
+	correction_task->Initialize();
+
 	AliEMCALRecoUtils *reco_util = task->GetEMCALRecoUtils();
   
 	gROOT->LoadMacro("$ALICE_PHYSICS/PWGPP/EMCAL/macros/"
