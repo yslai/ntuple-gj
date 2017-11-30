@@ -262,6 +262,9 @@ namespace {
             feature(i) = sm == sm_max ?
                 cell->GetCellAmplitude(cell_id_5_5[i]) / p.E() :
                 0;
+            if (std::isnan(feature(i))) {
+                feature(i) = 0;
+            }
         }
         feature(25) = 1 / sqrt(p.E());
         feature(26) = p.Eta();
