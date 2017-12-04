@@ -1432,6 +1432,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
         std::vector<std::pair<float, unsigned short> >
             mc_truth_energy_index;
+        std::set<Int_t> cluster_mc_truth_index;
 
         for (UInt_t j = 0; j < c->GetNLabels(); j++) {
             const Int_t mc_truth_index = c->GetLabelAt(j);
@@ -1440,7 +1441,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 static_cast<size_t>(mc_truth_index) <
                 stored_mc_truth_index.size() &&
                 stored_mc_truth_index[mc_truth_index] !=
-                ULONG_MAX) {
+                ULONG_MAX &&
+                cluster_mc_truth_index.find(mc_truth_index) ==
+                cluster_mc_truth_index.end()) {
                 const unsigned short u =
                     SAFE_MC_TRUTH_INDEX_TO_USHRT(mc_truth_index);
 
@@ -1450,6 +1453,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                             mc_truth_index]],
                         u));
             }
+            cluster_mc_truth_index.insert(mc_truth_index);
         }
         std::sort(mc_truth_energy_index.begin(),
                   mc_truth_energy_index.end());
@@ -1469,12 +1473,6 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             _branch_cluster_mc_truth_index[_branch_ncluster]
                 [cluster_nmctruth_index] = iterator->second;
             cluster_nmctruth_index++;
-        }
-
-        std::set<Int_t> cluster_mc_truth_index;
-
-        for (UInt_t j = 0; j < c->GetNLabels(); j++) {
-            cluster_mc_truth_index.insert(c->GetLabelAt(j));
         }
 
         Int_t cell_id_max = -1;
