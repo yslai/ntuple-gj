@@ -1488,6 +1488,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         _branch_cluster_e_cross[_branch_ncluster] =
             half(energy_cross);
 
+        _branch_cluster_nlocal_maxima[_branch_ncluster] =
+            c->GetNExMax();
+
         if (esd_event != NULL) {
             double cluster_iso_tpc_01 = 0;
             double cluster_iso_tpc_02 = 0;
