@@ -108,6 +108,15 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     FILE *fp = fopen(config_filename, "r");
     char line[4096];
     TString emcal_correction_filename;
+	TString skim_cluster_min_e = "-1e+309";
+	TString skim_track_min_pt = "-1e+309";
+	TString skim_muon_track_min_pt = "-1e+309";
+	TString skim_jet_min_pt_1 = "-1e+309";
+	TString skim_jet_min_pt_2 = "-1e+309";
+	TString skim_jet_min_pt_3 = "-1e+309";
+	TString skim_multiplicity_tracklet_min_n = "-2147483648";
+	TString stored_track_min_pt = "-1e+309";
+	TString stored_jet_min_pt_raw = "-1e+309";
 
     while (fgets(line, 4096, fp) != NULL) {
         if (line[0] == '#') {
@@ -160,6 +169,33 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         else if (strcmp(key, "emcalCorrection") == 0) {
             emcal_correction_filename = value;
         }
+        else if (strcmp(key, "skimClusterMinE") == 0) {
+            skim_cluster_min_e = value;
+        }
+        else if (strcmp(key, "skimTrackMinPt") == 0) {
+            skim_track_min_pt = value;
+        }
+        else if (strcmp(key, "skimMuonTrackMinPt") == 0) {
+            skim_muon_track_min_pt = value;
+        }
+        else if (strcmp(key, "skimJetMinPt1") == 0) {
+            skim_jet_min_pt_1 = value;
+        }
+        else if (strcmp(key, "skimJetMinPt2") == 0) {
+            skim_jet_min_pt_2 = value;
+        }
+        else if (strcmp(key, "skimJetMinPt3") == 0) {
+            skim_jet_min_pt_3 = value;
+        }
+        else if (strcmp(key, "skimMultiplicityTrackletMinN") == 0) {
+            skim_multiplicity_tracklet_min_n = value;
+        }
+        else if (strcmp(key, "storedTrackMinPt") == 0) {
+            stored_track_min_pt = value;
+        }
+        else if (strcmp(key, "storedJetMinPtRaw") == 0) {
+            stored_jet_min_pt_raw = value;
+        }
     }
     fclose(fp);
 
@@ -203,7 +239,17 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
 
     plugin->SetRunMode(run_mode);
     mgr->SetGridHandler(plugin);
-    gROOT->Macro("macros/AddAliAnalysisTaskNTGJ.C");
+    gROOT->Macro(TString("macros/AddAliAnalysisTaskNTGJ.C"
+                         "(\"AliAnalysisTaskNTGJ\",\"") +
+                 emcal_correction_filename + "\"," +
+                 skim_cluster_min_e + "," +
+                 skim_track_min_pt + "," +
+                 skim_muon_track_min_pt + "," +
+                 skim_jet_min_pt_1 + "," + skim_jet_min_pt_2 + "," +
+                 skim_jet_min_pt_3 + "," +
+                 skim_multiplicity_tracklet_min_n + "," +
+                 stored_track_min_pt + "," +
+                 stored_jet_min_pt_raw + ")");
 
     if (mgr->InitAnalysis()) {
         mgr->StartAnalysis("grid");
