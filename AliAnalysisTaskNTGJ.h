@@ -126,6 +126,8 @@ private:
     BRANCH_ARRAY(track_pt, ntrack, F)                               \
     BRANCH_ARRAY(track_eta, ntrack, F)                              \
     BRANCH_ARRAY(track_phi, ntrack, F)                              \
+    BRANCH_ARRAY(track_eta_emcal, ntrack, F)                        \
+    BRANCH_ARRAY(track_phi_emcal, ntrack, F)                        \
     BRANCH_ARRAY(track_charge, ntrack, B)                           \
     BRANCH_ARRAY(track_quality, ntrack, b)                          \
     BRANCH_ARRAY(track_tpc_dedx, ntrack, F)                         \
