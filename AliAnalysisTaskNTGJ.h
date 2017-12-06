@@ -96,13 +96,21 @@ private:
     BRANCH_ARRAY(cluster_nmc_truth, ncluster, i)                    \
     BRANCH_ARRAY2(cluster_mc_truth_index, ncluster, 32, s)          \
     BRANCH_ARRAY(cluster_iso_tpc_01, ncluster, F)                   \
+    BRANCH_ARRAY(cluster_iso_tpc_01_ue, ncluster, F)                \
     BRANCH_ARRAY(cluster_iso_tpc_02, ncluster, F)                   \
+    BRANCH_ARRAY(cluster_iso_tpc_02_ue, ncluster, F)                \
     BRANCH_ARRAY(cluster_iso_tpc_03, ncluster, F)                   \
+    BRANCH_ARRAY(cluster_iso_tpc_03_ue, ncluster, F)                \
     BRANCH_ARRAY(cluster_iso_tpc_04, ncluster, F)                   \
+    BRANCH_ARRAY(cluster_iso_tpc_04_ue, ncluster, F)                \
     BRANCH_ARRAY(cluster_iso_its_01, ncluster, F)                   \
+    BRANCH_ARRAY(cluster_iso_its_01_ue, ncluster, F)                \
     BRANCH_ARRAY(cluster_iso_its_02, ncluster, F)                   \
+    BRANCH_ARRAY(cluster_iso_its_02_ue, ncluster, F)                \
     BRANCH_ARRAY(cluster_iso_its_03, ncluster, F)                   \
+    BRANCH_ARRAY(cluster_iso_its_03_ue, ncluster, F)                \
     BRANCH_ARRAY(cluster_iso_its_04, ncluster, F)                   \
+    BRANCH_ARRAY(cluster_iso_its_04_ue, ncluster, F)                \
     BRANCH_ARRAY(cluster_frixione_tpc_04_02, ncluster, F)           \
     BRANCH_ARRAY(cluster_frixione_tpc_04_05, ncluster, F)           \
     BRANCH_ARRAY(cluster_frixione_tpc_04_10, ncluster, F)           \
@@ -120,6 +128,7 @@ private:
     BRANCH_ARRAY2(cluster_s_ncharged_hadron, ncluster, 4, F)        \
     BRANCH_ARRAY(cell_e, 17664, F)                                  \
     BRANCH_ARRAY(cell_tof, 17664, F)                                \
+    BRANCH_ARRAY(cell_cluster_index, 17664, s)                      \
     BRANCH_ARRAY(cell_mc_truth_index, 17664, s)                     \
     /* */                                                           \
     BRANCH(ntrack, i)                                               \
