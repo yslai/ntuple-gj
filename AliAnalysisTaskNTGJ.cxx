@@ -1404,6 +1404,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         ue_estimate_its = ue_estimation_truncated_mean(
             cluster_sequence_ue_estimation_its, particle_reco_area_its);
 
+    std::fill(_branch_cell_cluster_index,
+              _branch_cell_cluster_index + EMCAL_NCELL, USHRT_MAX);
     _branch_ncluster = 0;
     for (Int_t i = 0; i < calo_cluster.GetEntriesFast(); i++) {
         AliVCluster *c =
@@ -1424,6 +1426,22 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             half(c->GetM20());
         _branch_cluster_tof[_branch_ncluster] = half(c->GetTOF());
         _branch_cluster_ncell[_branch_ncluster] = c->GetNCells();
+
+        const UShort_t *cell_index = c->GetCellsAbsId();
+
+        if (cell_index != NULL) {
+            for (Int_t j = 0; j < c->GetNCells(); j++) {
+                if (_branch_cell_cluster_index[cell_index[j]] ==
+                    USHRT_MAX) {
+                    _branch_cell_cluster_index[cell_index[j]] = i;
+                }
+                else {
+                    // USHRT_MAX - 1 if there is multiple association
+                    _branch_cell_cluster_index[cell_index[j]] =
+                        USHRT_MAX - 1;
+                }
+            }
+        }
 
         _branch_cluster_nmc_truth[_branch_ncluster] =
             c->GetNLabels();
@@ -1496,11 +1514,19 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             double cluster_iso_tpc_02 = 0;
             double cluster_iso_tpc_03 = 0;
             double cluster_iso_tpc_04 = 0;
+            double cluster_iso_tpc_01_ue = 0;
+            double cluster_iso_tpc_02_ue = 0;
+            double cluster_iso_tpc_03_ue = 0;
+            double cluster_iso_tpc_04_ue = 0;
 
             double cluster_iso_its_01 = 0;
             double cluster_iso_its_02 = 0;
             double cluster_iso_its_03 = 0;
             double cluster_iso_its_04 = 0;
+            double cluster_iso_its_01_ue = 0;
+            double cluster_iso_its_02_ue = 0;
+            double cluster_iso_its_03_ue = 0;
+            double cluster_iso_its_04_ue = 0;
 
             std::vector<std::pair<double, double> > delta_vs_iso_tpc;
             std::vector<std::pair<double, double> > delta_vs_iso_its;
@@ -1523,28 +1549,37 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                     const double dr_2 =
                         std::pow(dpseudorapidity, 2) +
                         std::pow(dazimuth, 2);
-                    const double track_pt_minus_ue =
+                    const double ue =
                         dr_2 < 0.4 * 0.4 ?
                         track_reco_index_tpc.find(j) !=
                         track_reco_index_tpc.end() ?
-                        t->Pt() -
                         evaluate_ue(ue_estimate_tpc, t->Eta(),
                                     t->Phi()) *
                         particle_reco_area_tpc
                         [track_reco_index_tpc[j]] :
                         0 : NAN;
+                    const double track_pt_minus_ue =
+                        dr_2 < 0.4 * 0.4 ?
+                        track_reco_index_tpc.find(j) !=
+                        track_reco_index_tpc.end() ?
+                        t->Pt() - ue :
+                        0 : NAN;
 
                     if (dr_2 < 0.1 * 0.1) {
                         cluster_iso_tpc_01 += track_pt_minus_ue;
+                        cluster_iso_tpc_01_ue += ue;
                     }
                     if (dr_2 < 0.2 * 0.2) {
                         cluster_iso_tpc_02 += track_pt_minus_ue;
+                        cluster_iso_tpc_02_ue += ue;
                     }
                     if (dr_2 < 0.3 * 0.3) {
                         cluster_iso_tpc_03 += track_pt_minus_ue;
+                        cluster_iso_tpc_03_ue += ue;
                     }
                     if (dr_2 < 0.4 * 0.4) {
                         cluster_iso_tpc_04 += track_pt_minus_ue;
+                        cluster_iso_tpc_04_ue += ue;
                         delta_vs_iso_tpc.push_back(
                             std::pair<double, double>(
                                 sqrt(dr_2), track_pt_minus_ue));
@@ -1558,28 +1593,37 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                     const double dr_2 =
                         std::pow(dpseudorapidity, 2) +
                         std::pow(dazimuth, 2);
-                    const double track_pt_minus_ue =
+                    const double ue =
                         dr_2 < 0.4 * 0.4 ?
                         track_reco_index_its.find(j) !=
                         track_reco_index_its.end() ?
-                        t->Pt() -
                         evaluate_ue(ue_estimate_its, t->Eta(),
                                     t->Phi()) *
                         particle_reco_area_its
                         [track_reco_index_its[j]] :
                         0 : NAN;
+                    const double track_pt_minus_ue =
+                        dr_2 < 0.4 * 0.4 ?
+                        track_reco_index_its.find(j) !=
+                        track_reco_index_its.end() ?
+                        t->Pt() - ue :
+                        0 : NAN;
 
                     if (dr_2 < 0.1 * 0.1) {
                         cluster_iso_its_01 += track_pt_minus_ue;
+                        cluster_iso_its_01_ue += ue;
                     }
                     if (dr_2 < 0.2 * 0.2) {
                         cluster_iso_its_02 += track_pt_minus_ue;
+                        cluster_iso_its_02_ue += ue;
                     }
                     if (dr_2 < 0.3 * 0.3) {
                         cluster_iso_its_03 += track_pt_minus_ue;
+                        cluster_iso_its_03_ue += ue;
                     }
                     if (dr_2 < 0.4 * 0.4) {
                         cluster_iso_its_04 += track_pt_minus_ue;
+                        cluster_iso_its_04_ue += ue;
                         delta_vs_iso_its.push_back(
                             std::pair<double, double>(
                                 sqrt(dr_2), track_pt_minus_ue));
@@ -1594,6 +1638,14 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 half(cluster_iso_tpc_03);
             _branch_cluster_iso_tpc_04[_branch_ncluster] =
                 half(cluster_iso_tpc_04);
+            _branch_cluster_iso_tpc_01_ue[_branch_ncluster] =
+                half(cluster_iso_tpc_01_ue);
+            _branch_cluster_iso_tpc_02_ue[_branch_ncluster] =
+                half(cluster_iso_tpc_02_ue);
+            _branch_cluster_iso_tpc_03_ue[_branch_ncluster] =
+                half(cluster_iso_tpc_03_ue);
+            _branch_cluster_iso_tpc_04_ue[_branch_ncluster] =
+                half(cluster_iso_tpc_04_ue);
 
             _branch_cluster_iso_its_01[_branch_ncluster] =
                 half(cluster_iso_its_01);
@@ -1603,6 +1655,14 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 half(cluster_iso_its_03);
             _branch_cluster_iso_its_04[_branch_ncluster] =
                 half(cluster_iso_its_04);
+            _branch_cluster_iso_its_01_ue[_branch_ncluster] =
+                half(cluster_iso_its_01_ue);
+            _branch_cluster_iso_its_02_ue[_branch_ncluster] =
+                half(cluster_iso_its_02_ue);
+            _branch_cluster_iso_its_03_ue[_branch_ncluster] =
+                half(cluster_iso_its_03_ue);
+            _branch_cluster_iso_its_04_ue[_branch_ncluster] =
+                half(cluster_iso_its_04_ue);
 
             _branch_cluster_frixione_tpc_04_02[_branch_ncluster] =
                 half(frixione_iso_max_x_e_eps(delta_vs_iso_tpc,
