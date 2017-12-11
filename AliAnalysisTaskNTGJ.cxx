@@ -386,6 +386,12 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     }
 
     _branch_run_number = event->GetRunNumber();
+    _branch_period_number = event->GetPeriodNumber();
+    _branch_orbit_number = event->GetOrbitNumber();
+    _branch_bunch_crossing_number = event->GetBunchCrossNumber();
+    _branch_time_stamp = esd_event != NULL ?
+        esd_event->GetTimeStamp() :
+        aod_event->GetTimeStamp();
     _branch_trigger_mask[0] = esd_event != NULL ?
         esd_event->GetTriggerMask() :
         aod_event->GetTriggerMask();
