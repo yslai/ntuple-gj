@@ -44,6 +44,10 @@ private:
     BRANCH(ntrigger_class, b)                                       \
     BRANCH_STR_ARRAY(trigger_class, ntrigger_class)                 \
     BRANCH(run_number, I)                                           \
+    BRANCH(period_number, i)                                        \
+    BRANCH(orbit_number, i)                                         \
+    BRANCH(bunch_crossing_number, s)                                \
+    BRANCH(time_stamp, i)                                           \
     /* */                                                           \
     BRANCH_ARRAY(trigger_mask, 2, l)                                \
     BRANCH_ARRAY(multiplicity_v0, 64, F)                            \
