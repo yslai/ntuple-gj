@@ -1,0 +1,9 @@
+gridWorkingDir:		workingdir
+gridOutputDir:		outputdir_17n
+aliROOTVersion:		v5-09-11-1
+aliPhysicsVersion:	v5-09-11-01-1
+gridDataDir:		/alice/data/2017/LHC17n
+dataPattern:		/muon_calo_pass2/*/AliESDs.root
+runPrefix:              000
+runNumber:		[280234,280235]
+emcalCorrection:	emcal_correction_17n.yaml
