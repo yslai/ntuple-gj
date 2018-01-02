@@ -340,51 +340,6 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
     alice_jec_t jec;
 
-    if (!_metadata_filled) {
-        // Use gitattributes ident mechanism to track the blob object
-        // name
-        strncpy(_branch_id_git, "$Id$", BUFSIZ);
-        _branch_id_git[BUFSIZ - 1] = '\0';
-        strncpy(_branch_version_jec, jec.version(), BUFSIZ);
-        _branch_version_jec[BUFSIZ - 1] = '\0';
-        if (esd_event != NULL) {
-            for (size_t i = 0; i < 2; i++) {
-                _branch_beam_particle[i] =
-                    esd_event->GetBeamParticle(i);
-            }
-
-            const AliESDRun *esd_run = esd_event->GetESDRun();
-
-            if (esd_run != NULL) {
-                // _branch_trigger_class.Delete();
-                for (size_t i = 0; i < NTRIGGER_CLASS_MAX; i++) {
-                    new (_branch_trigger_class[i])
-                        TObjString(esd_run->GetTriggerClass(i));
-                }
-            }
-        }
-        else if (aod_event != NULL) {
-            // FIXME: AOD not handled
-            std::fill(_branch_beam_particle,
-                      _branch_beam_particle + 2, 0);
-        }
-
-        _metadata_filled = true;
-    }
-    else {
-        // To make sure no space is wasted, set metadata in all
-        // subsequent events to empty
-        _branch_id_git[0] = '\0';
-        _branch_version_aliroot[0] = '\0';
-        _branch_version_aliphysics[0] = '\0';
-        _branch_version_jec[0] = '\0';
-        _branch_grid_data_dir[0] = '\0';
-        _branch_grid_data_pattern[0] = '\0';
-        std::fill(_branch_beam_particle,
-                  _branch_beam_particle + 2, 0);
-        _branch_trigger_class.Delete();
-    }
-
     _branch_run_number = event->GetRunNumber();
     _branch_period_number = event->GetPeriodNumber();
     _branch_orbit_number = event->GetOrbitNumber();
@@ -573,51 +528,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
              }
              _branch_has_misalignment_matrix = true;
         }
-
-        _emcal_cell_position = new std::vector<point_2d_t>();
-        for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
-            TVector3 v;
-
-            _emcal_geometry->GetGlobal(cell_id, v);
-            _branch_cell_eta[cell_id] = v.Eta();
-            _branch_cell_phi[cell_id] = v.Phi();
-            reinterpret_cast<std::vector<point_2d_t> *>
-                (_emcal_cell_position)->push_back(
-                    point_2d_t(v.Eta(), v.Phi()));
-        }
-
-        voronoi_area_incident(
-            _emcal_cell_area, _emcal_cell_incident,
-            *reinterpret_cast<std::vector<point_2d_t> *>
-            (_emcal_cell_position));
-
-        double sum_area_inside = 0;
-        size_t count_inside = 0;
-
-        for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
-            if (inside_edge(cell_id, 1)) {
-                sum_area_inside += _emcal_cell_area[cell_id];
-                count_inside++;
-            }
-        }
-
-        const double mean_area_inside = sum_area_inside / count_inside;
-
-        for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
-            if (!inside_edge(cell_id, 1)) {
-                _emcal_cell_area[cell_id] = mean_area_inside;
-            }
-            _branch_cell_voronoi_area[cell_id] =
-                _emcal_cell_area[cell_id];
-        }
     }
-    else {
-        for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
-            _branch_cell_eta[cell_id] = NAN;
-            _branch_cell_phi[cell_id] = NAN;
-            _branch_cell_voronoi_area[cell_id] = NAN;
-        }
-    }
+
 
     if (_load_intel_mklml) {
         if (_libiomp5 == NULL) {
@@ -816,6 +728,94 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         }
         if (!(cluster_e_max >= _skim_cluster_min_e)) {
             return;
+        }
+    }
+
+    if (!_metadata_filled) {
+        // Use gitattributes ident mechanism to track the blob object
+        // name
+        strncpy(_branch_id_git, "$Id$", BUFSIZ);
+        _branch_id_git[BUFSIZ - 1] = '\0';
+        strncpy(_branch_version_jec, jec.version(), BUFSIZ);
+        _branch_version_jec[BUFSIZ - 1] = '\0';
+        if (esd_event != NULL) {
+            for (size_t i = 0; i < 2; i++) {
+                _branch_beam_particle[i] =
+                    esd_event->GetBeamParticle(i);
+            }
+
+            const AliESDRun *esd_run = esd_event->GetESDRun();
+
+            if (esd_run != NULL) {
+                // _branch_trigger_class.Delete();
+                for (size_t i = 0; i < NTRIGGER_CLASS_MAX; i++) {
+                    new (_branch_trigger_class[i])
+                        TObjString(esd_run->GetTriggerClass(i));
+                }
+            }
+        }
+        else if (aod_event != NULL) {
+            // FIXME: AOD not handled
+            std::fill(_branch_beam_particle,
+                      _branch_beam_particle + 2, 0);
+        }
+
+        _emcal_cell_position = new std::vector<point_2d_t>();
+        for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
+            TVector3 v;
+
+            _emcal_geometry->GetGlobal(cell_id, v);
+            _branch_cell_eta[cell_id] = v.Eta();
+            _branch_cell_phi[cell_id] = v.Phi();
+            reinterpret_cast<std::vector<point_2d_t> *>
+                (_emcal_cell_position)->push_back(
+                    point_2d_t(v.Eta(), v.Phi()));
+        }
+
+        voronoi_area_incident(
+            _emcal_cell_area, _emcal_cell_incident,
+            *reinterpret_cast<std::vector<point_2d_t> *>
+            (_emcal_cell_position));
+
+        double sum_area_inside = 0;
+        size_t count_inside = 0;
+
+        for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
+            if (inside_edge(cell_id, 1)) {
+                sum_area_inside += _emcal_cell_area[cell_id];
+                count_inside++;
+            }
+        }
+
+        const double mean_area_inside = sum_area_inside / count_inside;
+
+        for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
+            if (!inside_edge(cell_id, 1)) {
+                _emcal_cell_area[cell_id] = mean_area_inside;
+            }
+            _branch_cell_voronoi_area[cell_id] =
+                _emcal_cell_area[cell_id];
+        }
+
+        _metadata_filled = true;
+    }
+    else {
+        // To make sure no space is wasted, set metadata in all
+        // subsequent events to empty
+        _branch_id_git[0] = '\0';
+        _branch_version_aliroot[0] = '\0';
+        _branch_version_aliphysics[0] = '\0';
+        _branch_version_jec[0] = '\0';
+        _branch_grid_data_dir[0] = '\0';
+        _branch_grid_data_pattern[0] = '\0';
+        std::fill(_branch_beam_particle,
+                  _branch_beam_particle + 2, 0);
+        _branch_trigger_class.Delete();
+
+        for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
+            _branch_cell_eta[cell_id] = NAN;
+            _branch_cell_phi[cell_id] = NAN;
+            _branch_cell_voronoi_area[cell_id] = NAN;
         }
     }
 
