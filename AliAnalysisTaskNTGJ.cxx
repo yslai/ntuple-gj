@@ -334,12 +334,12 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
     if (_emcal_mask.size() != EMCAL_NCELL) {
         _emcal_mask.resize(EMCAL_NCELL);
-#if 1 // Keep = 1 to for an actual EMCAL mask (and not all channels
+#if 0 // Keep = 1 to for an actual EMCAL mask (and not all channels
       // turned on)
         for (unsigned int i = 0; i < EMCAL_NCELL; i++) {
             _emcal_mask[i] = inside_edge(i, 1);
         }
-#include "bad_channel.h"
+// #include "bad_channel.h"
         for (unsigned int i = 0; bad_channel_emcal[i] != -1; i++) {
             if (inside_edge(bad_channel_emcal[i], 1)) {
                 unsigned int bad_cell_3_3[9];
