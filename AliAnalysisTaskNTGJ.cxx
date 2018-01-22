@@ -161,7 +161,7 @@ ClassImp(AliAnalysisTaskNTGJ);
     _emcal_geometry(NULL),                                  \
     _muon_track_cut(new AliMuonTrackCuts),                  \
     _ncell(EMCAL_NCELL),                                    \
-    _skim_cluster_min_e(-INFINITY),                         \
+    _skim_cluster_min_e(8.0),                         \
     _skim_track_min_pt(-INFINITY),                          \
     _skim_muon_track_min_pt(-INFINITY),                     \
     _skim_jet_min_pt(std::vector<double>(3, -INFINITY)),    \
