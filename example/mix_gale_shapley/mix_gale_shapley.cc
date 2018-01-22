@@ -9,6 +9,7 @@
 #include <TFile.h>
 #include <TTree.h>
 #include <TSystem.h>
+#include <iostream>
 
 //#define HI_TREE "hiEvtAnalyzer/HiTree"
 #define HI_TREE "AliAnalysisTaskNTGJ/_tree_event"
@@ -169,6 +170,7 @@ void order_preference(std::vector<std::list<index_t> > &up,
 
 			for (size_t k = 0; k < n; k++) {
 				d += std::pow(u[i * n + k] - v[j * n + k], 2);
+				if (d==0) d = 999999; //Avoid pairing identical events
 			}
 			l.push_back(std::pair<float, size_t>(d, j));
 		}
@@ -199,6 +201,7 @@ void order_preference(std::vector<std::list<index_t> > &up,
 
 			for (size_t k = 0; k < n; k++) {
 				d += std::pow(u[i * n + k] - v[j * n + k], 2);
+				if (d==0) d = 999999;
 			}
 			l.push_back(std::pair<float, index_t>(d, i));
 		}
@@ -308,6 +311,8 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 	const size_t nblock = std::min(nevent_0, nevent_1 * nduplicate) /
 		block_size_max + 1;
 
+	FILE * txtfile = fopen ("pairs.txt","w");
+	
 	for (size_t i = 0; i < nblock; i++) {
 		const size_t event_start_0 = i * nevent_0 / (nblock + 1);
 		const size_t event_end_0 = (i + 1) * nevent_0 / (nblock + 1);
@@ -345,6 +350,7 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 		const size_t feature_1_size_nfeature =
 			feature_1.size() / nfeature;
 
+
 		for (size_t j = 0; j < m.size(); j++) {
 			const size_t k = m[j] % feature_1_size_nfeature;
 
@@ -354,17 +360,20 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 					feature_1[nfeature * k],
 					feature_0[nfeature * j + 1],
 					feature_1[nfeature * k + 1]);
+			fprintf(txtfile, "%lu %lu\n", event_start_0 + j, event_start_1 + k);
 		}
 	}
 
+	fclose (txtfile);
 	gSystem->Exit(0);
 }
 
 int main(int argc, char *argv[])
 {
 	if (argc < 3) {
+	  fprintf(stderr,"%s\n","Failed. Argument Syntax is [Command] [File] [File]");
 		return EXIT_FAILURE;
 	}
-
+	fprintf(stderr,"%s\n","Arguments Read");
 	mix_gale_shapley(argv[1], argv[2], 2, 2);
 }
