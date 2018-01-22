@@ -284,14 +284,62 @@ void AliAnalysisTaskNTGJ::UserCreateOutputObjects(void)
 
 void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 {
+    if (_emcal_geometry == NULL) {
+        TGeoManager::Import(
+            "$ALICE_PHYSICS/OADB/EMCAL/geometry_2015.root");
+        _emcal_geometry =
+            AliEMCALGeometry::GetInstance(_emcal_geometry_name);
+
+        AliOADBContainer emcal_geometry_container("emcal");
+        emcal_geometry_container.InitFromFile(
+            "$ALICE_PHYSICS/OADB/EMCAL/EMCALlocal2master.root",
+            "AliEMCALgeo");
+        TObjArray *geometry_matrix = dynamic_cast<TObjArray *>(
+            emcal_geometry_container.GetObject(
+                _branch_run_number, "EmcalMatrices"));
+        if (geometry_matrix != NULL) {
+            const Int_t nsm = _emcal_geometry->GetEMCGeometry()->
+                GetNumberOfSuperModules();
+
+            for (Int_t sm = 0; sm < nsm; sm++) {
+                _emcal_geometry->SetMisalMatrix(
+                    dynamic_cast<TGeoHMatrix *>(
+                        geometry_matrix->At(sm)),
+                    sm);
+             }
+             _branch_has_misalignment_matrix = true;
+        }
+    }
+
+    if (_load_intel_mklml) {
+        if (_libiomp5 == NULL) {
+            _libiomp5 = dlopen("libiomp5_so", RTLD_NOW |
+                               RTLD_GLOBAL | RTLD_NODELETE);
+        }
+        _branch_debug_libmklml_gnu_error[0] = '\0';
+        if (_libmklml_gnu == NULL) {
+            _libmklml_gnu = dlopen("libmklml_gnu_so",
+                                   RTLD_NOW | RTLD_NODELETE);
+            if (_libmklml_gnu == NULL) {
+                snprintf(_branch_debug_libmklml_gnu_error, BUFSIZ,
+                         "%s:%d: %s\n", __FILE__, __LINE__,
+                         dlerror());
+                _branch_debug_libmklml_gnu_loaded = false;
+            }
+            else {
+                _branch_debug_libmklml_gnu_loaded = true;
+            }
+        }
+    }
+
     if (_emcal_mask.size() != EMCAL_NCELL) {
         _emcal_mask.resize(EMCAL_NCELL);
-#if 1 // Keep = 1 to for an actual EMCAL mask (and not all channels
+#if 0 // Keep = 1 to for an actual EMCAL mask (and not all channels
       // turned on)
         for (unsigned int i = 0; i < EMCAL_NCELL; i++) {
             _emcal_mask[i] = inside_edge(i, 1);
         }
-#include "bad_channel.h"
+// #include "bad_channel.h"
         for (unsigned int i = 0; bad_channel_emcal[i] != -1; i++) {
             if (inside_edge(bad_channel_emcal[i], 1)) {
                 unsigned int bad_cell_3_3[9];
@@ -500,55 +548,6 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                     event, 10, i,
                     _branch_event_plane_q_v0[i - 1][0],
                     _branch_event_plane_q_v0[i - 1][1]);
-        }
-    }
-
-    if (_emcal_geometry == NULL) {
-        TGeoManager::Import(
-            "$ALICE_PHYSICS/OADB/EMCAL/geometry_2015.root");
-        _emcal_geometry =
-            AliEMCALGeometry::GetInstance(_emcal_geometry_name);
-
-        AliOADBContainer emcal_geometry_container("emcal");
-        emcal_geometry_container.InitFromFile(
-            "$ALICE_PHYSICS/OADB/EMCAL/EMCALlocal2master.root",
-            "AliEMCALgeo");
-        TObjArray *geometry_matrix = dynamic_cast<TObjArray *>(
-            emcal_geometry_container.GetObject(
-                _branch_run_number, "EmcalMatrices"));
-        if (geometry_matrix != NULL) {
-            const Int_t nsm = _emcal_geometry->GetEMCGeometry()->
-                GetNumberOfSuperModules();
-
-            for (Int_t sm = 0; sm < nsm; sm++) {
-                _emcal_geometry->SetMisalMatrix(
-                    dynamic_cast<TGeoHMatrix *>(
-                        geometry_matrix->At(sm)),
-                    sm);
-             }
-             _branch_has_misalignment_matrix = true;
-        }
-    }
-
-
-    if (_load_intel_mklml) {
-        if (_libiomp5 == NULL) {
-            _libiomp5 = dlopen("libiomp5_so", RTLD_NOW |
-                               RTLD_GLOBAL | RTLD_NODELETE);
-        }
-        _branch_debug_libmklml_gnu_error[0] = '\0';
-        if (_libmklml_gnu == NULL) {
-            _libmklml_gnu = dlopen("libmklml_gnu_so",
-                                   RTLD_NOW | RTLD_NODELETE);
-            if (_libmklml_gnu == NULL) {
-                snprintf(_branch_debug_libmklml_gnu_error, BUFSIZ,
-                         "%s:%d: %s\n", __FILE__, __LINE__,
-                         dlerror());
-                _branch_debug_libmklml_gnu_loaded = false;
-            }
-            else {
-                _branch_debug_libmklml_gnu_loaded = true;
-            }
         }
     }
 
