@@ -1,4 +1,4 @@
-pass: pass4
+pass: pass1_CENT_woSDD
 inputObjects:
     cells:
         defaultCells:
@@ -32,19 +32,9 @@ Clusterizer:
     enabled: true
     createHistos: false
     clusterizer: kClusterizerv1
-    recalDistToBadChannels: true
-    cellE: 0.1
-    seedE: 0.5
+    cellE: 0.05
+    seedE: 0.1
     cellTimeMin: -1
     cellTimeMax: +1
     clusterTimeLength: 1
     w0: 4.5
-
-ClusterTrackMatcher:
-    enabled: true
-    createHistos: false
-    maxDist: 0.1
-    useDCA: true
-    usePIDmass: true
-    trackContainersNames:
-        - defaultTrackContainer

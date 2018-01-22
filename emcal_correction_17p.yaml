@@ -1,4 +1,4 @@
-pass: pass4
+pass: pass1_CENT_woSDD
 inputObjects:
     cells:
         defaultCells:
@@ -26,7 +26,7 @@ CellBadChannel:
     enabled: true
     createHistos: false
 CellTimeCalib:
-    enabled: true
+    enabled: false
     createHistos: false
 Clusterizer:
     enabled: true
@@ -41,7 +41,7 @@ Clusterizer:
     w0: 4.5
 
 ClusterTrackMatcher:
-    enabled: true
+    enabled: false
     createHistos: false
     maxDist: 0.1
     useDCA: true

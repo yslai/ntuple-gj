@@ -1,4 +1,4 @@
-pass: pass4
+pass: pass1_CENT_woSDD
 inputObjects:
     cells:
         defaultCells:
@@ -31,7 +31,7 @@ CellTimeCalib:
 Clusterizer:
     enabled: true
     createHistos: false
-    clusterizer: kClusterizerv1
+    clusterizer: kClusterizerv2
     recalDistToBadChannels: true
     cellE: 0.1
     seedE: 0.5
