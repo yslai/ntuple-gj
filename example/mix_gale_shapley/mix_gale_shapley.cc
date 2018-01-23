@@ -170,8 +170,8 @@ void order_preference(std::vector<std::list<index_t> > &up,
 
 			for (size_t k = 0; k < n; k++) {
 				d += std::pow(u[i * n + k] - v[j * n + k], 2);
-				if (d==0) d = 999999; //Avoid pairing identical events
 			}
+			if (d==0) d = 999999; //Avoid pairing identical events
 			l.push_back(std::pair<float, size_t>(d, j));
 		}
 		std::sort(l.begin(), l.end(), preference_compare);
@@ -201,8 +201,8 @@ void order_preference(std::vector<std::list<index_t> > &up,
 
 			for (size_t k = 0; k < n; k++) {
 				d += std::pow(u[i * n + k] - v[j * n + k], 2);
-				if (d==0) d = 999999;
 			}
+			if (d==0) d = 999999;
 			l.push_back(std::pair<float, index_t>(d, i));
 		}
 		std::sort(l.begin(), l.end(), preference_compare);
@@ -303,6 +303,7 @@ std::vector<index_t> gale_shapley(std::vector<std::list<index_t> > &mp,
 void mix_gale_shapley(const char *filename_0, const char *filename_1,
 					  const int nfeature, const int nduplicate)
 {
+
 	const size_t nevent_0 = nevent(filename_0);
 	const size_t nevent_1 = nevent(filename_1);
 
@@ -311,11 +312,41 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 	const size_t nblock = std::min(nevent_0, nevent_1 * nduplicate) /
 		block_size_max + 1;
 
+	size_t lmin,rmax; //block ranges
+	size_t lmax =0;
+	size_t rmin = 0; 
+	size_t w = 5; 
+
 	FILE * txtfile = fopen ("pairs.txt","w");
-	
-	for (size_t i = 0; i < nblock; i++) {
-		const size_t event_start_0 = i * nevent_0 / (nblock + 1);
-		const size_t event_end_0 = (i + 1) * nevent_0 / (nblock + 1);
+
+	for(size_t h = 0; h < nblock; h++){
+	  fprintf(stderr,"%lu\n",nblock);
+	  fprintf(stderr,"%lu\n",nevent_0);
+
+	  lmin = h-w;  	 
+	  rmax = h+w+1;
+
+	  if (h + w < 2*w) {
+	  lmin = 0; 
+	  lmax = h+1+w;
+	  rmin = nblock-w+h+1;
+	  rmax = nblock;
+	  }
+
+	  if (h+w > nblock) {
+	    lmin = 0;
+	    lmax = w-nblock+h+1;
+	    rmin = h-w;
+	    rmax = nblock;
+	  }
+
+	  for (size_t i = lmin; i < rmax; i++) {
+	    
+	  if (i==h) continue;
+	  if ((i > lmax) && (i < rmin)) continue;
+
+ 	        const size_t event_start_0 = h * nevent_0 / (nblock + 1); //mix block h with several i
+	        const size_t event_end_0 = (h + 1) * nevent_0 / (nblock + 1);
 
 		std::vector<float> feature_0 =
 			feature_extract(filename_0, event_start_0, event_end_0,
@@ -362,8 +393,8 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 					feature_1[nfeature * k + 1]);
 			fprintf(txtfile, "%lu %lu\n", event_start_0 + j, event_start_1 + k);
 		}
+	  }
 	}
-
 	fclose (txtfile);
 	gSystem->Exit(0);
 }
@@ -375,5 +406,5 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 	fprintf(stderr,"%s\n","Arguments Read");
-	mix_gale_shapley(argv[1], argv[2], 2, 2);
+	mix_gale_shapley(argv[1], argv[2], 2, 1);
 }
