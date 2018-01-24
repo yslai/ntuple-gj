@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cmath>
 #include <sys/time.h>
+#include <cfloat>
 
 #include <vector>
 #include <list>
@@ -22,16 +23,27 @@ namespace {
 		TFile *root_file = TFile::Open(filename);
 
 		if (root_file == NULL) {
+			fprintf(stderr, "%s:%d: error: ROOT file `%s' is "
+					"empty\n", __FILE__, __LINE__, filename);
 			return 0;
 		}
 
 		TTree *hi_tree = dynamic_cast<TTree *>(root_file->Get(HI_TREE));
 
 		if (hi_tree == NULL) {
+			fprintf(stderr, "%s:%d: error: ROOT file `%s' does not "
+					"contain TTree `%s'\n", __FILE__, __LINE__,
+					filename, HI_TREE);
 			return 0;
 		}
 
 		const size_t ret = hi_tree->GetEntries();
+
+		if (ret == 0) {
+			fprintf(stderr, "%s:%d: warning: TTree `%s' has %lu "
+					"entries\n", __FILE__, __LINE__, HI_TREE, ret);
+			return 0;
+		}
 
 		root_file->Close();
 
