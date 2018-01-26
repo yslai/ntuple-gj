@@ -10,6 +10,8 @@
 #include <TTree.h>
 #include <TSystem.h>
 #include <iostream>
+#define N_MIX_MAX (1U << 5)
+using namespace std;
 
 //#define HI_TREE "hiEvtAnalyzer/HiTree"
 #define HI_TREE "AliAnalysisTaskNTGJ/_tree_event"
@@ -23,6 +25,7 @@ namespace {
 		TFile *root_file = TFile::Open(filename);
 
 		if (root_file == NULL) {
+		  fprintf(stderr,"%s\n","Failed to open root file");
 			return 0;
 		}
 
@@ -235,6 +238,7 @@ std::vector<index_t> gale_shapley(std::vector<std::list<index_t> > &mp,
 	std::vector<std::vector<std::pair<
 		std::vector<std::list<index_t> >::iterator,
 								std::list<index_t>::iterator> > >
+
 	mp_index;
 
 	mp_index.resize(fp.size());
@@ -249,11 +253,12 @@ std::vector<index_t> gale_shapley(std::vector<std::list<index_t> > &mp,
 				std::pair<std::vector<std::list<index_t> >::iterator,
 				std::list<index_t>::iterator>(
 					iterator_outer, iterator_inner));
+			
 		}
 
 		if ((iterator_outer - mp.begin()) % 100 == 0) {
-			fprintf(stderr, "%s:%d: %lu/%lu\n", __FILE__, __LINE__,
-					iterator_outer - mp.begin(), mp.size());
+		  fprintf(stderr, "%s:%d: %lu/%lu\n", __FILE__, __LINE__,
+			  iterator_outer - mp.begin(), mp.size());
 		}
 	}
 
@@ -296,76 +301,86 @@ std::vector<index_t> gale_shapley(std::vector<std::list<index_t> > &mp,
 		}
 		fp[w].erase(s, fp[w].end());
 	}
-
 	return m_to_f_engaged;
 }
 
 void mix_gale_shapley(const char *filename_0, const char *filename_1,
 					  const int nfeature, const int nduplicate)
 {
-
 	const size_t nevent_0 = nevent(filename_0);
 	const size_t nevent_1 = nevent(filename_1);
 
 	const size_t block_size_max = 2000;
 	//const size_t block_size_max = 400;
-	const size_t nblock = std::min(nevent_0, nevent_1 * nduplicate) /
+	const size_t nblocks = std::min(nevent_0, nevent_1 * nduplicate) /
 		block_size_max + 1;
+	const size_t nblock = nblocks - 1;// FIXME:skipping last block for now
 
-	size_t lmin,rmax; //block ranges
-	size_t lmax =0;
-	size_t rmin = 0; 
-	size_t w = 5; 
+	size_t lmin,rmax,lmax,rmin; //block ranges
+	size_t width = 5; 
 
-	FILE * txtfile = fopen ("pairs.txt","w");
+	std::vector<std::vector<Long64_t> > Matches;
 
-	for(size_t h = 0; h < nblock; h++){
-	  fprintf(stderr,"%lu\n",nblock);
-	  fprintf(stderr,"%lu\n",nevent_0);
+	//for(size_t h = 0; h < nblock+1; h++){
+	  for(size_t h = 0; h < 1; h++){
+	  const size_t event_start_0 = h * nevent_0 / (nblock + 1); 
+	  const size_t event_end_0 = (h + 1) * nevent_0 / (nblock + 1);
+	  const size_t nevents_0 = event_end_0 - event_start_0;	  
 
-	  lmin = h-w;  	 
-	  rmax = h+w+1;
+	  std::vector<std::vector<Long64_t> > k;		  
 
-	  if (h + w < 2*w) {
+	  std::vector<float> feature_0 =
+		  feature_extract(filename_0, event_start_0, event_end_0,
+							nfeature);
+
+	  fprintf(stderr,"%s %lu %s %lu\n","Block",h,"of",nblock);
+
+	  if (h + width < 2*width) {
 	  lmin = 0; 
-	  lmax = h+1+w;
-	  rmin = nblock-w+h+1;
-	  rmax = nblock;
+	  lmax = h+width;
+	  rmin = nblock-width+h+1;
+	  rmax = nblock+1;
+	  if (h==nblock) lmax = h+width+1;
 	  }
 
-	  if (h+w > nblock) {
+	  else if (h+width > nblock) {
 	    lmin = 0;
-	    lmax = w-nblock+h+1;
-	    rmin = h-w;
-	    rmax = nblock;
+	    lmax = width-nblock+h-1;
+	    rmin = h-width;
+	    rmax = nblock+1;
+	  }
+
+	  else {
+	  lmin = h-width;  	 
+	  rmax = h+width+1;
+	  lmax = h-1;
+	  rmin = h+1;
 	  }
 
 	  for (size_t i = lmin; i < rmax; i++) {
 	    
-	  if (i==h) continue;
-	  if ((i > lmax) && (i < rmin)) continue;
+	    if (i==h) continue;
+	    if ((i > lmax) && (i < rmin)) continue;
 
- 	        const size_t event_start_0 = h * nevent_0 / (nblock + 1); //mix block h with several i
-	        const size_t event_end_0 = (h + 1) * nevent_0 / (nblock + 1);
-
-		std::vector<float> feature_0 =
-			feature_extract(filename_0, event_start_0, event_end_0,
-							nfeature);
-
-		const size_t event_start_1 = i * nevent_1 / (nblock + 1);
-		const size_t event_end_1 = (i + nduplicate) * nevent_1 /
+	    size_t event_start_1 = i * nevent_1 / (nblock+1);
+	    size_t event_end_1 = (i + nduplicate) * nevent_1 /
 			(nblock + nduplicate);
+		
+		const size_t nevents_1 = event_end_1 - event_start_1;
+		cout<<nevents_0<<" "<<nevents_1<<endl;
+		if(nevents_1<nevents_0) event_end_1 += (nevents_0-nevents_1);
+		//FIXME:This may have event "mix" with itself. Also will break if last block is used
 
 		std::vector<float> feature_1 =
 			feature_extract(filename_1, event_start_1, event_end_1,
 							nfeature);
 
-		std::vector<index_t> m;
-
 		{
 			std::vector<float> feature_0_scaled = feature_0;
 			std::vector<float> feature_1_scaled = feature_1;
-
+			
+			cout<<feature_0_scaled.size()<<endl;
+			cout<<feature_1_scaled.size()<<endl;
 			feature_normalize(feature_0_scaled, feature_1_scaled,
 							  nfeature);
 
@@ -375,36 +390,85 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 			order_preference(preference_0, preference_1,
 							 feature_0_scaled, feature_1_scaled,
 							 nfeature, nduplicate);
+
+			std::vector <index_t> m;
 			m = gale_shapley(preference_0, preference_1);
+
+			const size_t feature_1_size_nfeature =
+			  feature_1.size() / nfeature;
+
+			std::vector <Long64_t>tempflat;
+
+			for (size_t j = 0; j < m.size(); j++) {                                        
+			  Long64_t q = event_start_1 + (m[j] % feature_1_size_nfeature);
+			  tempflat.push_back(q);
+			}
+			
+			k.push_back(tempflat);
 		}
-
-		const size_t feature_1_size_nfeature =
-			feature_1.size() / nfeature;
-
-
-		for (size_t j = 0; j < m.size(); j++) {
-			const size_t k = m[j] % feature_1_size_nfeature;
-
-			fprintf(stderr, "%s:%d: %lu %lu %f %f %f %f\n", __FILE__, __LINE__,
-					event_start_0 + j, event_start_1 + k,
-					feature_0[nfeature * j],
-					feature_1[nfeature * k],
-					feature_0[nfeature * j + 1],
-					feature_1[nfeature * k + 1]);
-			fprintf(txtfile, "%lu %lu\n", event_start_0 + j, event_start_1 + k);
-		}
+	  } //i
+	  for (size_t j = 0; j < k[0].size(); j++){ //FIXME: careful with size_t as index, check later event#
+	    std::vector <Long64_t> P;
+	    P.push_back(event_start_0+j);
+	    for (size_t l = 0; l < k.size(); l++){
+	      P.push_back(k[l][j]); //transpose k
+	    }
+	    Matches.push_back(P);
 	  }
-	}
-	fclose (txtfile);
-	gSystem->Exit(0);
+	  
+	}//h
+
+	  // //write to txt
+	  // FILE * txtfile = fopen ("pairs.txt","w");
+	  // for (size_t t=0; t<Matches.size();t++){
+	  //   for (size_t s=0; s<Matches[t].size();s++){
+	  //     fprintf(txtfile, "%lld ", Matches[t][s]);
+	  //   }
+	  //   fprintf(txtfile, "%s\n","");
+	  // }
+	  // fclose (txtfile);
+	  
+	  //write to TTree
+	  if (strcmp(filename_0,filename_1) == 0){
+
+	    const int n_mix_events = 2*width;	    
+	    Long64_t Mix_Events[N_MIX_MAX];
+	    //	    Float_t cluster_NN1[NTRACK_MAX];
+
+	    TFile *file = TFile::Open(filename_0);
+
+	    TTree *_tree_event = dynamic_cast<TTree *>
+	      (dynamic_cast<TDirectoryFile *>
+	       (file->Get("AliAnalysisTaskNTGJ"))->Get("_tree_event"));
+	    
+	    if (_tree_event == NULL) {
+	      std::cout << " fail " << std::endl;
+	      exit(EXIT_FAILURE);
+	    }
+	    fprintf(stderr, "%s:%d\n", __FILE__, __LINE__);	    
+	    _tree_event->Branch("Mix_Events", Mix_Events, "Mix_Events[n_mix_events]/L");
+	    //_tree_event->Branch("cluster_NN1", cluster_NN1, "cluster_NN1[ncluster]/F");
+	    fprintf(stderr, "%s:%d\n", __FILE__, __LINE__);	    
+
+	    for (size_t t=0; t<Matches.size();t++){
+	      _tree_event->GetEntry(Matches[t][0]);
+	      
+	      for (size_t s=1; s<Matches[t].size();s++){
+	      Mix_Events[s]=Matches[t][s]; 
+	      }
+	    }
+	    
+	  }
+	  else fprintf(stderr, "%s\n","Nothing written to root files.");
+
+        gSystem->Exit(0);
 }
 
 int main(int argc, char *argv[])
 {
 	if (argc < 3) {
-	  fprintf(stderr,"%s\n","Failed. Argument Syntax is [Command] [File] [File]");
+	  fprintf(stderr,"%s\n","Argument Syntax is [Command] [File] [File]");
 		return EXIT_FAILURE;
 	}
-	fprintf(stderr,"%s\n","Arguments Read");
 	mix_gale_shapley(argv[1], argv[2], 2, 1);
 }
