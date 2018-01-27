@@ -23,7 +23,6 @@ namespace {
 		TFile *root_file = TFile::Open(filename);
 
 		if (root_file == NULL) {
-		  fprintf(stderr,"%s\n","Failed to open root file");
 			return 0;
 		}
 
@@ -319,7 +318,7 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 
 	std::vector<std::vector<Long64_t> > Matches;
 
-	  for(size_t h = 0; h < 1; h++){
+	  for(size_t h = 0; h < nblock+1; h++){
 	    
 	    const size_t event_start_0 = h * nevent_0 / (nblock + 1); 
 	    const size_t event_end_0 = (h + 1) * nevent_0 / (nblock + 1);
@@ -413,15 +412,15 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 
 	}//h
 
-	  //write to txt
-	  // FILE * txtfile = fopen ("pairs.txt","w");
-	  // for (size_t t=0; t<Matches.size();t++){
-	  //   for (size_t s=1; s<Matches[t].size();s++){
-	  //     fprintf(txtfile, "%lld ", Matches[t][s]);
-	  //   }
-	  //   fprintf(txtfile, "%s\n","");
-	  // }
-	  // fclose (txtfile);
+	  //	  write to txt
+	  FILE * txtfile = fopen ("pairs.txt","w");
+	  for (size_t t=0; t<Matches.size();t++){
+	    for (size_t s=1; s<Matches[t].size();s++){
+	      fprintf(txtfile, "%lld ", Matches[t][s]);
+	    }
+	    fprintf(txtfile, "%s\n","");
+	  }
+	  fclose (txtfile);
 	  
 	  //	  write to TTree
 	  if (strcmp(filename_0,filename_1) == 0){
@@ -440,8 +439,8 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 	    for (size_t t=0; t<Matches.size();t++){
 	      hi_tree->GetEntry(Matches[t][0]);	      
 	      for (size_t s=1; s<(Matches[t]).size();s++){
-		Mix_Events[s]=Matches[t][s]; 
-		std::cout<<Mix_Events[s]<<std::endl;
+		Mix_Events[s-1]=Matches[t][s]; 
+		fprintf(stderr, "%s:%d: %lld\n", __FILE__, __LINE__,Mix_Events[s-1]);
 	      }
 	      std::cout<<std::endl;
 	      hi_tree->Fill();	      
