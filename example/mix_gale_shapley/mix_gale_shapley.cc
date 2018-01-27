@@ -10,8 +10,6 @@
 #include <TTree.h>
 #include <TSystem.h>
 #include <iostream>
-#define N_MIX_MAX (1U << 5)
-using namespace std;
 
 //#define HI_TREE "hiEvtAnalyzer/HiTree"
 #define HI_TREE "AliAnalysisTaskNTGJ/_tree_event"
@@ -311,66 +309,65 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 	const size_t nevent_1 = nevent(filename_1);
 
 	const size_t block_size_max = 2000;
-	//const size_t block_size_max = 400;
+
 	const size_t nblocks = std::min(nevent_0, nevent_1 * nduplicate) /
 		block_size_max + 1;
-	const size_t nblock = nblocks - 1;// FIXME:skipping last block for now
+	const size_t nblock = nblocks - 1; // FIXME:Use % and rounding to get all events 
 
-	size_t lmin,rmax,lmax,rmin; //block ranges
-	size_t width = 5; 
+	size_t lmin,rmax,lmax,rmin; 
+	size_t width = 5; //if changed, also must change when writing to Tree
 
 	std::vector<std::vector<Long64_t> > Matches;
 
-	//for(size_t h = 0; h < nblock+1; h++){
 	  for(size_t h = 0; h < 1; h++){
-	  const size_t event_start_0 = h * nevent_0 / (nblock + 1); 
-	  const size_t event_end_0 = (h + 1) * nevent_0 / (nblock + 1);
-	  const size_t nevents_0 = event_end_0 - event_start_0;	  
+	    
+	    const size_t event_start_0 = h * nevent_0 / (nblock + 1); 
+	    const size_t event_end_0 = (h + 1) * nevent_0 / (nblock + 1);
+	    const size_t nevents_0 = event_end_0 - event_start_0;	  
+	    
+	    std::vector<std::vector<Long64_t> > k;		  
+	  
+	    std::vector<float> feature_0 =
+	      feature_extract(filename_0, event_start_0, event_end_0,
+			      nfeature);
+	    
+	    fprintf(stderr,"%s %lu %s %lu\n","Block",h,"of",nblock);
+	    
+	    if (h + width < 2*width) {
+	      lmin = 0; 
+	      lmax = h+width;
+	      rmin = nblock-width+h+1;
+	      rmax = nblock+1;
+	      if (h==nblock) lmax = h+width+1;
+	    }
 
-	  std::vector<std::vector<Long64_t> > k;		  
-
-	  std::vector<float> feature_0 =
-		  feature_extract(filename_0, event_start_0, event_end_0,
-							nfeature);
-
-	  fprintf(stderr,"%s %lu %s %lu\n","Block",h,"of",nblock);
-
-	  if (h + width < 2*width) {
-	  lmin = 0; 
-	  lmax = h+width;
-	  rmin = nblock-width+h+1;
-	  rmax = nblock+1;
-	  if (h==nblock) lmax = h+width+1;
-	  }
-
-	  else if (h+width > nblock) {
+	    else if (h+width > nblock) {
 	    lmin = 0;
 	    lmax = width-nblock+h-1;
 	    rmin = h-width;
 	    rmax = nblock+1;
 	  }
 
-	  else {
-	  lmin = h-width;  	 
-	  rmax = h+width+1;
-	  lmax = h-1;
-	  rmin = h+1;
-	  }
-
-	  for (size_t i = lmin; i < rmax; i++) {
+	    else {
+	      lmin = h-width;  	 
+	      rmax = h+width+1;
+	      lmax = h-1;
+	      rmin = h+1;
+	    }
 	    
-	    if (i==h) continue;
-	    if ((i > lmax) && (i < rmin)) continue;
-
-	    size_t event_start_1 = i * nevent_1 / (nblock+1);
-	    size_t event_end_1 = (i + nduplicate) * nevent_1 /
-			(nblock + nduplicate);
-		
-		const size_t nevents_1 = event_end_1 - event_start_1;
-		cout<<nevents_0<<" "<<nevents_1<<endl;
-		if(nevents_1<nevents_0) event_end_1 += (nevents_0-nevents_1);
-		//FIXME:This may have event "mix" with itself. Also will break if last block is used
-
+	    for (size_t i = lmin; i < rmax; i++) {
+	      
+	      if (i==h) continue;
+	      if ((i > lmax) && (i < rmin)) continue;
+	      
+	      size_t event_start_1 = i * nevent_1 / (nblock+1);
+	      size_t event_end_1 = (i + nduplicate) * nevent_1 /
+		(nblock + nduplicate);
+	      
+	      const size_t nevents_1 = event_end_1 - event_start_1;
+	      if(nevents_1<nevents_0) event_end_1 += (nevents_0-nevents_1);
+	      //FIXME:small # events mix with themselves once. need conditional using last block
+	      
 		std::vector<float> feature_1 =
 			feature_extract(filename_1, event_start_1, event_end_1,
 							nfeature);
@@ -379,8 +376,6 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 			std::vector<float> feature_0_scaled = feature_0;
 			std::vector<float> feature_1_scaled = feature_1;
 			
-			cout<<feature_0_scaled.size()<<endl;
-			cout<<feature_1_scaled.size()<<endl;
 			feature_normalize(feature_0_scaled, feature_1_scaled,
 							  nfeature);
 
@@ -407,61 +402,56 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 			k.push_back(tempflat);
 		}
 	  } //i
-	  for (size_t j = 0; j < k[0].size(); j++){ //FIXME: careful with size_t as index, check later event#
+	  for (size_t j = 0; j < k[0].size(); j++){
 	    std::vector <Long64_t> P;
 	    P.push_back(event_start_0+j);
 	    for (size_t l = 0; l < k.size(); l++){
-	      P.push_back(k[l][j]); //transpose k
+	      P.push_back(k[l][j]);
 	    }
 	    Matches.push_back(P);
 	  }
-	  
+
 	}//h
 
-	  // //write to txt
-	  // FILE * txtfile = fopen ("pairs.txt","w");
-	  // for (size_t t=0; t<Matches.size();t++){
-	  //   for (size_t s=0; s<Matches[t].size();s++){
-	  //     fprintf(txtfile, "%lld ", Matches[t][s]);
-	  //   }
-	  //   fprintf(txtfile, "%s\n","");
-	  // }
-	  // fclose (txtfile);
+	  //write to txt
+	  FILE * txtfile = fopen ("pairs.txt","w");
+	  for (size_t t=0; t<Matches.size();t++){
+	    for (size_t s=1; s<Matches[t].size();s++){
+	      fprintf(txtfile, "%lld ", Matches[t][s]);
+	    }
+	    fprintf(txtfile, "%s\n","");
+	  }
+	  fclose (txtfile);
 	  
-	  //write to TTree
+	  //	  write to TTree
 	  if (strcmp(filename_0,filename_1) == 0){
 
-	    const int n_mix_events = 2*width;	    
-	    Long64_t Mix_Events[N_MIX_MAX];
-	    //	    Float_t cluster_NN1[NTRACK_MAX];
+	    TFile *root_file = new TFile(filename_0,"update");
 
-	    TFile *file = TFile::Open(filename_0);
-
-	    TTree *_tree_event = dynamic_cast<TTree *>
+	    TTree *hi_tree = dynamic_cast<TTree *>
 	      (dynamic_cast<TDirectoryFile *>
-	       (file->Get("AliAnalysisTaskNTGJ"))->Get("_tree_event"));
-	    
-	    if (_tree_event == NULL) {
-	      std::cout << " fail " << std::endl;
-	      exit(EXIT_FAILURE);
-	    }
-	    fprintf(stderr, "%s:%d\n", __FILE__, __LINE__);	    
-	    _tree_event->Branch("Mix_Events", Mix_Events, "Mix_Events[n_mix_events]/L");
-	    //_tree_event->Branch("cluster_NN1", cluster_NN1, "cluster_NN1[ncluster]/F");
-	    fprintf(stderr, "%s:%d\n", __FILE__, __LINE__);	    
+	       (root_file->Get("AliAnalysisTaskNTGJ"))->Get("_tree_event"));
+
+	    unsigned int n_mix_events = 2*width;	    
+	    Long64_t Mix_Events[n_mix_events];
+
+	    TBranch *MixE = hi_tree->Branch("Mix_Events", Mix_Events, "&Mix_Events[10]/L"); //FIXME:get to work with 2*width
 
 	    for (size_t t=0; t<Matches.size();t++){
-	      _tree_event->GetEntry(Matches[t][0]);
-	      
-	      for (size_t s=1; s<Matches[t].size();s++){
-	      Mix_Events[s]=Matches[t][s]; 
+	      hi_tree->GetEntry(Matches[t][0]);	      
+	      for (size_t s=1; s<(Matches[t]).size();s++){
+		Mix_Events[s]=Matches[t][s]; 
+		std::cout<<Mix_Events[s]<<std::endl;
 	      }
+	      std::cout<<std::endl;
+	      hi_tree->Fill();	      
 	    }
-	    
+	    hi_tree->AutoSave();
+	    delete root_file;
 	  }
 	  else fprintf(stderr, "%s\n","Nothing written to root files.");
 
-        gSystem->Exit(0);
+	  gSystem->Exit(0);
 }
 
 int main(int argc, char *argv[])
