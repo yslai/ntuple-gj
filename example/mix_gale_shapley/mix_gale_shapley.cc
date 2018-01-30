@@ -318,8 +318,8 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 
 	std::vector<std::vector<Long64_t> > Matches;
 
-	  for(size_t h = 0; h < nblock+1; h++){
-	    
+	for(size_t h = 0; h < nblock+1; h++){
+	  //for(size_t h = 0; h < 1; h++){
 	    const size_t event_start_0 = h * nevent_0 / (nblock + 1); 
 	    const size_t event_end_0 = (h + 1) * nevent_0 / (nblock + 1);
 	    const size_t nevents_0 = event_end_0 - event_start_0;	  
@@ -423,34 +423,50 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 	  // fclose (txtfile);
 	  
 	  //	  write to TTree
-	  if (strcmp(filename_0,filename_1) == 0){
+	if (strcmp(filename_0,filename_1) == 0){
 
-	    TFile *root_file = new TFile(filename_0,"update");
+	  TFile *root_file = new TFile(filename_0,"update");
 
-	    TTree *hi_tree = dynamic_cast<TTree *>
-	      (dynamic_cast<TDirectoryFile *>
-	       (root_file->Get("AliAnalysisTaskNTGJ"))->Get("_tree_event"));
+	      TTree *hi_tree = dynamic_cast<TTree *>
+		(dynamic_cast<TDirectoryFile *>
+		 (root_file->Get("AliAnalysisTaskNTGJ"))->Get("_tree_event"));
 
-	    unsigned int n_mix_events = 2*width;	    
-	    Long64_t Mix_Events[n_mix_events];
+	      unsigned int n_mix_events = 2*width;
+	      size_t nentries = hi_tree->GetEntries();    
+	      fprintf(stderr, "%lu\n",nentries);
+	      Long64_t Mix_Events[n_mix_events];
 
-	    TBranch *MixE = hi_tree->Branch("Mix_Events", Mix_Events, "&Mix_Events[10]/L"); //FIXME:get to work with 2*width
+	      TBranch *MixE = hi_tree->Branch("Mix_Events", Mix_Events, "&Mix_Events[10]/L"); //FIXME:get to work with 2*width
 
-	    for (size_t t=0; t<Matches.size();t++){
-	      hi_tree->GetEntry(Matches[t][0]);	      
-	      for (size_t s=1; s<(Matches[t]).size();s++){
-		Mix_Events[s-1]=Matches[t][s]; 
-		fprintf(stderr, "%s:%d: %lld\n", __FILE__, __LINE__,Mix_Events[s-1]);
-	      }
-	      std::cout<<std::endl;
-	      hi_tree->Fill();	      
-	    }
-	    hi_tree->AutoSave();
-	    delete root_file;
-	  }
-	  else fprintf(stderr, "%s\n","Nothing written to root files.");
+	      for (size_t t = 0; t<nentries;t++){
+		hi_tree->GetEntry(t);
+		
+		if(t < Matches.size()){
+		  for (size_t s=1; s<(Matches[t]).size();s++){
+		    Mix_Events[s-1]=Matches[t][s]; 
+		    //fprintf(stderr, "%s:%d: %lld\n", __FILE__, __LINE__,Mix_Events[s-1]);
+		    fprintf(stderr, "%lu:%lld\n", t,Mix_Events[s-1]);
+		  }
+		}
+		
+		else if (t >= Matches.size()){
+		  for(size_t u = 0; u<n_mix_events; u++){
+		    Mix_Events[u] = t; //Fill with own event number. Skip During correlation function
+		    fprintf(stderr, "%lu:%lld\n",t,Mix_Events[u]);
+		  }
+		}
+		
+		fprintf(stderr, "%s\n","");
+		hi_tree->Fill();  
+    
+	      }//Loop over entries
 
-	  gSystem->Exit(0);
+	      hi_tree->AutoSave();
+	      delete root_file;
+	}
+	else fprintf(stderr, "%s\n","Nothing written to root file.");
+
+	gSystem->Exit(0);
 }
 
 int main(int argc, char *argv[])
