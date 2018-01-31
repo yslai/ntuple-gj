@@ -318,8 +318,8 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 
 	std::vector<std::vector<Long64_t> > Matches;
 
-	for(size_t h = 0; h < nblock+1; h++){
-	  //for(size_t h = 0; h < 1; h++){
+	//for(size_t h = 0; h < nblock+1; h++){
+	for(size_t h = 0; h < 1; h++){
 	    const size_t event_start_0 = h * nevent_0 / (nblock + 1); 
 	    const size_t event_end_0 = (h + 1) * nevent_0 / (nblock + 1);
 	    const size_t nevents_0 = event_end_0 - event_start_0;	  
@@ -435,8 +435,9 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 
 	  unsigned int n_mix_events = 2*width;
 	  ULong64_t nentries = hi_tree->GetEntries();    
-	  fprintf(stderr, "%llu\n",nentries);
 	  Long64_t Mix_Events[n_mix_events];
+
+	  fprintf(stderr, "%llu\n",nentries);
 	  
 	  TBranch *MixE = newtree->Branch("Mix_Events", Mix_Events, "&Mix_Events[10]/L");
 	  //newtree->Branch("Mix_Events", Mix_Events, "&Mix_Events[%width]/L"); 
