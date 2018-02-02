@@ -313,13 +313,13 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 		block_size_max + 1;
 	const size_t nblock = nblocks - 1; // FIXME:Use % and rounding to get all events 
 
-	size_t lmin,rmax,lmax,rmin; 
+	size_t lmin,lmax; 
 	size_t width = 5; //if changed, also must change when writing to Tree
 
 	std::vector<std::vector<Long64_t> > Matches;
 
-	//for(size_t h = 0; h < nblock+1; h++){
-	for(size_t h = 0; h < 1; h++){
+	for(size_t h = 0; h < nblock+1; h++){
+	  //for(size_t h = 0; h < 1; h++){
 	    const size_t event_start_0 = h * nevent_0 / (nblock + 1); 
 	    const size_t event_end_0 = (h + 1) * nevent_0 / (nblock + 1);
 	    const size_t nevents_0 = event_end_0 - event_start_0;	  
@@ -332,33 +332,25 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 	    
 	    fprintf(stderr,"%s %lu %s %lu\n","Block",h,"of",nblock);
 	    
-	    if (h + width < 2*width) {
+	    if (h < width) {
 	      lmin = 0; 
-	      lmax = h+width;
-	      rmin = nblock-width+h+1;
-	      rmax = nblock+1;
-	      if (h==nblock) lmax = h+width+1;
+	      lmax = 2*width+1;
 	    }
 
 	    else if (h+width > nblock) {
-	    lmin = 0;
-	    lmax = width-nblock+h-1;
-	    rmin = h-width;
-	    rmax = nblock+1;
-	  }
+	    lmin = nblock-2*width;
+	    lmax = nblock+1;
+	    }
 
 	    else {
 	      lmin = h-width;  	 
-	      rmax = h+width+1;
-	      lmax = h-1;
-	      rmin = h+1;
+	      lmax = h+width+1;
 	    }
 	    
-	    for (size_t i = lmin; i < rmax; i++) {
+	    for (size_t i = lmin; i < lmax; i++) {
 	      
 	      if (i==h) continue;
-	      if ((i > lmax) && (i < rmin)) continue;
-	      
+	     	      
 	      size_t event_start_1 = i * nevent_1 / (nblock+1);
 	      size_t event_end_1 = (i + nduplicate) * nevent_1 /
 		(nblock + nduplicate);
@@ -440,7 +432,6 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 	  fprintf(stderr, "%llu\n",nentries);
 	  
 	  TBranch *MixE = newtree->Branch("Mix_Events", Mix_Events, "&Mix_Events[10]/L");
-	  //newtree->Branch("Mix_Events", Mix_Events, "&Mix_Events[%width]/L"); 
 	  
 	  for (ULong64_t t = 0; t<nentries;t++){
 	    hi_tree->GetEntry(t);
