@@ -944,9 +944,16 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 _branch_track_pt[_branch_ntrack] = half(t->Pt());
                 _branch_track_eta[_branch_ntrack] = half(t->Eta());
                 _branch_track_phi[_branch_ntrack] = half(angular_range_reduce(t->Phi()));
-                _branch_track_eta_emcal[_branch_ntrack] = half(t->GetTrackEtaOnEMCal());
-                _branch_track_phi_emcal[_branch_ntrack] = half(angular_range_reduce(t->GetTrackPhiOnEMCal()));
-
+                if (gGeoManager != NULL) {
+                    _branch_track_eta_emcal[_branch_ntrack] =
+                        half(t->GetTrackEtaOnEMCal());
+                    _branch_track_phi_emcal[_branch_ntrack] =
+                        half(angular_range_reduce(t->GetTrackPhiOnEMCal()));
+                }
+                else {
+                    _branch_track_eta_emcal[_branch_ntrack] = NAN;
+                    _branch_track_phi_emcal[_branch_ntrack] = NAN;
+                }
                 _branch_track_charge[_branch_ntrack] =
                     std::min(static_cast<Short_t>(CHAR_MAX),
                              std::max(static_cast<Short_t>(CHAR_MIN),

@@ -18,7 +18,7 @@ inputObjects:
             branchName: "usedefault"
         defaultTrackContainer_1:
             minPt: 0.15
-            trackFilterType: kHybridTracks
+            trackFilterType: kNoTrackFilter
 CellEnergy:
     enabled: true
     createHistos: false
@@ -41,7 +41,7 @@ Clusterizer:
     w0: 4.5
 
 ClusterTrackMatcher:
-    enabled: true
+    enabled: false
     createHistos: false
     maxDist: 0.1
     useDCA: true
