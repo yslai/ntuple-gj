@@ -1,4 +1,4 @@
-pass: pass4
+pass: pass1_CENT_woSDD
 inputObjects:
     cells:
         defaultCells:
@@ -18,7 +18,7 @@ inputObjects:
             branchName: "usedefault"
         defaultTrackContainer_1:
             minPt: 0.15
-            trackFilterType: kNoTrackFilter
+            trackFilterType: kHybridTracks
 CellEnergy:
     enabled: true
     createHistos: false
@@ -26,7 +26,7 @@ CellBadChannel:
     enabled: true
     createHistos: false
 CellTimeCalib:
-    enabled: true
+    enabled: false
     createHistos: false
 Clusterizer:
     enabled: true

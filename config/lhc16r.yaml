@@ -1,0 +1,9 @@
+gridWorkingDir:		workingdirlch16rwSDD_emcal
+gridOutputDir:		outputdirlhc16rwSDD_emcal
+aliROOTVersion:		v5-09-11-1
+aliPhysicsVersion:	v5-09-11-01-1
+gridDataDir:		/alice/data/2016/LHC16r
+dataPattern:		pass1_CENT_wSDD/*/AliESDs.root
+runPrefix:		000
+runNumber:		[266318,266317,266316,266208,266197,266196,266187,265744]
+emcalCorrection:	emcal_correction_16rs.yaml

@@ -1,4 +1,4 @@
-pass: pass4
+pass: muon_calo_pass2
 inputObjects:
     cells:
         defaultCells:
@@ -18,7 +18,7 @@ inputObjects:
             branchName: "usedefault"
         defaultTrackContainer_1:
             minPt: 0.15
-            trackFilterType: kNoTrackFilter
+            trackFilterType: kHybridTracks
 CellEnergy:
     enabled: true
     createHistos: false
@@ -31,7 +31,7 @@ CellTimeCalib:
 Clusterizer:
     enabled: true
     createHistos: false
-    clusterizer: kClusterizerv1
+    clusterizer: kClusterizerv2
     recalDistToBadChannels: true
     cellE: 0.1
     seedE: 0.5
@@ -41,7 +41,7 @@ Clusterizer:
     w0: 4.5
 
 ClusterTrackMatcher:
-    enabled: false
+    enabled: true
     createHistos: false
     maxDist: 0.1
     useDCA: true
