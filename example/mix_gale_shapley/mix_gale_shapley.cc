@@ -405,14 +405,14 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 	}//h
 
 	  // //	  write to txt
-	  // FILE * txtfile = fopen ("pairs.txt","w");
-	  // for (size_t t=0; t<Matches.size();t++){
-	  //   for (size_t s=1; s<Matches[t].size();s++){
-	  //     fprintf(txtfile, "%lld ", Matches[t][s]);
-	  //   }
-	  //   fprintf(txtfile, "%s\n","");
-	  // }
-	  // fclose (txtfile);
+	  FILE * txtfile = fopen ("pairs.txt","w");
+	  for (size_t t=0; t<Matches.size();t++){
+	    for (size_t s=1; s<Matches[t].size();s++){
+	      fprintf(txtfile, "%lld ", Matches[t][s]);
+	    }
+	    fprintf(txtfile, "%s\n","");
+	  }
+	  fclose (txtfile);
 	  
 	  //	  write to TTree
 	if (strcmp(filename_0,filename_1) == 0){
@@ -451,13 +451,10 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 	    }
 	    
 	    fprintf(stderr, "%s\n","");
-	    //MixE->Fill();
 	    newtree->Fill();  
 	    
 	  }//End loop over entries
-	  //newtree->AutoSave();    
 	  newtree->Write();
-	  //newfile->ls;
 
 	  delete root_file;
 	  delete newfile;
