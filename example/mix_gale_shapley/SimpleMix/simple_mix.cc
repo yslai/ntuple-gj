@@ -64,7 +64,7 @@ namespace {
     //float centrality_v0m;
 
     double vtx[3];
-    int multiplicity_size = 64;
+    int multiplicity_size = 64; //64 channels to V0 detector
     float multiplicity_v0[multiplicity_size];
 
     hi_tree->SetBranchAddress("primary_vertex", vtx);
@@ -238,13 +238,12 @@ namespace {
     std::vector <size_t> flat;
 
     for (size_t i = 0; i < Binned_Events.size(); i++){
-      //for (size_t j=0; j< Binned_Events.size(); j++){
-      //if (flat.size() == n_mix) break;
       flat.push_back(i);
       size_t j;
       if (i>500) j = i-500;//rough sliding window
       else j = 0;
       while (flat.size() < n_mix+1){
+	if (j==i) continue;
 	if (j == Binned_Events.size()) j = 0;
 	if (bin_compare(Binned_Events[i],Binned_Events[j])){
 	    flat.push_back(j);
