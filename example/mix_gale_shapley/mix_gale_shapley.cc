@@ -60,11 +60,12 @@ namespace {
 
 		hi_tree->SetBranchAddress("primary_vertex", v);
 
-		float centrality_v0m;
+		float multiplicity_v0[64];
+		  //float centrality_v0m;
 
 		switch (nfeature) {
 		case 2:
-			hi_tree->SetBranchAddress("centrality_v0m", &centrality_v0m);
+			hi_tree->SetBranchAddress("multiplicity_v0", &multiplicity_v0);
 			break;
 		default:
 			fprintf(stderr, "%s:%d: illegal nfeature = %lu\n",
@@ -79,7 +80,11 @@ namespace {
 
 			ret.push_back(v[2]);
 			if (nfeature >= 2) {
-				ret.push_back(centrality_v0m);
+ 			        float multp_sum = 0;
+			        for (int k = 0; k < 64; k++) {
+				  multp_sum += multiplicity_v0[k];
+				}
+				ret.push_back(multp_sum);
 			}
 		}
 
