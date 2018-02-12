@@ -6,7 +6,7 @@ The following C style notation are used below to describe the less obvious data 
 
 * C string: `const char *`
 * C string array: `const char (*)[]`
-* IEEE 754-2008 binary16 (&ldquo;half precision&rdquo;) stored in binary32: `__fp16`
+* [IEEE 754-2008](https://dx.doi.org/10.1109/IEEESTD.2008.4610935) binary16 (&ldquo;half precision&rdquo;) stored in binary32: `__fp16`
 
 Otherwise the x86-64 standard LP64 convention is used, with:
 
@@ -37,18 +37,21 @@ To efficiently use available space, unsigned data types are used extensively. In
 | `event_plane_psi_v0` | `float[3]`         | V0 event plane angle &Psi;<sub>_n_</sub>, _n_&nbsp;=&nbsp;1, &hellip; 3, for the directed/elliptic/triangular flows  |
 | `event_plane_q_v0`   | `double[3][2]`     | V0 event plane _Q_-vector _Q_<sub>_n_</sub>, _n_&nbsp;=&nbsp;1, &hellip; 3, for the directed/elliptic/triangular flows |
 | `has_misalignment_matrix` | `bool`        | True if the Electromagnet Calorimeter (EMCAL) misalignment matrix was loaded |
-| `cell_eta`                | `__fp16[ncluster]` | EMCAL cell pseudorapidity _&eta;_                                           |
-| `cell_phi`                | `__fp16[ncluster]` | EMCAL cell azimuth _&straightphi;_                                          |
-| `cell_voronoi_area`       | `__fp16[ntrack]`   | The Voronoi diagram area occupied by the EMCAL cell in the _&eta;_&ndash;_&straightphi;_-plane |
+| `cell_eta`           | `__fp16[ncluster]` | EMCAL cell pseudorapidity _&eta;_                                           |
+| `cell_phi`           | `__fp16[ncluster]` | EMCAL cell azimuth _&straightphi;_                                          |
+| `cell_voronoi_area`  | `__fp16[ntrack]`   | The Voronoi diagram area occupied by the EMCAL cell in the _&eta;_&ndash;_&straightphi;_-plane |
 | `primary_vertex`     | `double[3]`        | The _x_, _y_, and _z_ compoents of the primary vertex position (cm) |
 | `primary_vertex_sigma` | `double[3]`      | The _x_, _y_, and _z_ uncertainties of the primary vertex position (cm) |
 | `primary_vertex_ncontributor` | `int`     | The number of tracks that contributed to the primary vertex determination |
-| `primary_vertex_spd`   | `double[3]`      | The _x_, _y_, and _z_ compoents of the Silicon Pixel Detector (SPD) primary vertex position (cm) |
+| `primary_vertex_spd` | `double[3]`        | The _x_, _y_, and _z_ compoents of the Silicon Pixel Detector (SPD) primary vertex position (cm) |
 | `primary_vertex_spd_sigma` | `double[3]`  | The _x_, _y_, and _z_ uncertainties of the SPD primary vertex position (cm) |
 | `primary_vertex_spd_ncontributor` | `int` | The number of tracklets that contributed to the SPD primary vertex determination |
 | `npileup_vertex_spd`   | `int`            | The number of SPD pileup vertices |
 | `pileup_vertex_spd_ncontributor` | `int`  | The number tracklets that contributed to the SPD pileup vertices determination |
-| `pileup_vertex_spd_min_z_distance` | `double` | The minimum _z_ distance between any of the SPD pileup vertices and the SPD primary vertex (cm) |
+| `is_pileup_from_spd_3_08` | `bool`        | Event is SPD pileup with multiple 3 contributors vertices and z separation < 0.8&nbsp;cm |
+| `is_pileup_from_spd_5_08` | `bool`        | Event is SPD pileup with multiple 5 contributors vertices and z separation < 0.8&nbsp;cm |
+| `ncluster_tpc`       | `int`              | The number of TPC clusters |
+| `event_selected`     | `bool`             | Event is selected by the input handler (e.g. the ALICE DPG&rsquo;s physics selection, if ntuplized with `AliPhysicsSelectionTask`) |
 | `eg_signal_process_id` | `int`            | The code of the process of the current event, HepMC&rsquo;s `GenEvent::signal_process_id()` and e.g. PYTHIA 8&rsquo;s `Info::code()` |
 | `eg_mpi`             | `int`              | The number of hard interactions of the current event, HepMC&rsquo;s `GenEvent::mpi()` and e.g. PYTHIA 8&rsquo;s `Info::nMPI()` |
 | `eg_pt_hat`          | `float`            | The rest frame transverse momentum _p&#770;_<sub>&perp;</sub> (GeV/_c_) of the current event, e.g. PYTHIA 8&rsquo;s `Info::pTHat()` |
@@ -87,6 +90,15 @@ To efficiently use available space, unsigned data types are used extensively. In
 | `cluster_frixione_tpc_04_02` | `__fp16[ncluster]`         | TPC Frixione max<sub>_&delta;_</sub>&#8239;_p_<sub>T,iso</sub>(_&delta;_)_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_&delta;_) (GeV/_c_) with _&delta;_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;0.2 |
 | `cluster_frixione_tpc_04_05` | `__fp16[ncluster]`         | TPC Frixione max<sub>_&delta;_</sub>&#8239;_p_<sub>T,iso</sub>(_&delta;_)_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_&delta;_) (GeV/_c_) with _&delta;_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;0.5 |
 | `cluster_frixione_tpc_04_10` | `__fp16[ncluster]`         | TPC Frixione max<sub>_&delta;_</sub>&#8239;_p_<sub>T,iso</sub>(_&delta;_)_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_&delta;_) (GeV/_c_) with _&delta;_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;1.0 |
+| `cluster_frixione_its_04_02` | `__fp16[ncluster]`         | ITS Frixione max<sub>_&delta;_</sub>&#8239;_p_<sub>T,iso</sub>(_&delta;_)_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_&delta;_) (GeV/_c_) with _&delta;_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;0.2 |
+| `cluster_frixione_its_04_05` | `__fp16[ncluster]`         | ITS Frixione max<sub>_&delta;_</sub>&#8239;_p_<sub>T,iso</sub>(_&delta;_)_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_&delta;_) (GeV/_c_) with _&delta;_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;0.5 |
+| `cluster_frixione_its_04_10` | `__fp16[ncluster]`         | ITS Frixione max<sub>_&delta;_</sub>&#8239;_p_<sub>T,iso</sub>(_&delta;_)_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_&delta;_) (GeV/_c_) with _&delta;_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;1.0 |
+| `cluster_anti_frixione_tpc_04_02` | `__fp16[ncluster]`    | TPC &ldquo;anti-Frixione&rdquo; min<sub>_&delta;_</sub>&#8239;_p_<sub>T,iso</sub>(_&delta;_)_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_&delta;_) (GeV/_c_) with _&delta;_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;0.2 |
+| `cluster_anti_frixione_tpc_04_05` | `__fp16[ncluster]`    | TPC &ldquo;anti-Frixione&rdquo; min<sub>_&delta;_</sub>&#8239;_p_<sub>T,iso</sub>(_&delta;_)_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_&delta;_) (GeV/_c_) with _&delta;_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;0.5 |
+| `cluster_anti_frixione_tpc_04_10` | `__fp16[ncluster]`    | TPC &ldquo;anti-Frixione&rdquo; min<sub>_&delta;_</sub>&#8239;_p_<sub>T,iso</sub>(_&delta;_)_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_&delta;_) (GeV/_c_) with _&delta;_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;1.0 |
+| `cluster_anti_frixione_its_04_02` | `__fp16[ncluster]`    | ITS &ldquo;anti-Frixione&rdquo; min<sub>_&delta;_</sub>&#8239;_p_<sub>T,iso</sub>(_&delta;_)_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_&delta;_) (GeV/_c_) with _&delta;_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;0.2 |
+| `cluster_anti_frixione_its_04_05` | `__fp16[ncluster]`    | ITS &ldquo;anti-Frixione&rdquo; min<sub>_&delta;_</sub>&#8239;_p_<sub>T,iso</sub>(_&delta;_)_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_&delta;_) (GeV/_c_) with _&delta;_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;0.5 |
+| `cluster_anti_frixione_its_04_10` | `__fp16[ncluster]`    | ITS &ldquo;anti-Frixione&rdquo; min<sub>_&delta;_</sub>&#8239;_p_<sub>T,iso</sub>(_&delta;_)_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_&delta;_) (GeV/_c_) with _&delta;_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;1.0 |
 | `cluster_iso_01_truth`   | `__fp16[ncluster]`             | MC truth isolation transverse momentum _p_<sub>T,iso</sub> (GeV/_c_) with _&delta;_<sub>0</sub>&nbsp;=&nbsp;0.1 |
 | `cluster_iso_02_truth`   | `__fp16[ncluster]`             | MC truth isolation transverse momentum _p_<sub>T,iso</sub> (GeV/_c_) with _&delta;_<sub>0</sub>&nbsp;=&nbsp;0.2 |
 | `cluster_iso_03_truth`   | `__fp16[ncluster]`             | MC truth isolation transverse momentum _p_<sub>T,iso</sub> (GeV/_c_) with _&delta;_<sub>0</sub>&nbsp;=&nbsp;0.3 |
@@ -95,7 +107,7 @@ To efficiently use available space, unsigned data types are used extensively. In
 | `cluster_frixione_04_05_truth` | `__fp16[ncluster]`       | MC truth Frixione max<sub>_&delta;_</sub>&#8239;_p_<sub>T,iso</sub>(_&delta;_)_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_&delta;_) (GeV/_c_) with _&delta;_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;0.5 |
 | `cluster_frixione_04_10_truth` | `__fp16[ncluster]`       | MC truth Frixione max<sub>_&delta;_</sub>&#8239;_p_<sub>T,iso</sub>(_&delta;_)_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_&delta;_) (GeV/_c_) with _&delta;_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;1.0 |
 
-To apply the Frixione isolation _p_<sub>T,iso</sub>(_&delta;_)&nbsp;&equiv;&nbsp;&#8721;<sub>_i_</sub>&#8239;_p_<sub>T,_i_</sub>&#8239;_&theta;_(_&delta;_&nbsp;&minus;&nbsp;_R_<sub>_i_&gamma;</sub>)&nbsp;&le;&nbsp;&#120039;(_&delta;_) for all _&delta;_&nbsp;&le;&nbsp;_&delta;_<sub>0</sub>, cut on max<sub>_&delta;_</sub>&#8239;_p_<sub>T,iso</sub>(_&delta;_)_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_&delta;_)&nbsp;&le;&nbsp;_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>.
+To apply the Frixione isolation _p_<sub>T,iso</sub>(_&delta;_)&nbsp;&equiv;&nbsp;&#8721;<sub>_i_</sub>&#8239;_p_<sub>T,_i_</sub>&#8239;_&theta;_(_&delta;_&nbsp;&minus;&nbsp;_R_<sub>_i&gamma;_</sub>)&nbsp;&le;&nbsp;&#120039;(_&delta;_) for all _&delta;_&nbsp;&le;&nbsp;_&delta;_<sub>0</sub>, cut on max<sub>_&delta;_</sub>&#8239;_p_<sub>T,iso</sub>(_&delta;_)_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_&delta;_)&nbsp;&le;&nbsp;_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>. See [S. Frixione, Phys. Lett. B 429, 369 (1998)](https://dx.doi.org/10.1016/S0370-2693(98)00454-7) [[arXiv:hep-ph/9801442]](https://arxiv.org/abs/hep-ph/9801442) for details and notation.
 
 ## EMCAL Cells
 
