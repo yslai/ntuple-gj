@@ -73,7 +73,7 @@ To efficiently use available space, unsigned data types are used extensively. In
 | `cluster_eta`            | `__fp16[ncluster]`             | Cluster pseudorapidity _&eta;_                                           |
 | `cluster_phi`            | `__fp16[ncluster]`             | Cluster azimuth _&straightphi;_                                          |
 | `cluster_lambda`         | `__fp16[ncluster][2]`          | Minor (`[0]`) and major (`[1]`) axes of the cluster dispersion (_&lambda;_<sub>0</sub>)<sup>2</sup> and (_&lambda;_<sub>1</sub>)<sup>2</sup> |
-| `cluster_tof`            | `__fp16[ncluster]`             | Cluster time-of-flight _T_<sub>0</sub> (s)                               |
+| `cluster_tof`            | `__fp16[ncluster]`             | Cluster time-of-flight _T_<sub>0</sub> (ns)                               |
 | `cluster_ncell`          | `int[ncluster]`                | Number of cells (towers) in the cluster                                  |
 | `cluster_cell_id_max`    | `unsigned short[ncluster]`     | Index of the cell (tower) in the cluster with the highest energy         |
 | `cluster_e_max`          | `__fp16[ncluster]`             | Energy of the cell (tower) in the cluster with the highest energy (GeV)  |
@@ -84,16 +84,16 @@ To efficiently use available space, unsigned data types are used extensively. In
 | `cluster_iso_tpc_02`     | `__fp16[ncluster]`             | TPC isolation transverse momentum _p_<sub>T,iso</sub> (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.2 |
 | `cluster_iso_tpc_03`     | `__fp16[ncluster]`             | TPC isolation transverse momentum _p_<sub>T,iso</sub> (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.3 |
 | `cluster_iso_tpc_04`     | `__fp16[ncluster]`             | TPC isolation transverse momentum _p_<sub>T,iso</sub> (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.4 |
-| `cluster_frixione_tpc_04_02` | `__fp16[ncluster]`         | TPC Frixione _p_<sub>T,iso</sub>_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_R_) (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;0.2 |
-| `cluster_frixione_tpc_04_05` | `__fp16[ncluster]`         | TPC Frixione _p_<sub>T,iso</sub>_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_R_) (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;0.5 |
-| `cluster_frixione_tpc_04_10` | `__fp16[ncluster]`         | TPC Frixione _p_<sub>T,iso</sub>_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_R_) (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;1.0 |
+| `cluster_frixione_tpc_04_02` | `__fp16[ncluster]`         | TPC Frixione _E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_R_) (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;0.2 |
+| `cluster_frixione_tpc_04_05` | `__fp16[ncluster]`         | TPC Frixione _E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_R_) (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;0.5 |
+| `cluster_frixione_tpc_04_10` | `__fp16[ncluster]`         | TPC Frixione _E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_R_) (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;1.0 |
 | `cluster_iso_01_truth`   | `__fp16[ncluster]`             | MC truth isolation transverse momentum _p_<sub>T,iso</sub> (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.1 |
 | `cluster_iso_02_truth`   | `__fp16[ncluster]`             | MC truth isolation transverse momentum _p_<sub>T,iso</sub> (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.2 |
 | `cluster_iso_03_truth`   | `__fp16[ncluster]`             | MC truth isolation transverse momentum _p_<sub>T,iso</sub> (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.3 |
 | `cluster_iso_04_truth`   | `__fp16[ncluster]`             | MC truth isolation transverse momentum _p_<sub>T,iso</sub> (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.4 |
-| `cluster_frixione_04_02_truth` | `__fp16[ncluster]`       | MC truth Frixione _p_<sub>T,iso</sub>_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_R_) (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;0.2 |
-| `cluster_frixione_04_05_truth` | `__fp16[ncluster]`       | MC truth Frixione _p_<sub>T,iso</sub>_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_R_) (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;0.5 |
-| `cluster_frixione_04_10_truth` | `__fp16[ncluster]`       | MC truth Frixione _p_<sub>T,iso</sub>_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_R_) (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;1.0 |
+| `cluster_frixione_04_02_truth` | `__fp16[ncluster]`       | MC truth Frixione _E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_R_) (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;0.2 |
+| `cluster_frixione_04_05_truth` | `__fp16[ncluster]`       | MC truth Frixione _E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_R_) (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;0.5 |
+| `cluster_frixione_04_10_truth` | `__fp16[ncluster]`       | MC truth Frixione _E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_R_) (GeV/_c_) with _R_<sub>0</sub>&nbsp;=&nbsp;0.4, _n_&nbsp;=&nbsp;1.0 |
 
 In the definitions above, _R_<sub>0</sub>&nbsp;=&nbsp;_&delta;_<sub>0</sub> in S. Frixione&rsquo;s original notation. To apply the Frixione isolation _p_<sub>T,iso</sub>&nbsp;<&nbsp;&#120039;(_R_), cut on _p_<sub>T,iso</sub>_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>/&#120039;(_R_)&nbsp;<&nbsp;_E_<sub>_&gamma;_</sub>_&straightepsilon;_<sub>_&gamma;_</sub>.
 
@@ -104,7 +104,7 @@ A full 17664 (=&nbsp;10&nbsp;&times;&nbsp;48&nbsp;&times;&nbsp;24 + 6&nbsp;&time
 | Name                  | Type                    | Description                                                           |
 | --------------------- | ----------------------- | --------------------------------------------------------------------- |
 | `cell_energy`         | `__fp16[17664]`         | Cell energy _E_ (GeV)                                                 |
-| `cell_time`           | `__fp16[17664]`         | Cell time-of-flight _T_<sub>0</sub> (s)                               |
+| `cell_tof`            | `__fp16[17664]`         | Cell time-of-flight _T_<sub>0</sub> (ns)                               |
 | `cell_mc_truth_index` | `unsigned short[17664]` | Index of the matched Monte Carlo (MC) truth particle, in `mc_truth_`* |
 
 ## Central Region Tracks

@@ -2,6 +2,9 @@ AliAnalysisTaskNTGJ *
 AddAliAnalysisTaskNTGJ(TString name = "AliAnalysisTaskNTGJ",
                        TString emcal_correction_filename =
                        "emcal_correction.yaml",
+                       bool physics_selection,
+                       bool physics_selection_mc_analysis,
+                       bool physics_selection_pileup_cut,
                        // 1e+309 = INFINITY (for IEEE 754 double)
                        double skim_cluster_min_e = -1e+309,
                        double skim_track_min_pt = -1e+309,
@@ -57,6 +60,15 @@ AddAliAnalysisTaskNTGJ(TString name = "AliAnalysisTaskNTGJ",
     reco_util->SetNumberOfCellsFromEMCALBorder(0);
     reco_util->SwitchOnRecalibration();
     reco_util->SwitchOnRunDepCorrection();
+
+    if (physics_selection) {
+        gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/"
+                         "AddTaskPhysicsSelection.C");
+
+        AliPhysicsSelectionTask* physics_selection_task =
+            AddTaskPhysicsSelection(physics_selection_mc_analysis,
+                                    physics_selection_pileup_cut);
+    }
   
     TString filename = mgr->GetCommonFileName();
 

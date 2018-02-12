@@ -16,13 +16,9 @@ CXXFLAGS +=	$(shell root-config --cflags)
 LDFLAGS =	$(shell root-config --ldflags)
 LDLIBS =	$(shell root-config --libs)
 
-CXXFLAGS +=     -I..
-
 TARGET =	mix_gale_shapley
 
 all:		$(TARGET)
 
 clean:
 		/usr/bin/rm -f *~ *.o $(TARGET)
-
-%.cc:		../jet.h

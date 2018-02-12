@@ -43,7 +43,7 @@ endif
 
 CXXFLAGS +=	-I$(BOOST_ROOT)/include
 
-CXXFLAGS +=     -I..
+CXXFLAGS +=     -I../..
 
 TARGET =	ue_subtract_jet
 
@@ -52,4 +52,4 @@ all:		$(TARGET)
 clean:
 		/usr/bin/rm -f *~ *.o $(TARGET)
 
-%.cc:		../jet.h
+%.cc:		../../jet.h
