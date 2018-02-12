@@ -147,8 +147,8 @@ ClassImp(AliAnalysisTaskNTGJ);
 #define BRANCH_ARRAY(b, d, t)
 #define BRANCH_ARRAY2(b, d, e, t)
 #define BRANCH_STR(b)
-#define BRANCH_STR_ARRAY(b, d)                  \
-    _branch_ ## b("TObjArray", (d)),
+#define BRANCH_STR_ARRAY(b, d)                          \
+    _branch_ ## b(std::vector<std::string>()),
 
 #define CLASS_INITIALIZATION                                \
     _emcal_geometry_name(EMCAL_GEOMETRY_NAME),              \
@@ -265,7 +265,7 @@ void AliAnalysisTaskNTGJ::UserCreateOutputObjects(void)
         #b, _branch_ ## b, #b "/C");
 #define BRANCH_STR_ARRAY(b, d)                  \
     _tree_event->Branch(                        \
-        #b, &_branch_ ## b, #b "[" #d "]/C");
+        #b, &_branch_ ## b);
 
     MEMBER_BRANCH;
 
@@ -616,9 +616,6 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         stack = mc_truth_event->Stack();
     }
 
-#if 0
-    AliMagF *field = (AliMagF *)TGeoGlobalMagField::Instance()->GetField();
-#endif
     if (esd_event != NULL) {
         esd_event->InitMagneticField();
     }
@@ -673,26 +670,21 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         }
     }
 
+    _branch_is_pileup_from_spd_3_08 = false;
+    _branch_is_pileup_from_spd_5_08 = false;
     _branch_npileup_vertex_spd = INT_MIN;
-    _branch_pileup_vertex_spd_ncontributor = INT_MIN;
-    _branch_pileup_vertex_spd_min_z_distance = INFINITY;
+    _branch_ncluster_tpc = INT_MIN;
     if (esd_event != NULL) {
+        _branch_is_pileup_from_spd_3_08 =
+            esd_event->IsPileupFromSPD(3, 0.8);
+        _branch_is_pileup_from_spd_5_08 =
+            esd_event->IsPileupFromSPD(5, 0.8);
         _branch_npileup_vertex_spd =
             esd_event->GetNumberOfPileupVerticesSPD();
-        for (Int_t i = 0; i < _branch_npileup_vertex_spd; i++) {
-            const AliESDVertex *pileup_vertex_spd =
-                esd_event->GetPileupVertexSPD(i);
-
-            if (pileup_vertex_spd != NULL) {
-                _branch_pileup_vertex_spd_ncontributor =
-                    pileup_vertex_spd->GetNContributors();
-                _branch_pileup_vertex_spd_min_z_distance =
-                    std::min(_branch_pileup_vertex_spd_min_z_distance,
-                             fabs(pileup_vertex_spd->GetZ() -
-                                  _branch_primary_vertex_spd[2]));
-            }
-        }
+        _branch_ncluster_tpc =
+            esd_event->GetNumberOfTPCClusters();
     }
+    _branch_event_selected = fInputHandler->IsEventSelected();
 
     if (_skim_multiplicity_tracklet_min_n > INT_MIN) {
         AliVMultiplicity *multiplicity = event->GetMultiplicity();
@@ -746,10 +738,10 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             const AliESDRun *esd_run = esd_event->GetESDRun();
 
             if (esd_run != NULL) {
-                // _branch_trigger_class.Delete();
+                _branch_trigger_class.clear();
                 for (size_t i = 0; i < NTRIGGER_CLASS_MAX; i++) {
-                    new (_branch_trigger_class[i])
-                        TObjString(esd_run->GetTriggerClass(i));
+                    _branch_trigger_class.push_back(
+                        std::string(esd_run->GetTriggerClass(i)));
                 }
             }
         }
@@ -809,7 +801,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         _branch_grid_data_pattern[0] = '\0';
         std::fill(_branch_beam_particle,
                   _branch_beam_particle + 2, 0);
-        _branch_trigger_class.Delete();
+        _branch_trigger_class.clear();
 
         for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
             _branch_cell_eta[cell_id] = NAN;
@@ -943,7 +935,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 _branch_track_e[_branch_ntrack] = half(t->E());
                 _branch_track_pt[_branch_ntrack] = half(t->Pt());
                 _branch_track_eta[_branch_ntrack] = half(t->Eta());
-                _branch_track_phi[_branch_ntrack] = half(angular_range_reduce(t->Phi()));
+                _branch_track_phi[_branch_ntrack] =
+                    half(angular_range_reduce(t->Phi()));
                 if (gGeoManager != NULL) {
                     _branch_track_eta_emcal[_branch_ntrack] =
                         half(t->GetTrackEtaOnEMCal());
@@ -1139,10 +1132,10 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
     // A value of 2^(-30) < 10^(-9) would map a 10 TeV particle to
     // less than 10 MeV, sufficient to remove any significant momentum
-    // bias while not being too greedy with the dynamic range. Ghost
-    // scaling factor is chosen as power of two to maintain the
+    // bias while not being too greedy to limit the exponent range.
+    // Ghost scaling factor is chosen as power of two to maintain the
     // multiplication/division being numerically exact (provided px,
-    // py, pz >= 2^(-1022+30) which os of the order 10^(-290) eV).
+    // py, pz >= 2^(-1022+30) which is of the order 10^(-290) eV).
 
     static const double scale_ghost = pow(2.0, -30.0);
 
@@ -1177,7 +1170,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             }
 
             if (p->GetGeneratorIndex() != 0 || !subtract_ue) {
-                const unsigned int abs_pdg_code = std::abs(p->PdgCode());
+                const unsigned int abs_pdg_code =
+                    std::abs(p->PdgCode());
 
                 switch (abs_pdg_code) {
                 case PDG_CODE_ELECTRON_NEUTRINO:
@@ -1392,7 +1386,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     _branch_debug_njet_ue_estimation = 0;
     for (std::vector<fastjet::PseudoJet>::const_iterator
              iterator_jet = jet_ue_estimation_tpc.begin();
-        iterator_jet != jet_ue_estimation_tpc.end(); iterator_jet++) {
+         iterator_jet != jet_ue_estimation_tpc.end();
+         iterator_jet++) {
         _branch_debug_jet_ue_estimation_pt_raw
             [_branch_debug_njet_ue_estimation] =
             iterator_jet->perp();
@@ -1410,11 +1405,13 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
     std::pair<std::vector<double>, std::vector<double> >
         ue_estimate_tpc = ue_estimation_truncated_mean(
-            cluster_sequence_ue_estimation_tpc, particle_reco_area_tpc);
+            cluster_sequence_ue_estimation_tpc,
+            particle_reco_area_tpc);
 
     std::pair<std::vector<double>, std::vector<double> >
         ue_estimate_its = ue_estimation_truncated_mean(
-            cluster_sequence_ue_estimation_its, particle_reco_area_its);
+            cluster_sequence_ue_estimation_its,
+            particle_reco_area_its);
 
     std::fill(_branch_cell_cluster_index,
               _branch_cell_cluster_index + EMCAL_NCELL, USHRT_MAX);
@@ -1436,7 +1433,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             half(c->GetM02());
         _branch_cluster_lambda_square[_branch_ncluster][1] =
             half(c->GetM20());
-        _branch_cluster_tof[_branch_ncluster] = half(c->GetTOF());
+        _branch_cluster_tof[_branch_ncluster] =
+            half(c->GetTOF() * 1e+9);
         _branch_cluster_ncell[_branch_ncluster] = c->GetNCells();
 
         const UShort_t *cell_index = c->GetCellsAbsId();
@@ -1695,6 +1693,32 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             _branch_cluster_frixione_its_04_10[_branch_ncluster] =
                 half(frixione_iso_max_x_e_eps(delta_vs_iso_its,
                                               0.4, 1.0));
+
+            _branch_cluster_anti_frixione_tpc_04_02
+                [_branch_ncluster] =
+                half(anti_frixione_iso_max_x_e_eps(delta_vs_iso_tpc,
+                                                   0.4, 0.2));
+            _branch_cluster_anti_frixione_tpc_04_05
+                [_branch_ncluster] =
+                half(anti_frixione_iso_max_x_e_eps(delta_vs_iso_tpc,
+                                                   0.4, 0.5));
+            _branch_cluster_anti_frixione_tpc_04_10
+                [_branch_ncluster] =
+                half(anti_frixione_iso_max_x_e_eps(delta_vs_iso_tpc,
+                                                   0.4, 1.0));
+
+            _branch_cluster_anti_frixione_its_04_02
+                [_branch_ncluster] =
+                half(anti_frixione_iso_max_x_e_eps(delta_vs_iso_its,
+                                                   0.4, 0.2));
+            _branch_cluster_anti_frixione_its_04_05
+                [_branch_ncluster] =
+                half(anti_frixione_iso_max_x_e_eps(delta_vs_iso_its,
+                                                   0.4, 0.5));
+            _branch_cluster_anti_frixione_its_04_10
+                [_branch_ncluster] =
+                half(anti_frixione_iso_max_x_e_eps(delta_vs_iso_its,
+                                                   0.4, 1.0));
         }
         else {
             _branch_cluster_iso_tpc_01[_branch_ncluster] = NAN;
@@ -1714,6 +1738,20 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             _branch_cluster_frixione_its_04_02[_branch_ncluster] = NAN;
             _branch_cluster_frixione_its_04_05[_branch_ncluster] = NAN;
             _branch_cluster_frixione_its_04_10[_branch_ncluster] = NAN;
+
+            _branch_cluster_anti_frixione_tpc_04_02
+                [_branch_ncluster] = NAN;
+            _branch_cluster_anti_frixione_tpc_04_05
+                [_branch_ncluster] = NAN;
+            _branch_cluster_anti_frixione_tpc_04_10
+                [_branch_ncluster] = NAN;
+
+            _branch_cluster_anti_frixione_its_04_02
+                [_branch_ncluster] = NAN;
+            _branch_cluster_anti_frixione_its_04_05
+                [_branch_ncluster] = NAN;
+            _branch_cluster_anti_frixione_its_04_10
+                [_branch_ncluster] = NAN;
         }
 
         if (mc_truth_event != NULL) {
@@ -1734,7 +1772,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                             mc_truth_event->GetTrack(j));
 
                     if (t->GetGeneratorIndex() != 0 || !subtract_ue) {
-                        const double dpseudorapidity = t->Eta() - p.Eta();
+                        const double dpseudorapidity =
+                            t->Eta() - p.Eta();
                         const double dazimuth = angular_range_reduce(
                             angular_range_reduce(t->Phi()) -
                             angular_range_reduce(p.Phi()));
@@ -1769,20 +1808,41 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 half(cluster_iso_04_truth);
 
             _branch_cluster_frixione_04_02_truth[_branch_ncluster] =
-                half(frixione_iso_max_x_e_eps(delta_vs_iso, 0.4, 0.2));
+                half(frixione_iso_max_x_e_eps(delta_vs_iso,
+                                              0.4, 0.2));
             _branch_cluster_frixione_04_05_truth[_branch_ncluster] =
-                half(frixione_iso_max_x_e_eps(delta_vs_iso, 0.4, 0.5));
+                half(frixione_iso_max_x_e_eps(delta_vs_iso,
+                                              0.4, 0.5));
             _branch_cluster_frixione_04_10_truth[_branch_ncluster] =
-                half(frixione_iso_max_x_e_eps(delta_vs_iso, 0.4, 1.0));
+                half(frixione_iso_max_x_e_eps(delta_vs_iso,
+                                              0.4, 1.0));
+
+            _branch_cluster_anti_frixione_04_02_truth
+                [_branch_ncluster] =
+                half(anti_frixione_iso_max_x_e_eps(delta_vs_iso,
+                                                   0.4, 0.2));
+            _branch_cluster_anti_frixione_04_05_truth
+                [_branch_ncluster] =
+                half(anti_frixione_iso_max_x_e_eps(delta_vs_iso,
+                                                   0.4, 0.5));
+            _branch_cluster_anti_frixione_04_10_truth
+                [_branch_ncluster] =
+                half(anti_frixione_iso_max_x_e_eps(delta_vs_iso,
+                                                   0.4, 1.0));
         }
         else {
             _branch_cluster_iso_01_truth[_branch_ncluster] = NAN;
             _branch_cluster_iso_02_truth[_branch_ncluster] = NAN;
             _branch_cluster_iso_03_truth[_branch_ncluster] = NAN;
             _branch_cluster_iso_04_truth[_branch_ncluster] = NAN;
+
             _branch_cluster_frixione_04_02_truth[_branch_ncluster] = NAN;
             _branch_cluster_frixione_04_05_truth[_branch_ncluster] = NAN;
             _branch_cluster_frixione_04_10_truth[_branch_ncluster] = NAN;
+
+            _branch_cluster_anti_frixione_04_02_truth[_branch_ncluster] = NAN;
+            _branch_cluster_anti_frixione_04_05_truth[_branch_ncluster] = NAN;
+            _branch_cluster_anti_frixione_04_10_truth[_branch_ncluster] = NAN;
         }
 
         std::fill(_branch_cluster_s_nphoton[_branch_ncluster],
@@ -1838,7 +1898,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             kTRUE &&
             cell_number >= 0 && cell_number < EMCAL_NCELL) {
             _branch_cell_e[cell_number]   = half(cell_energy);
-            _branch_cell_tof[cell_number] = half(tof);
+            _branch_cell_tof[cell_number] = half(tof * 1e+9);
             _branch_cell_mc_truth_index[cell_number] =
                 SAFE_MC_TRUTH_INDEX_TO_USHRT(mc_truth_index);
 

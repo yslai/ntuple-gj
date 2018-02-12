@@ -65,9 +65,11 @@ private:
     BRANCH_ARRAY(primary_vertex_spd, 3, D)                          \
     BRANCH_ARRAY(primary_vertex_spd_sigma, 3, D)                    \
     BRANCH(primary_vertex_spd_ncontributor, I)                      \
+    BRANCH(is_pileup_from_spd_3_08, O)                              \
+    BRANCH(is_pileup_from_spd_5_08, O)                              \
     BRANCH(npileup_vertex_spd, I)                                   \
-    BRANCH(pileup_vertex_spd_ncontributor, I)                       \
-    BRANCH(pileup_vertex_spd_min_z_distance, D)                     \
+    BRANCH(ncluster_tpc, I)                                         \
+    BRANCH(event_selected, O)                                       \
     BRANCH(eg_signal_process_id, I)                                 \
     BRANCH(eg_mpi, I)                                               \
     BRANCH(eg_pt_hat, F)                                            \
@@ -121,6 +123,12 @@ private:
     BRANCH_ARRAY(cluster_frixione_its_04_02, ncluster, F)           \
     BRANCH_ARRAY(cluster_frixione_its_04_05, ncluster, F)           \
     BRANCH_ARRAY(cluster_frixione_its_04_10, ncluster, F)           \
+    BRANCH_ARRAY(cluster_anti_frixione_tpc_04_02, ncluster, F)      \
+    BRANCH_ARRAY(cluster_anti_frixione_tpc_04_05, ncluster, F)      \
+    BRANCH_ARRAY(cluster_anti_frixione_tpc_04_10, ncluster, F)      \
+    BRANCH_ARRAY(cluster_anti_frixione_its_04_02, ncluster, F)      \
+    BRANCH_ARRAY(cluster_anti_frixione_its_04_05, ncluster, F)      \
+    BRANCH_ARRAY(cluster_anti_frixione_its_04_10, ncluster, F)      \
     BRANCH_ARRAY(cluster_iso_01_truth, ncluster, F)                 \
     BRANCH_ARRAY(cluster_iso_02_truth, ncluster, F)                 \
     BRANCH_ARRAY(cluster_iso_03_truth, ncluster, F)                 \
@@ -128,6 +136,9 @@ private:
     BRANCH_ARRAY(cluster_frixione_04_02_truth, ncluster, F)         \
     BRANCH_ARRAY(cluster_frixione_04_05_truth, ncluster, F)         \
     BRANCH_ARRAY(cluster_frixione_04_10_truth, ncluster, F)         \
+    BRANCH_ARRAY(cluster_anti_frixione_04_02_truth, ncluster, F)    \
+    BRANCH_ARRAY(cluster_anti_frixione_04_05_truth, ncluster, F)    \
+    BRANCH_ARRAY(cluster_anti_frixione_04_10_truth, ncluster, F)    \
     BRANCH_ARRAY2(cluster_s_nphoton, ncluster, 4, F)                \
     BRANCH_ARRAY2(cluster_s_ncharged_hadron, ncluster, 4, F)        \
     BRANCH_ARRAY(cell_e, 17664, F)                                  \
@@ -325,7 +336,7 @@ private:
 #define BRANCH_STR(b)                           \
     char _branch_ ## b[BUFSIZ];
 #define BRANCH_STR_ARRAY(b, d)                  \
-    TClonesArray _branch_ ## b;
+    std::vector<std::string> _branch_ ## b;
 
     MEMBER_BRANCH;
 
