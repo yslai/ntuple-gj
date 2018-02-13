@@ -5,5 +5,5 @@ aliPhysicsVersion:	v5-09-11-01-1
 gridDataDir:		/alice/data/2015/LHC15o
 dataPattern:		/pass1/*/AliESDs.root
 runPrefix:              000
-runNumber:		[245829, 245705, 245702, 245700, 245683]
-emcalCorrection:	emcal_correction.yaml
+runNumber:		[246945, 246928]
+emcalCorrection:	emcal_correction_PbPb.yaml
