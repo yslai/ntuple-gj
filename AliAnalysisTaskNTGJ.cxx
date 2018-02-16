@@ -1436,6 +1436,10 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         _branch_cluster_tof[_branch_ncluster] =
             half(c->GetTOF() * 1e+9);
         _branch_cluster_ncell[_branch_ncluster] = c->GetNCells();
+        _branch_cluster_nlocal_maxima[_branch_ncluster] =
+            c->GetNExMax();
+        _branch_cluster_distance_to_bad_channel[_branch_ncluster] =
+            half(c->GetDistanceToBadChannel());
 
         const UShort_t *cell_index = c->GetCellsAbsId();
 
@@ -1452,6 +1456,19 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 }
             }
         }
+
+        Int_t cell_id_max = -1;
+        Double_t cell_energy_max = -INFINITY;
+        Double_t energy_cross = NAN;
+
+        cell_max_cross(cell_id_max, cell_energy_max, energy_cross,
+                       c, emcal_cell);
+        _branch_cluster_cell_id_max[_branch_ncluster] =
+            cell_id_max;
+        _branch_cluster_e_max[_branch_ncluster] =
+            half(cell_energy_max);
+        _branch_cluster_e_cross[_branch_ncluster] =
+            half(energy_cross);
 
         _branch_cluster_nmc_truth[_branch_ncluster] =
             c->GetNLabels();
@@ -1502,22 +1519,6 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 [cluster_nmctruth_index] = iterator->second;
             cluster_nmctruth_index++;
         }
-
-        Int_t cell_id_max = -1;
-        Double_t cell_energy_max = -INFINITY;
-        Double_t energy_cross = NAN;
-
-        cell_max_cross(cell_id_max, cell_energy_max, energy_cross,
-                       c, emcal_cell);
-        _branch_cluster_cell_id_max[_branch_ncluster] =
-            cell_id_max;
-        _branch_cluster_e_max[_branch_ncluster] =
-            half(cell_energy_max);
-        _branch_cluster_e_cross[_branch_ncluster] =
-            half(energy_cross);
-
-        _branch_cluster_nlocal_maxima[_branch_ncluster] =
-            c->GetNExMax();
 
         if (esd_event != NULL) {
             double cluster_iso_tpc_01 = 0;

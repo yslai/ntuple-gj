@@ -107,6 +107,7 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     FILE *fp = fopen(config_filename, "r");
     char line[4096];
     TString emcal_correction_filename = "emcal_correction.yaml";
+    bool mult_selection = true;
     bool physics_selection = false;
     bool physics_selection_mc_analysis = false;
     bool physics_selection_pileup_cut = true;
@@ -206,6 +207,9 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         else if (strcmp(key, "emcalCorrection") == 0) {
             emcal_correction_filename = value;
         }
+        else if (strcmp(key, "multSelection") == 0) {
+            mult_selection = strncmp(value, "true", 4) == 0;
+        }
         else if (strcmp(key, "physicsSelection") == 0) {
             physics_selection = strncmp(value, "true", 4) == 0;
         }
@@ -298,6 +302,7 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         "\"AliAnalysisTaskNTGJ\",\"";
 
     add_task_line += emcal_correction_filename + "\"," +
+        (mult_selection ? "true" : "false") + "," +
         (physics_selection ? "true" : "false") + "," +
         (physics_selection_mc_analysis ? "true" : "false") + "," +
         (physics_selection_pileup_cut ? "true" : "false") + "," +

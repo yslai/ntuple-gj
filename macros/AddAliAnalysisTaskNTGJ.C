@@ -2,6 +2,7 @@ AliAnalysisTaskNTGJ *
 AddAliAnalysisTaskNTGJ(TString name = "AliAnalysisTaskNTGJ",
                        TString emcal_correction_filename =
                        "emcal_correction.yaml",
+                       bool mult_selection,
                        bool physics_selection,
                        bool physics_selection_mc_analysis,
                        bool physics_selection_pileup_cut,
@@ -32,10 +33,13 @@ AddAliAnalysisTaskNTGJ(TString name = "AliAnalysisTaskNTGJ",
     fprintf(stderr, "%s:%d: skim_cluster_min_e = %f\n", __FILE__,
             __LINE__, skim_cluster_min_e);
 
-    gROOT->LoadMacro("$ALICE_PHYSICS/OADB/COMMON/MULTIPLICITY/"
-                     "macros/AddTaskMultSelection.C");
+    if (mult_selection) {
+        gROOT->LoadMacro("$ALICE_PHYSICS/OADB/COMMON/MULTIPLICITY/"
+                         "macros/AddTaskMultSelection.C");
 
-    AliMultSelectionTask *mult_selection_task = AddTaskMultSelection(kFALSE);
+        AliMultSelectionTask *mult_selection_task =
+            AddTaskMultSelection(kFALSE);
+    }
 
     if (emcal_correction_filename != "") {
         gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/"

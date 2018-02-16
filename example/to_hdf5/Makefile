@@ -17,9 +17,8 @@ LDLIBS =	$(shell root-config --libs)
 
 HDF5_ROOT =	/usr/local/hdf5
 CXXFLAGS +=	-I$(HDF5_ROOT)/include
-LDLIBS +=	-L$(HDF5_ROOT)/lib64 -L$(HDF5_ROOT)/lib64 -lhdf5_cpp -lhdf5
-
-CXXFLAGS +=	-I$(BOOST_ROOT)/include
+LDFLAGS +=	-L$(HDF5_ROOT)/lib64 -L$(HDF5_ROOT)/lib
+LDLIBS +=	-lhdf5_cpp -lhdf5
 
 TARGET =	to_hdf5
 

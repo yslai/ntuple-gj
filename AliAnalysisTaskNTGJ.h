@@ -95,10 +95,11 @@ private:
     BRANCH_ARRAY2(cluster_lambda_square, ncluster, 2, F)            \
     BRANCH_ARRAY(cluster_tof, ncluster, F)                          \
     BRANCH_ARRAY(cluster_ncell, ncluster, I)                        \
+    BRANCH_ARRAY(cluster_nlocal_maxima, ncluster, b)                \
+    BRANCH_ARRAY(cluster_distance_to_bad_channel, ncluster, F)      \
     BRANCH_ARRAY(cluster_cell_id_max, ncluster, s)                  \
     BRANCH_ARRAY(cluster_e_max, ncluster, F)                        \
     BRANCH_ARRAY(cluster_e_cross, ncluster, F)                      \
-    BRANCH_ARRAY(cluster_nlocal_maxima, ncluster, b)                \
     BRANCH_ARRAY(cluster_nmc_truth, ncluster, i)                    \
     BRANCH_ARRAY2(cluster_mc_truth_index, ncluster, 32, s)          \
     BRANCH_ARRAY(cluster_iso_tpc_01, ncluster, F)                   \
