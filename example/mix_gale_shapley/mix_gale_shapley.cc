@@ -60,11 +60,12 @@ namespace {
 
 		hi_tree->SetBranchAddress("primary_vertex", v);
 
-		float centrality_v0m;
+		float multiplicity_v0[64];
+		  //float centrality_v0m;
 
 		switch (nfeature) {
 		case 2:
-			hi_tree->SetBranchAddress("centrality_v0m", &centrality_v0m);
+			hi_tree->SetBranchAddress("multiplicity_v0", &multiplicity_v0);
 			break;
 		default:
 			fprintf(stderr, "%s:%d: illegal nfeature = %lu\n",
@@ -79,7 +80,11 @@ namespace {
 
 			ret.push_back(v[2]);
 			if (nfeature >= 2) {
-				ret.push_back(centrality_v0m);
+ 			        float multp_sum = 0;
+			        for (int k = 0; k < 64; k++) {
+				  multp_sum += multiplicity_v0[k];
+				}
+				ret.push_back(multp_sum);
 			}
 		}
 
@@ -405,14 +410,14 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 	}//h
 
 	  // //	  write to txt
-	  // FILE * txtfile = fopen ("pairs.txt","w");
-	  // for (size_t t=0; t<Matches.size();t++){
-	  //   for (size_t s=1; s<Matches[t].size();s++){
-	  //     fprintf(txtfile, "%lld ", Matches[t][s]);
-	  //   }
-	  //   fprintf(txtfile, "%s\n","");
-	  // }
-	  // fclose (txtfile);
+	  FILE * txtfile = fopen ("pairs.txt","w");
+	  for (size_t t=0; t<Matches.size();t++){
+	    for (size_t s=1; s<Matches[t].size();s++){
+	      fprintf(txtfile, "%lld ", Matches[t][s]);
+	    }
+	    fprintf(txtfile, "%s\n","");
+	  }
+	  fclose (txtfile);
 	  
 	  //	  write to TTree
 	if (strcmp(filename_0,filename_1) == 0){
@@ -451,13 +456,10 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 	    }
 	    
 	    fprintf(stderr, "%s\n","");
-	    //MixE->Fill();
 	    newtree->Fill();  
 	    
 	  }//End loop over entries
-	  //newtree->AutoSave();    
 	  newtree->Write();
-	  //newfile->ls;
 
 	  delete root_file;
 	  delete newfile;
