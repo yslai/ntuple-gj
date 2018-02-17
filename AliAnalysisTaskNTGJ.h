@@ -40,6 +40,7 @@ private:
     BRANCH_STR(version_jec)                                         \
     BRANCH_STR(grid_data_dir)                                       \
     BRANCH_STR(grid_data_pattern)                                   \
+    BRANCH(beam_energy, F)                                          \
     BRANCH_ARRAY(beam_particle, 2, I)                               \
     BRANCH(ntrigger_class, b)                                       \
     BRANCH_STR_ARRAY(trigger_class, ntrigger_class)                 \
@@ -381,6 +382,7 @@ private:
     AliMuonTrackCuts *_muon_track_cut; //!
 
     size_t _ncell; //!
+    bool _force_ue_subtraction; //!
     double _skim_cluster_min_e; //!
     double _skim_track_min_pt; //!
     double _skim_muon_track_min_pt; //!
@@ -418,6 +420,7 @@ public:
     void SetGridDataDir(const char *dir);
     void SetGridDataPattern(const char *pattern);
     //
+    void SetForceUESubtraction(bool force_ue_subtraction = true);
     void SetSkimClusterMinE(double min_e = -INFINITY);
     void SetSkimTrackMinPt(double min_pt = -INFINITY);
     void SetSkimMuonTrackMinPt(double min_pt = -INFINITY);

@@ -161,6 +161,7 @@ ClassImp(AliAnalysisTaskNTGJ);
     _emcal_geometry(NULL),                                  \
     _muon_track_cut(new AliMuonTrackCuts),                  \
     _ncell(EMCAL_NCELL),                                    \
+    _force_ue_subtraction(false),                           \
     _skim_cluster_min_e(-INFINITY),                         \
     _skim_track_min_pt(-INFINITY),                          \
     _skim_muon_track_min_pt(-INFINITY),                     \
@@ -730,6 +731,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         strncpy(_branch_version_jec, jec.version(), BUFSIZ);
         _branch_version_jec[BUFSIZ - 1] = '\0';
         if (esd_event != NULL) {
+            _branch_beam_energy = esd_event->GetBeamEnergy();
             for (size_t i = 0; i < 2; i++) {
                 _branch_beam_particle[i] =
                     esd_event->GetBeamParticle(i);
@@ -747,6 +749,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         }
         else if (aod_event != NULL) {
             // FIXME: AOD not handled
+            _branch_beam_energy = NAN;
             std::fill(_branch_beam_particle,
                       _branch_beam_particle + 2, 0);
         }
@@ -941,7 +944,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                     _branch_track_eta_emcal[_branch_ntrack] =
                         half(t->GetTrackEtaOnEMCal());
                     _branch_track_phi_emcal[_branch_ntrack] =
-                        half(angular_range_reduce(t->GetTrackPhiOnEMCal()));
+                        half(angular_range_reduce(
+                            t->GetTrackPhiOnEMCal()));
                 }
                 else {
                     _branch_track_eta_emcal[_branch_ntrack] = NAN;
@@ -1098,7 +1102,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         BEAM_PARTICLE_P = 1001
     };
 
-    const bool subtract_ue = esd_event != NULL ?
+    const bool subtract_ue =
+        _force_ue_subtraction ? true :
+        esd_event != NULL ?
         !(esd_event->GetBeamParticle(0) == BEAM_PARTICLE_P &&
           esd_event->GetBeamParticle(1) == BEAM_PARTICLE_P) :
         false;
@@ -1732,13 +1738,19 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             _branch_cluster_iso_its_03[_branch_ncluster] = NAN;
             _branch_cluster_iso_its_04[_branch_ncluster] = NAN;
 
-            _branch_cluster_frixione_tpc_04_02[_branch_ncluster] = NAN;
-            _branch_cluster_frixione_tpc_04_05[_branch_ncluster] = NAN;
-            _branch_cluster_frixione_tpc_04_10[_branch_ncluster] = NAN;
+            _branch_cluster_frixione_tpc_04_02[_branch_ncluster] =
+                NAN;
+            _branch_cluster_frixione_tpc_04_05[_branch_ncluster] =
+                NAN;
+            _branch_cluster_frixione_tpc_04_10[_branch_ncluster] =
+                NAN;
 
-            _branch_cluster_frixione_its_04_02[_branch_ncluster] = NAN;
-            _branch_cluster_frixione_its_04_05[_branch_ncluster] = NAN;
-            _branch_cluster_frixione_its_04_10[_branch_ncluster] = NAN;
+            _branch_cluster_frixione_its_04_02[_branch_ncluster] =
+                NAN;
+            _branch_cluster_frixione_its_04_05[_branch_ncluster] =
+                NAN;
+            _branch_cluster_frixione_its_04_10[_branch_ncluster] =
+                NAN;
 
             _branch_cluster_anti_frixione_tpc_04_02
                 [_branch_ncluster] = NAN;
@@ -1837,19 +1849,27 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             _branch_cluster_iso_03_truth[_branch_ncluster] = NAN;
             _branch_cluster_iso_04_truth[_branch_ncluster] = NAN;
 
-            _branch_cluster_frixione_04_02_truth[_branch_ncluster] = NAN;
-            _branch_cluster_frixione_04_05_truth[_branch_ncluster] = NAN;
-            _branch_cluster_frixione_04_10_truth[_branch_ncluster] = NAN;
+            _branch_cluster_frixione_04_02_truth[_branch_ncluster] =
+                NAN;
+            _branch_cluster_frixione_04_05_truth[_branch_ncluster] =
+                NAN;
+            _branch_cluster_frixione_04_10_truth[_branch_ncluster] =
+                NAN;
 
-            _branch_cluster_anti_frixione_04_02_truth[_branch_ncluster] = NAN;
-            _branch_cluster_anti_frixione_04_05_truth[_branch_ncluster] = NAN;
-            _branch_cluster_anti_frixione_04_10_truth[_branch_ncluster] = NAN;
+            _branch_cluster_anti_frixione_04_02_truth
+                [_branch_ncluster] = NAN;
+            _branch_cluster_anti_frixione_04_05_truth
+                [_branch_ncluster] = NAN;
+            _branch_cluster_anti_frixione_04_10_truth
+                [_branch_ncluster] = NAN;
         }
 
         std::fill(_branch_cluster_s_nphoton[_branch_ncluster],
-                  _branch_cluster_s_nphoton[_branch_ncluster] + 4, NAN);
+                  _branch_cluster_s_nphoton[_branch_ncluster] + 4,
+                  NAN);
         std::fill(_branch_cluster_s_ncharged_hadron[_branch_ncluster],
-                  _branch_cluster_s_ncharged_hadron[_branch_ncluster] + 4, NAN);
+                  _branch_cluster_s_ncharged_hadron
+                  [_branch_ncluster] + 4, NAN);
 
         std::vector<float> output_tensor =
             cluster_cell_keras_inference(
@@ -2024,6 +2044,12 @@ void AliAnalysisTaskNTGJ::SetGridDataPattern(const char *pattern)
 {
     strncpy(_branch_grid_data_pattern, pattern, BUFSIZ);
     _branch_grid_data_pattern[BUFSIZ - 1] = '\0';
+}
+
+void AliAnalysisTaskNTGJ::
+SetForceUESubtraction(bool force_ue_subtraction)
+{
+    _force_ue_subtraction = force_ue_subtraction;
 }
 
 void AliAnalysisTaskNTGJ::SetSkimClusterMinE(double min_e)

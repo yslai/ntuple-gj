@@ -6,6 +6,7 @@ AddAliAnalysisTaskNTGJ(TString name = "AliAnalysisTaskNTGJ",
                        bool physics_selection,
                        bool physics_selection_mc_analysis,
                        bool physics_selection_pileup_cut,
+                       bool force_ue_subtraction,
                        // 1e+309 = INFINITY (for IEEE 754 double)
                        double skim_cluster_min_e = -1e+309,
                        double skim_track_min_pt = -1e+309,
@@ -93,6 +94,10 @@ AddAliAnalysisTaskNTGJ(TString name = "AliAnalysisTaskNTGJ",
         task->SetAliPhysicsVersion(plugin->GetAliPhysicsVersion());
         task->SetGridDataDir(plugin->GetGridDataDir());
         task->SetGridDataPattern(plugin->GetDataPattern());
+
+        if (force_ue_subtraction) {
+            task->SetForceUESubtraction(force_ue_subtraction);
+        }
 
         task->SetSkimClusterMinE(skim_cluster_min_e);
         task->SetSkimTrackMinPt(skim_track_min_pt);

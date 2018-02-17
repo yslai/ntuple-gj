@@ -111,6 +111,7 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     bool physics_selection = false;
     bool physics_selection_mc_analysis = false;
     bool physics_selection_pileup_cut = true;
+    bool force_ue_subtraction = false;
     // 1e+309 = INFINITY (for IEEE 754 double)
     TString skim_cluster_min_e = "-1e+309";
     TString skim_track_min_pt = "-1e+309";
@@ -221,6 +222,9 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
             physics_selection_pileup_cut =
                 strncmp(value, "true", 4) == 0;
         }
+        else if (strcmp(key, "forceUESubtraction") == 0) {
+            force_ue_subtraction = strncmp(value, "true", 4) == 0;
+        }
         else if (strcmp(key, "skimClusterMinE") == 0) {
             skim_cluster_min_e = value;
         }
@@ -306,6 +310,7 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         (physics_selection ? "true" : "false") + "," +
         (physics_selection_mc_analysis ? "true" : "false") + "," +
         (physics_selection_pileup_cut ? "true" : "false") + "," +
+        (force_ue_subtraction ? "true" : "false") + "," +
         skim_cluster_min_e + "," +
         skim_track_min_pt + "," +
         skim_muon_track_min_pt + "," +
