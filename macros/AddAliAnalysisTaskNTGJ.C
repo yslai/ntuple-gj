@@ -1,24 +1,22 @@
 AliAnalysisTaskNTGJ *
-AddAliAnalysisTaskNTGJ(TString name = "AliAnalysisTaskNTGJ",
-                       TString emcal_correction_filename =
-                       "emcal_correction.yaml",
+AddAliAnalysisTaskNTGJ(TString name,
+                       TString emcal_correction_filename,
                        bool mult_selection,
                        bool physics_selection,
                        bool physics_selection_mc_analysis,
                        bool physics_selection_pileup_cut,
+                       TString emcal_geometry_filename,
+                       TString emcal_local2master_filename,
                        bool force_ue_subtraction,
-                       // 1e+309 = INFINITY (for IEEE 754 double)
-                       double skim_cluster_min_e = -1e+309,
-                       double skim_track_min_pt = -1e+309,
-                       double skim_muon_track_min_pt = -1e+309,
-                       double skim_jet_min_pt_1 = -1e+309,
-                       double skim_jet_min_pt_2 = -1e+309,
-                       double skim_jet_min_pt_3 = -1e+309,
-                       // -2147483648 = INT_MIN
-                       int skim_multiplicity_tracklet_min_n =
-                       -2147483648,
-                       double stored_track_min_pt = -1e+309,
-                       double stored_jet_min_pt_raw = -1e+309)
+                       double skim_cluster_min_e,
+                       double skim_track_min_pt,
+                       double skim_muon_track_min_pt,
+                       double skim_jet_min_pt_1,
+                       double skim_jet_min_pt_2,
+                       double skim_jet_min_pt_3,
+                       int skim_multiplicity_tracklet_min_n,
+                       double stored_track_min_pt,
+                       double stored_jet_min_pt_raw)
 {
     AliAnalysisManager *mgr =
         AliAnalysisManager::GetAnalysisManager();
@@ -94,6 +92,10 @@ AddAliAnalysisTaskNTGJ(TString name = "AliAnalysisTaskNTGJ",
         task->SetAliPhysicsVersion(plugin->GetAliPhysicsVersion());
         task->SetGridDataDir(plugin->GetGridDataDir());
         task->SetGridDataPattern(plugin->GetDataPattern());
+
+        task->SetEMCALGeometryFilename(emcal_geometry_filename);
+        task->SetEMCALLocal2MasterFilename(
+            emcal_local2master_filename);
 
         if (force_ue_subtraction) {
             task->SetForceUESubtraction(force_ue_subtraction);

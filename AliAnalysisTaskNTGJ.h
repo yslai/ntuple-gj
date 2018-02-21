@@ -382,6 +382,10 @@ private:
     AliMuonTrackCuts *_muon_track_cut; //!
 
     size_t _ncell; //!
+
+    std::string _emcal_geometry_filename; //!
+    std::string _emcal_local2master_filename; //!
+
     bool _force_ue_subtraction; //!
     double _skim_cluster_min_e; //!
     double _skim_track_min_pt; //!
@@ -419,6 +423,11 @@ public:
     void SetAliPhysicsVersion(const char *version);
     void SetGridDataDir(const char *dir);
     void SetGridDataPattern(const char *pattern);
+    //
+    void SetEMCALGeometryFilename(const char *
+                                  emcal_geometry_filename);
+    void SetEMCALLocal2MasterFilename(const char *
+                                      emcal_local2master_filename);
     //
     void SetForceUESubtraction(bool force_ue_subtraction = true);
     void SetSkimClusterMinE(double min_e = -INFINITY);

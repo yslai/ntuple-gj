@@ -107,6 +107,12 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     FILE *fp = fopen(config_filename, "r");
     char line[4096];
     TString emcal_correction_filename = "emcal_correction.yaml";
+    TString emcal_geometry_filename =
+        "/eos/experiment/alice/analysis-data/OADB/EMCAL/"
+        "geometry_2015.root";
+    TString emcal_local2master_filename =
+        "/eos/experiment/alice/analysis-data/OADB/EMCAL/"
+        "EMCALlocal2master.root";
     bool mult_selection = true;
     bool physics_selection = false;
     bool physics_selection_mc_analysis = false;
@@ -222,6 +228,12 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
             physics_selection_pileup_cut =
                 strncmp(value, "true", 4) == 0;
         }
+        else if (strcmp(key, "emcalGeometryFilename") == 0) {
+            emcal_geometry_filename = value;
+        }
+        else if (strcmp(key, "emcalLocal2MasterFilename") == 0) {
+            emcal_local2master_filename = value;
+        }
         else if (strcmp(key, "forceUESubtraction") == 0) {
             force_ue_subtraction = strncmp(value, "true", 4) == 0;
         }
@@ -309,7 +321,9 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         (mult_selection ? "true" : "false") + "," +
         (physics_selection ? "true" : "false") + "," +
         (physics_selection_mc_analysis ? "true" : "false") + "," +
-        (physics_selection_pileup_cut ? "true" : "false") + "," +
+        (physics_selection_pileup_cut ? "true" : "false") + ",\"" +
+        emcal_geometry_filename + "\",\"" +
+        emcal_local2master_filename + "\"," +
         (force_ue_subtraction ? "true" : "false") + "," +
         skim_cluster_min_e + "," +
         skim_track_min_pt + "," +

@@ -9,6 +9,7 @@
 
 #include <Compression.h>
 #include <TFile.h>
+#include <TSystem.h>
 #include <TGeoManager.h>
 #include <TGeoGlobalMagField.h>
 
@@ -161,6 +162,11 @@ ClassImp(AliAnalysisTaskNTGJ);
     _emcal_geometry(NULL),                                  \
     _muon_track_cut(new AliMuonTrackCuts),                  \
     _ncell(EMCAL_NCELL),                                    \
+    _emcal_geometry_filename("$ALICE_PHYSICS/OADB/EMCAL/"   \
+                             "geometry_2015.root"),         \
+    _emcal_local2master_filename("$ALICE_PHYSICS/OADB/"     \
+                                 "EMCAL/"                   \
+                                 "EMCALlocal2master.root"), \
     _force_ue_subtraction(false),                           \
     _skim_cluster_min_e(-INFINITY),                         \
     _skim_track_min_pt(-INFINITY),                          \
@@ -286,15 +292,51 @@ void AliAnalysisTaskNTGJ::UserCreateOutputObjects(void)
 void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 {
     if (_emcal_geometry == NULL) {
-        TGeoManager::Import(
-            "$ALICE_PHYSICS/OADB/EMCAL/geometry_2015.root");
-        _emcal_geometry =
-            AliEMCALGeometry::GetInstance(_emcal_geometry_name);
+        const char *emcal_geometry_filename[] = {
+            "$ALICE_PHYSICS/OADB/EMCAL/geometry_2015.root",
+            "/eos/experiment/alice/analysis-data/OADB/EMCAL/"
+            "geometry_2015.root",
+            "", // Replaced with the user configured value
+            NULL
+        };
+
+        for (const char **p = emcal_geometry_filename;
+             *p != NULL; p++) {
+            const char *s = p[0] == '\0' ?
+                _emcal_geometry_filename.c_str() : *p;
+
+            if (!gSystem->
+                AccessPathName(gSystem->ExpandPathName(s))) {
+                TGeoManager::Import(s);
+                _emcal_geometry = AliEMCALGeometry::
+                    GetInstance(_emcal_geometry_name);
+                break;
+            }
+        }
 
         AliOADBContainer emcal_geometry_container("emcal");
-        emcal_geometry_container.InitFromFile(
+
+        const char *emcal_local2master_filename[] = {
             "$ALICE_PHYSICS/OADB/EMCAL/EMCALlocal2master.root",
-            "AliEMCALgeo");
+            "/eos/experiment/alice/analysis-data/OADB/EMCAL/"
+            "EMCALlocal2master.root",
+            "", // Replaced with the user configured value
+            NULL
+        };
+
+        for (const char **p = emcal_local2master_filename;
+             *p != NULL; p++) {
+            const char *s = p[0] == '\0' ?
+                _emcal_local2master_filename.c_str() : *p;
+
+            if (!gSystem->
+                AccessPathName(gSystem->ExpandPathName(s))) {
+                emcal_geometry_container.
+                    InitFromFile(s, "AliEMCALgeo");
+                break;
+            }
+        }
+
         TObjArray *geometry_matrix = dynamic_cast<TObjArray *>(
             emcal_geometry_container.GetObject(
                 _branch_run_number, "EmcalMatrices"));
@@ -2044,6 +2086,18 @@ void AliAnalysisTaskNTGJ::SetGridDataPattern(const char *pattern)
 {
     strncpy(_branch_grid_data_pattern, pattern, BUFSIZ);
     _branch_grid_data_pattern[BUFSIZ - 1] = '\0';
+}
+
+void AliAnalysisTaskNTGJ::
+SetEMCALGeometryFilename(const char *emcal_geometry_filename)
+{
+    _emcal_geometry_filename = emcal_geometry_filename;
+}
+
+void AliAnalysisTaskNTGJ::
+SetEMCALLocal2MasterFilename(const char *emcal_local2master_filename)
+{
+    _emcal_local2master_filename = emcal_local2master_filename;
 }
 
 void AliAnalysisTaskNTGJ::
