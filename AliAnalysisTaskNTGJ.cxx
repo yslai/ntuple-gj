@@ -293,10 +293,11 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 {
     if (_emcal_geometry == NULL) {
         const char *emcal_geometry_filename[] = {
+            "", // Replaced with the user configured value
+            "geometry_2015.root",
             "$ALICE_PHYSICS/OADB/EMCAL/geometry_2015.root",
             "/eos/experiment/alice/analysis-data/OADB/EMCAL/"
             "geometry_2015.root",
-            "", // Replaced with the user configured value
             NULL
         };
 
@@ -317,10 +318,11 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         AliOADBContainer emcal_geometry_container("emcal");
 
         const char *emcal_local2master_filename[] = {
+            "", // Replaced with the user configured value
+            "EMCALlocal2master.root",
             "$ALICE_PHYSICS/OADB/EMCAL/EMCALlocal2master.root",
             "/eos/experiment/alice/analysis-data/OADB/EMCAL/"
             "EMCALlocal2master.root",
-            "", // Replaced with the user configured value
             NULL
         };
 

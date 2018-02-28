@@ -107,12 +107,8 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     FILE *fp = fopen(config_filename, "r");
     char line[4096];
     TString emcal_correction_filename = "emcal_correction.yaml";
-    TString emcal_geometry_filename =
-        "/eos/experiment/alice/analysis-data/OADB/EMCAL/"
-        "geometry_2015.root";
-    TString emcal_local2master_filename =
-        "/eos/experiment/alice/analysis-data/OADB/EMCAL/"
-        "EMCALlocal2master.root";
+    TString emcal_geometry_filename = "geometry_2015.root";
+    TString emcal_local2master_filename = "EMCALlocal2master.root";
     bool mult_selection = true;
     bool physics_selection = false;
     bool physics_selection_mc_analysis = false;
@@ -271,9 +267,18 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     // Intel MKLML
 
     TString mklml_filename = "";
+    TString oadb_filename = "";
 
     if (!gSystem->AccessPathName("libmklml_gnu_so")) {
         mklml_filename = "libiomp5_so libmklml_gnu_so";
+    }
+    if (strchr(emcal_geometry_filename, '/') == NULL) {
+        oadb_filename = emcal_geometry_filename;
+        oadb_filename += " ";
+    }
+    if (strchr(emcal_local2master_filename, '/') == NULL) {
+        oadb_filename = emcal_local2master_filename;
+        oadb_filename += " ";
     }
     plugin->SetAdditionalLibs(
         "AliAnalysisTaskNTGJ.h "
@@ -291,7 +296,8 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         "libsiscone_spherical.so libfastjetplugins.so "
         "libfastjetcontribfragile.so " +
         mklml_filename + " " +
-        emcal_correction_filename);
+        emcal_correction_filename + " " +
+        oadb_filename);
     plugin->SetAnalysisSource("AliAnalysisTaskNTGJ.cxx");
 
     // Honor alien_CLOSE_SE for the output also, e.g. when
