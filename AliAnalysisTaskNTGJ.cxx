@@ -408,8 +408,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         return;
     }
 
-#if 1
     if (event->GetRunNumber() != _run_number_current) {
+        _metadata_filled = false;
         _run_number_current = event->GetRunNumber();
         if (_muon_track_cut != NULL) {
             _muon_track_cut->SetAllowDefaultParams(kTRUE);
@@ -419,7 +419,6 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                  GetInputEventHandler()));
         }
     }
-#endif
 
     AliESDEvent *esd_event = dynamic_cast<AliESDEvent *>(event);
     AliAODEvent *aod_event = NULL;
