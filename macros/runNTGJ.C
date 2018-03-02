@@ -107,8 +107,8 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     FILE *fp = fopen(config_filename, "r");
     char line[4096];
     TString emcal_correction_filename = "emcal_correction.yaml";
-    TString emcal_geometry_filename = "geometry_2015.root";
-    TString emcal_local2master_filename = "EMCALlocal2master.root";
+    TString emcal_geometry_filename = "";
+    TString emcal_local2master_filename = "";
     bool mult_selection = true;
     bool physics_selection = false;
     bool physics_selection_mc_analysis = false;

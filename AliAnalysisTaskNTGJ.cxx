@@ -162,11 +162,8 @@ ClassImp(AliAnalysisTaskNTGJ);
     _emcal_geometry(NULL),                                  \
     _muon_track_cut(new AliMuonTrackCuts),                  \
     _ncell(EMCAL_NCELL),                                    \
-    _emcal_geometry_filename("$ALICE_PHYSICS/OADB/EMCAL/"   \
-                             "geometry_2015.root"),         \
-    _emcal_local2master_filename("$ALICE_PHYSICS/OADB/"     \
-                                 "EMCAL/"                   \
-                                 "EMCALlocal2master.root"), \
+    _emcal_geometry_filename(""),                           \
+    _emcal_local2master_filename(""),                       \
     _force_ue_subtraction(false),                           \
     _skim_cluster_min_e(-INFINITY),                         \
     _skim_track_min_pt(-INFINITY),                          \
@@ -291,58 +288,33 @@ void AliAnalysisTaskNTGJ::UserCreateOutputObjects(void)
 
 void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 {
-    if (_emcal_geometry == NULL) {
-        const char *emcal_geometry_filename[] = {
-            "", // Replaced with the user configured value
-            "geometry_2015.root",
-            "$ALICE_PHYSICS/OADB/EMCAL/geometry_2015.root",
-            "/eos/experiment/alice/analysis-data/OADB/EMCAL/"
-            "geometry_2015.root",
-            NULL
-        };
-
-        for (const char **p = emcal_geometry_filename;
-             *p != NULL; p++) {
-            const char *s = p[0] == '\0' ?
-                _emcal_geometry_filename.c_str() : *p;
-
-            if (!gSystem->
-                AccessPathName(gSystem->ExpandPathName(s))) {
-                TGeoManager::Import(s);
-                _emcal_geometry = AliEMCALGeometry::
-                    GetInstance(_emcal_geometry_name);
-                break;
-            }
+    if (!_emcal_geometry_filename.empty() &&
+        !_emcal_local2master_filename.empty() &&
+        _emcal_geometry == NULL) {
+        if (!gSystem->
+            AccessPathName(gSystem->
+                           ExpandPathName(_emcal_geometry_filename.
+                                          c_str()))) {
+            TGeoManager::Import(_emcal_geometry_filename.c_str());
+            _emcal_geometry = AliEMCALGeometry::
+                GetInstance(_emcal_geometry_name);
         }
 
         AliOADBContainer emcal_geometry_container("emcal");
 
-        const char *emcal_local2master_filename[] = {
-            "", // Replaced with the user configured value
-            "EMCALlocal2master.root",
-            "$ALICE_PHYSICS/OADB/EMCAL/EMCALlocal2master.root",
-            "/eos/experiment/alice/analysis-data/OADB/EMCAL/"
-            "EMCALlocal2master.root",
-            NULL
-        };
-
-        for (const char **p = emcal_local2master_filename;
-             *p != NULL; p++) {
-            const char *s = p[0] == '\0' ?
-                _emcal_local2master_filename.c_str() : *p;
-
-            if (!gSystem->
-                AccessPathName(gSystem->ExpandPathName(s))) {
-                emcal_geometry_container.
-                    InitFromFile(s, "AliEMCALgeo");
-                break;
-            }
+        if (!gSystem->
+            AccessPathName(gSystem->
+                           ExpandPathName(_emcal_local2master_filename.
+                                          c_str()))) {
+            emcal_geometry_container.
+                InitFromFile(_emcal_local2master_filename.c_str(),
+                             "AliEMCALgeo");
         }
 
         TObjArray *geometry_matrix = dynamic_cast<TObjArray *>(
             emcal_geometry_container.GetObject(
                 _branch_run_number, "EmcalMatrices"));
-        if (geometry_matrix != NULL) {
+        if (_emcal_geometry != NULL && geometry_matrix != NULL) {
             const Int_t nsm = _emcal_geometry->GetEMCGeometry()->
                 GetNumberOfSuperModules();
 
@@ -797,41 +769,44 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                       _branch_beam_particle + 2, 0);
         }
 
-        _emcal_cell_position = new std::vector<point_2d_t>();
-        for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
-            TVector3 v;
+        if (_emcal_geometry != NULL) {
+            _emcal_cell_position = new std::vector<point_2d_t>();
+            for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
+                TVector3 v;
 
-            _emcal_geometry->GetGlobal(cell_id, v);
-            _branch_cell_eta[cell_id] = v.Eta();
-            _branch_cell_phi[cell_id] = v.Phi();
-            reinterpret_cast<std::vector<point_2d_t> *>
-                (_emcal_cell_position)->push_back(
-                    point_2d_t(v.Eta(), v.Phi()));
-        }
-
-        voronoi_area_incident(
-            _emcal_cell_area, _emcal_cell_incident,
-            *reinterpret_cast<std::vector<point_2d_t> *>
-            (_emcal_cell_position));
-
-        double sum_area_inside = 0;
-        size_t count_inside = 0;
-
-        for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
-            if (inside_edge(cell_id, 1)) {
-                sum_area_inside += _emcal_cell_area[cell_id];
-                count_inside++;
+                _emcal_geometry->GetGlobal(cell_id, v);
+                _branch_cell_eta[cell_id] = v.Eta();
+                _branch_cell_phi[cell_id] = v.Phi();
+                reinterpret_cast<std::vector<point_2d_t> *>
+                    (_emcal_cell_position)->push_back(
+                        point_2d_t(v.Eta(), v.Phi()));
             }
-        }
 
-        const double mean_area_inside = sum_area_inside / count_inside;
+            voronoi_area_incident(
+                _emcal_cell_area, _emcal_cell_incident,
+                *reinterpret_cast<std::vector<point_2d_t> *>
+                (_emcal_cell_position));
 
-        for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
-            if (!inside_edge(cell_id, 1)) {
-                _emcal_cell_area[cell_id] = mean_area_inside;
+            double sum_area_inside = 0;
+            size_t count_inside = 0;
+
+            for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
+                if (inside_edge(cell_id, 1)) {
+                    sum_area_inside += _emcal_cell_area[cell_id];
+                    count_inside++;
+                }
             }
-            _branch_cell_voronoi_area[cell_id] =
-                _emcal_cell_area[cell_id];
+
+            const double mean_area_inside =
+                sum_area_inside / count_inside;
+
+            for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
+                if (!inside_edge(cell_id, 1)) {
+                    _emcal_cell_area[cell_id] = mean_area_inside;
+                }
+                _branch_cell_voronoi_area[cell_id] =
+                    _emcal_cell_area[cell_id];
+            }
         }
 
         _metadata_filled = true;
