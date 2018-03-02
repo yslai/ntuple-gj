@@ -769,6 +769,10 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                       _branch_beam_particle + 2, 0);
         }
 
+        std::fill(_branch_cell_eta, _branch_cell_eta + EMCAL_NCELL,
+                  NAN);
+        std::fill(_branch_cell_phi, _branch_cell_phi + EMCAL_NCELL,
+                  NAN);
         if (_emcal_geometry != NULL) {
             _emcal_cell_position = new std::vector<point_2d_t>();
             for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
