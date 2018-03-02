@@ -273,11 +273,11 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         mklml_filename = "libiomp5_so libmklml_gnu_so";
     }
     if (strchr(emcal_geometry_filename.Data(), '/') == NULL) {
-        oadb_filename = emcal_geometry_filename;
+        oadb_filename += emcal_geometry_filename;
         oadb_filename += " ";
     }
     if (strchr(emcal_local2master_filename.Data(), '/') == NULL) {
-        oadb_filename = emcal_local2master_filename;
+        oadb_filename += emcal_local2master_filename;
         oadb_filename += " ";
     }
     plugin->SetAdditionalLibs(
