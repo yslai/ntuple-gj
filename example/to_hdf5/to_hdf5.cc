@@ -31,19 +31,20 @@ void find_ntrack_ncluster_max(char *argv_first[], char *argv_last[], UInt_t &ntr
             continue;
         }
 
-        TDirectoryFile *df = dynamic_cast<TDirectoryFile *>
-            (file->Get("AliAnalysisTaskNTGJ"));
+         TDirectoryFile *df = dynamic_cast<TDirectoryFile *>
+             (file->Get("AliAnalysisTaskNTGJ"));
 
-        if (df == NULL) {
-            continue;
-        }
+         if (df == NULL) {
+	       fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, "Cannot open TFile");
+             continue;
+         }
 
-        TTree *hi_tree = dynamic_cast<TTree *>
-            (df->Get("_tree_event"));
+         TTree *hi_tree = dynamic_cast<TTree *>
+             (df->Get("_tree_event"));
 
-        if (hi_tree == NULL) {
-          
-	  continue;
+	 if (hi_tree == NULL) {
+	   fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, "Cannot open _tree_event");
+	   continue;
         }
 
         // Get the maximum of the "ntrack"
@@ -64,7 +65,7 @@ void find_ntrack_ncluster_max(char *argv_first[], char *argv_last[], UInt_t &ntr
         // Fully delete everything
 
         hi_tree->Delete();
-        delete df;
+	delete df;
         file->Close();
         delete file;
     }
@@ -235,7 +236,6 @@ int main(int argc, char *argv[])
     UInt_t ncluster_max = 0;
 
     find_ntrack_ncluster_max(argv + 1, argv + argc - 1, ntrack_max, ncluster_max);
-
     fprintf(stderr, "%sf:%d: ntrack_max = %u, ncluster_max = %u\n", __FILE__, __LINE__, ntrack_max, ncluster_max);
 
     // Access mode H5F_ACC_TRUNC truncates any existing file, while
