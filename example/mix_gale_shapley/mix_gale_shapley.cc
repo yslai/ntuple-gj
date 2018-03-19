@@ -319,12 +319,12 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 	const size_t nblock = nblocks - 1; // FIXME:Use % and rounding to get all events 
 
 	size_t lmin,lmax; 
-	size_t width = 5; //if changed, also must change when writing to Tree
+	size_t width = 25; //if changed, also must change when writing to Tree
 
 	std::vector<std::vector<Long64_t> > Matches;
 
 	for(size_t h = 0; h < nblock+1; h++){
-	  //for(size_t h = 0; h < 1; h++){
+	//for(size_t h = 0; h < 5; h++){
 	    const size_t event_start_0 = h * nevent_0 / (nblock + 1); 
 	    const size_t event_end_0 = (h + 1) * nevent_0 / (nblock + 1);
 	    const size_t nevents_0 = event_end_0 - event_start_0;	  
@@ -356,11 +356,19 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 	      
 	      if (i==h) continue;
 	     	      
-	      size_t event_start_1 = i * nevent_1 / (nblock+1);
-	      size_t event_end_1 = (i + nduplicate) * nevent_1 /
+// 	      size_t event_start_1 = i * nevent_1 / (nblock+1);
+// 	      size_t event_end_1 = (i + nduplicate) * nevent_1 /
+// 		(nblock + nduplicate);
+	      
+// 	      const size_t nevents_1 = event_end_1 - event_start_1;
+
+	      size_t event_start_1 = i * nevent_0 / (nblock+1);
+	      size_t event_end_1 = (i + nduplicate) * nevent_0 /
 		(nblock + nduplicate);
 	      
 	      const size_t nevents_1 = event_end_1 - event_start_1;
+
+
 	      if(nevents_1<nevents_0) event_end_1 += (nevents_0-nevents_1);
 	      //FIXME:small # events mix with themselves once. need conditional using last block
 	      
@@ -409,18 +417,19 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 
 	}//h
 
-	  // //	  write to txt
-	  FILE * txtfile = fopen ("pairs.txt","w");
-	  for (size_t t=0; t<Matches.size();t++){
-	    for (size_t s=1; s<Matches[t].size();s++){
-	      fprintf(txtfile, "%lld ", Matches[t][s]);
-	    }
-	    fprintf(txtfile, "%s\n","");
-	  }
-	  fclose (txtfile);
+	  //    write to txt
+// 	  FILE * txtfile = fopen ("pairs.txt","w");
+// 	  for (size_t t=0; t<Matches.size();t++){
+// 	    for (size_t s=1; s<Matches[t].size();s++){
+// 	      fprintf(txtfile, "%lld ", Matches[t][s]);
+// 	    }
+// 	    fprintf(txtfile, "%s\n","");
+// 	  }
+// 	  fclose (txtfile);
 	  
-	  //	  write to TTree
-	if (strcmp(filename_0,filename_1) == 0){
+
+	// write to TTree
+	//if (strcmp(filename_0,filename_1) == 0){
 
 	  TFile *root_file = new TFile(filename_0,"update");
 	  TTree *hi_tree = dynamic_cast<TTree *>
@@ -436,7 +445,7 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 
 	  fprintf(stderr, "%llu\n",nentries);
 	  
-	  TBranch *MixE = newtree->Branch("Mix_Events", Mix_Events, "&Mix_Events[10]/L");
+	  TBranch *MixE = newtree->Branch("Mix_Events", Mix_Events, "&Mix_Events[50]/L");
 	  
 	  for (ULong64_t t = 0; t<nentries;t++){
 	    hi_tree->GetEntry(t);
@@ -463,8 +472,8 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 
 	  delete root_file;
 	  delete newfile;
-	}
-	else fprintf(stderr, "%s\n","Nothing written to root file.");
+	  //}
+	  //else fprintf(stderr, "%s\n","Nothing written to root file.");
 	
 	gSystem->Exit(0);
 }

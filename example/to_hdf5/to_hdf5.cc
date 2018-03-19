@@ -226,7 +226,8 @@ void write_track_cluster(H5::DataSet &track_data_set, H5::DataSet &cluster_data_
 
 int main(int argc, char *argv[])
 {
-    if (argc < 2) {
+    if (argc < 3) {
+      fprintf(stderr, "%s", "Syntax is [root_file] [new hdf5 file name]");
         exit(EXIT_FAILURE);
     }
 
