@@ -107,8 +107,8 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     FILE *fp = fopen(config_filename, "r");
     char line[4096];
     TString emcal_correction_filename = "emcal_correction.yaml";
-    TString emcal_geometry_filename = "";
-    TString emcal_local2master_filename = "";
+    TString emcal_geometry_filename = "geometry_2015.root";
+    TString emcal_local2master_filename = "EMCALlocal2master.root";
     bool mult_selection = true;
     bool physics_selection = false;
     bool physics_selection_mc_analysis = false;
@@ -273,11 +273,11 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         mklml_filename = "libiomp5_so libmklml_gnu_so";
     }
     if (strchr(emcal_geometry_filename.Data(), '/') == NULL) {
-        oadb_filename += emcal_geometry_filename;
+        oadb_filename = emcal_geometry_filename;
         oadb_filename += " ";
     }
     if (strchr(emcal_local2master_filename.Data(), '/') == NULL) {
-        oadb_filename += emcal_local2master_filename;
+        oadb_filename = emcal_local2master_filename;
         oadb_filename += " ";
     }
     plugin->SetAdditionalLibs(

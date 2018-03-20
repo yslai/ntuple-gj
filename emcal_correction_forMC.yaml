@@ -1,4 +1,4 @@
-pass: pass1_FAST
+pass: pass4
 inputObjects:
     cells:
         defaultCells:
@@ -6,6 +6,19 @@ inputObjects:
     clusterContainers:
         defaultClusterContainer:
             branchName: "usedefault"
+        defaultClusterContainer_1:
+            minE: 0.0
+            minPt: 0.0
+        defaultClusterContainer_2:
+            minE: 0.0
+            minPt: 0.0
+            clusNonLinCorrEnergyCut: 0.15
+    trackContainers:
+        defaultTrackContainer:
+            branchName: "usedefault"
+        defaultTrackContainer_1:
+            minPt: 0.15
+            trackFilterType: kNoTrackFilter
 CellEnergy:
     enabled: true
     createHistos: true
@@ -18,7 +31,7 @@ CellTimeCalib:
 Clusterizer:
     enabled: true
     createHistos: true
-    clusterizer: kClusterizerv2
+    clusterizer: kClusterizerv1
     recalDistToBadChannels: true
     cellE: 0.1
     seedE: 0.5
@@ -29,3 +42,8 @@ Clusterizer:
 
 ClusterTrackMatcher:
     enabled: false
+
+CellEmulateCrosstalk:                              
+    enabled: false
+    createHistos: false
+    printConfiguration: false

@@ -1,5 +1,5 @@
 gridWorkingDir:		workingdir
-gridOutputDir:		outputdir_13d_test
+gridOutputDir:		outputdir_13d_test_latest
 aliROOTVersion:		v5-09-11-1
 aliPhysicsVersion:	v5-09-11-01-1
 gridDataDir:		/alice/data/2013/LHC13d

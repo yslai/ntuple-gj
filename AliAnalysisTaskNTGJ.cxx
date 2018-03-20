@@ -162,8 +162,8 @@ ClassImp(AliAnalysisTaskNTGJ);
     _emcal_geometry(NULL),                                  \
     _muon_track_cut(new AliMuonTrackCuts),                  \
     _ncell(EMCAL_NCELL),                                    \
-    _emcal_geometry_filename(""),                           \
-    _emcal_local2master_filename(""),                       \
+    _emcal_geometry_filename("geometry_2015.root"),                           \
+    _emcal_local2master_filename("EMCALlocal2master.root"),                       \
     _force_ue_subtraction(false),                           \
     _skim_cluster_min_e(-INFINITY),                         \
     _skim_track_min_pt(-INFINITY),                          \
