@@ -319,12 +319,14 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 	const size_t nblock = nblocks - 1; // FIXME:Use % and rounding to get all events 
 
 	size_t lmin,lmax; 
+	//1/2 number of mixed events -> 1/2 number of blocks
 	size_t width = 25; //if changed, also must change when writing to Tree
 
 	std::vector<std::vector<Long64_t> > Matches;
 
-	for(size_t h = 0; h < nblock+1; h++){
-	//for(size_t h = 0; h < 5; h++){
+	//loop through blocks
+	//for(size_t h = 0; h < nblock+1; h++){
+	for(size_t h = nblock-1; h < nblock+1; h++){
 	    const size_t event_start_0 = h * nevent_0 / (nblock + 1); 
 	    const size_t event_end_0 = (h + 1) * nevent_0 / (nblock + 1);
 	    const size_t nevents_0 = event_end_0 - event_start_0;	  
@@ -355,17 +357,25 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 	    for (size_t i = lmin; i < lmax; i++) {
 	      
 	      if (i==h) continue;
-	     	      
+	      
+	      //for similar files:
+	      //fprintf(stderr,"%s","Using Similar file size block distribution");
 // 	      size_t event_start_1 = i * nevent_1 / (nblock+1);
 // 	      size_t event_end_1 = (i + nduplicate) * nevent_1 /
 // 		(nblock + nduplicate);
 	      
 // 	      const size_t nevents_1 = event_end_1 - event_start_1;
 
-	      size_t event_start_1 = i * nevent_0 / (nblock+1);
-	      size_t event_end_1 = (i + nduplicate) * nevent_0 /
-		(nblock + nduplicate);
+//            size_t event_start_1 = i * nevent_0 / (nblock+1);
+// 	      size_t event_end_1 = (i + nduplicate) * nevent_0 /
+// 		(nblock + nduplicate);
 	      
+	      //for assymtric files:
+	      fprintf(stderr,"\n%s\n","Using Assymetric File block distribution, LARGER FILE: SECEND ARG"); 
+	      fprintf(stderr,"%s %lu %s %lu: %s %iu %s %iu\n\n","Block",h,"of",nblock, "Event", i, "of",width*2);
+	      size_t event_start_1 = i * nevent_1 / (nblock+1);
+	      size_t event_end_1 = event_start_1 + (event_end_0 - event_start_0);
+
 	      const size_t nevents_1 = event_end_1 - event_start_1;
 
 
@@ -429,6 +439,7 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 	  
 
 	// write to TTree
+
 	//if (strcmp(filename_0,filename_1) == 0){
 
 	  TFile *root_file = new TFile(filename_0,"update");
@@ -436,7 +447,8 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 	    (dynamic_cast<TDirectoryFile *>
 	     (root_file->Get("AliAnalysisTaskNTGJ"))->Get("_tree_event"));
 
-	  TFile *newfile = new TFile("mixed.root","recreate");	  
+	  TFile *newfile = new TFile("test_mixed.root","recreate");	  
+	  //TFiles are more closely associated with TTrees, need to clone, not append....
 	  TTree *newtree = hi_tree->CloneTree(0);
 
 	  unsigned int n_mix_events = 2*width;
