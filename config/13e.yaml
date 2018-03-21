@@ -1,0 +1,9 @@
+gridWorkingDir:		workingdir
+gridOutputDir:		outputdir_13e
+aliROOTVersion:		v5-09-11-1
+aliPhysicsVersion:	v5-09-11-01-1
+gridDataDir:		/alice/data/2013/LHC13e
+dataPattern:		/pass4/*/AliESDs.root
+runPrefix:              000
+runNumber:		[196310, 196309, 196308, 196214, 196208, 196201, 196200, 196199, 196197, 196194, 196187, 196185, 196107, 196091, 196090, 196089, 196085, 195958, 195955, 195935]
+emcalCorrection:	emcal_correction.yaml

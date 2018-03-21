@@ -1,4 +1,4 @@
-pass: pass4
+pass: pass1_CENT_wSDD
 inputObjects:
     cells:
         defaultCells:
@@ -6,6 +6,19 @@ inputObjects:
     clusterContainers:
         defaultClusterContainer:
             branchName: "usedefault"
+        defaultClusterContainer_1:
+            minE: 0.0
+            minPt: 0.0
+        defaultClusterContainer_2:
+            minE: 0.0
+            minPt: 0.0
+            clusNonLinCorrEnergyCut: 0.15
+    trackContainers:
+        defaultTrackContainer:
+            branchName: "usedefault"
+        defaultTrackContainer_1:
+            minPt: 0.15
+            trackFilterType: kHybridTracks
 CellEnergy:
     enabled: true
     createHistos: false
@@ -19,14 +32,9 @@ Clusterizer:
     enabled: true
     createHistos: false
     clusterizer: kClusterizerv2
-    recalDistToBadChannels: true
-    cellE: 0.1
-    seedE: 0.5
+    cellE: 0.05
+    seedE: 0.1
     cellTimeMin: -1
     cellTimeMax: +1
     clusterTimeLength: 1
     w0: 4.5
-
-ClusterTrackMatcher:
-    enabled: false
-

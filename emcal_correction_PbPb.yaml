@@ -1,4 +1,4 @@
-pass: pass4
+pass: pass1
 inputObjects:
     cells:
         defaultCells:
@@ -29,4 +29,3 @@ Clusterizer:
 
 ClusterTrackMatcher:
     enabled: false
-

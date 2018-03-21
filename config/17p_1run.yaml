@@ -1,0 +1,9 @@
+gridWorkingDir:		workingdir
+gridOutputDir:		outputdir_17p_woSDD_v1_run282051_small
+aliROOTVersion:		v5-09-11-1
+aliPhysicsVersion:	v5-09-11-01-1
+gridDataDir:		/alice/data/2017/LHC17p
+dataPattern:		/pass1_CENT_woSDD/*/AliESDs.root
+runPrefix:              000
+runNumber:		[282051]
+emcalCorrection:	emcal_correction_17p.yaml

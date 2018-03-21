@@ -6,4 +6,4 @@ gridDataDir:		/alice/data/2013/LHC13d
 dataPattern:		/pass4/*/AliESDs.root
 runPrefix:              000
 runNumber:		[195783]
-emcalCorrection:	emcal_correction.yaml
+emcalCorrection:	emcal_correction_13d.yaml
