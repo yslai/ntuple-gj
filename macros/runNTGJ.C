@@ -125,6 +125,7 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     TString skim_multiplicity_tracklet_min_n = "-2147483648";
     TString stored_track_min_pt = "-1e+309";
     TString stored_jet_min_pt_raw = "-1e+309";
+    TString nrandom_isolation = "0";
 
     while (fgets(line, 4096, fp) != NULL) {
         if (line[0] == '#') {
@@ -260,6 +261,9 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         else if (strcmp(key, "storedJetMinPtRaw") == 0) {
             stored_jet_min_pt_raw = value;
         }
+        else if (strcmp(key, "nrandomIsolation") == 0) {
+            nrandom_isolation = value;
+        }
     }
     fclose(fp);
 
@@ -338,7 +342,8 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         skim_jet_min_pt_3 + "," +
         skim_multiplicity_tracklet_min_n + "," +
         stored_track_min_pt + "," +
-        stored_jet_min_pt_raw + ")";
+        stored_jet_min_pt_raw + "," +
+        nrandom_isolation + ")";
     fprintf(stderr, "%s:%d: add_task_line = `%s'\n", __FILE__,
             __LINE__, add_task_line.Data());
     gROOT->ProcessLine(add_task_line);
