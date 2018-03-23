@@ -103,14 +103,17 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
 
     plugin->AddIncludePath(include_path);
 
-
+    // Light-weight parsing of a YAML conform file, with what is
+    // available in ROOT/CINT
     FILE *fp = fopen(config_filename, "r");
     char line[4096];
+    // Default values
     TString emcal_correction_filename = "emcal_correction.yaml";
     TString emcal_geometry_filename = "";
     TString emcal_local2master_filename = "";
     bool mult_selection = true;
     bool physics_selection = false;
+    bool physics_selection_mc_analysis = false;
     bool physics_selection_pileup_cut = true;
     bool force_ue_subtraction = false;
     // 1e+309 = INFINITY (for IEEE 754 double)
@@ -127,6 +130,7 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     TString nrandom_isolation = "0";
 
     while (fgets(line, 4096, fp) != NULL) {
+        // Skip comments
         if (line[0] == '#') {
             continue;
         }
@@ -137,7 +141,14 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
 
         key[0] = '\0';
         value[0] = '\0';
-        sscanf(line, "%[^:]:%[ \t]%4096[^\n]", key, dummy, value);
+        // Key is arbitrarily many characters until ':', followed by
+        // arbitrarily many combinations of space/tabs (both assuming
+        // user will not actually enter >= 4096 of those), then at
+        // most 4096 caracters of value (which could be very long, for
+        // run lists). Tailing spaces for numerical values are
+        // generally passed on to CINT, which also does not become an
+        // issue.
+        sscanf(line, "%[^:]:%[ \t]%4096[^\n\r]", key, dummy, value);
 
         // AliEn related options
 
@@ -178,16 +189,23 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
             plugin->SetOverwriteMode(atoi(value));
         }
         else if (strcmp(key, "runNumber") == 0) {
+            // Split an array of run numbers
             for (const char *v = value; *v != '\0';) {
+                // Move forward until *v is a digit, but not further
+                // than the end of the C string
                 while (*v != '\0' && !isdigit(*v)) {
                     v++;
                 }
 
+                // Convert the digit into an integer and add to AliEn
                 int n;
 
                 sscanf(v, "%d", &n);
                 plugin->AddRunNumber(n);
-                while (*v != '\0' && isdigit(*v)) {
+                // Move forward until *v is a non-digit, i.e. skipping
+                // the number characters processed by sscanf(). Note
+                // isdigit('\0') = 0 = false.
+                while (isdigit(*v)) {
                     v++;
                 }
             }
@@ -215,6 +233,9 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         }
         else if (strcmp(key, "physicsSelection") == 0) {
             physics_selection = strncmp(value, "true", 4) == 0;
+        }
+        else if (strcmp(key, "physicsSelectionMCAnalysis") == 0) {
+            physics_selection_mc_analysis = strncmp(value, "true", 4) == 0;
         }
         else if (strcmp(key, "physicsSelectionPileupCut") == 0) {
             physics_selection_pileup_cut =
@@ -325,6 +346,7 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     add_task_line += emcal_correction_filename + "\"," +
         (mult_selection ? "true" : "false") + "," +
         (physics_selection ? "true" : "false") + "," +
+        (physics_selection_mc_analysis ? "true" : "false") + "," +
         (physics_selection_pileup_cut ? "true" : "false") + ",\"" +
         emcal_geometry_filename + "\",\"" +
         emcal_local2master_filename + "\"," +

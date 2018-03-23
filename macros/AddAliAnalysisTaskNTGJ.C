@@ -3,6 +3,7 @@ AddAliAnalysisTaskNTGJ(TString name,
                        TString emcal_correction_filename,
                        bool mult_selection,
                        bool physics_selection,
+                       bool physics_selection_mc_analysis,
                        bool physics_selection_pileup_cut,
                        TString emcal_geometry_filename,
                        TString emcal_local2master_filename,
@@ -86,9 +87,6 @@ AddAliAnalysisTaskNTGJ(TString name,
     if (physics_selection) {
         gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/"
                          "AddTaskPhysicsSelection.C");
-
-        const bool physics_selection_mc_analysis = false;
-            // mgr->GetMCtruthEventHandler() != NULL;
 
         AliPhysicsSelectionTask* physics_selection_task =
             AddTaskPhysicsSelection(physics_selection_mc_analysis,
