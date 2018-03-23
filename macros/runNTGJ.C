@@ -111,7 +111,6 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     TString emcal_local2master_filename = "";
     bool mult_selection = true;
     bool physics_selection = false;
-    bool physics_selection_mc_analysis = false;
     bool physics_selection_pileup_cut = true;
     bool force_ue_subtraction = false;
     // 1e+309 = INFINITY (for IEEE 754 double)
@@ -216,10 +215,6 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         }
         else if (strcmp(key, "physicsSelection") == 0) {
             physics_selection = strncmp(value, "true", 4) == 0;
-        }
-        else if (strcmp(key, "physicsSelectionMCAnalysis") == 0) {
-            physics_selection_mc_analysis =
-                strncmp(value, "true", 4) == 0;
         }
         else if (strcmp(key, "physicsSelectionPileupCut") == 0) {
             physics_selection_pileup_cut =
@@ -330,7 +325,6 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     add_task_line += emcal_correction_filename + "\"," +
         (mult_selection ? "true" : "false") + "," +
         (physics_selection ? "true" : "false") + "," +
-        (physics_selection_mc_analysis ? "true" : "false") + "," +
         (physics_selection_pileup_cut ? "true" : "false") + ",\"" +
         emcal_geometry_filename + "\",\"" +
         emcal_local2master_filename + "\"," +
