@@ -87,8 +87,8 @@ AddAliAnalysisTaskNTGJ(TString name,
         gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/"
                          "AddTaskPhysicsSelection.C");
 
-        const bool physics_selection_mc_analysis =
-            mgr->GetMCtruthEventHandler() != NULL;
+        const bool physics_selection_mc_analysis = false;
+            // mgr->GetMCtruthEventHandler() != NULL;
 
         AliPhysicsSelectionTask* physics_selection_task =
             AddTaskPhysicsSelection(physics_selection_mc_analysis,
