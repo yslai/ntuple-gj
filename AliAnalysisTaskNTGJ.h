@@ -125,6 +125,12 @@ private:
     BRANCH_ARRAY(cluster_frixione_its_04_02, ncluster, F)           \
     BRANCH_ARRAY(cluster_frixione_its_04_05, ncluster, F)           \
     BRANCH_ARRAY(cluster_frixione_its_04_10, ncluster, F)           \
+    BRANCH_ARRAY(cluster_frixione_tpc_04_02_with_ue, ncluster, F)   \
+    BRANCH_ARRAY(cluster_frixione_tpc_04_05_with_ue, ncluster, F)   \
+    BRANCH_ARRAY(cluster_frixione_tpc_04_10_with_ue, ncluster, F)   \
+    BRANCH_ARRAY(cluster_frixione_its_04_02_with_ue, ncluster, F)   \
+    BRANCH_ARRAY(cluster_frixione_its_04_05_with_ue, ncluster, F)   \
+    BRANCH_ARRAY(cluster_frixione_its_04_10_with_ue, ncluster, F)   \
     BRANCH_ARRAY(cluster_anti_frixione_tpc_04_02, ncluster, F)      \
     BRANCH_ARRAY(cluster_anti_frixione_tpc_04_05, ncluster, F)      \
     BRANCH_ARRAY(cluster_anti_frixione_tpc_04_10, ncluster, F)      \
@@ -394,6 +400,7 @@ private:
     int _skim_multiplicity_tracklet_min_n; //!
     double _stored_track_min_pt; //!
     double _stored_jet_min_pt_raw; //!
+    unsigned int _nrandom_isolation; //!
 
     std::vector<bool> _emcal_mask; //!
 
@@ -410,7 +417,6 @@ private:
     AliAnalysisAlien *_alien_plugin; //!
     bool _metadata_filled; //!
 public:
-    AliAnalysisTaskNTGJ(void);
     AliAnalysisTaskNTGJ(const char *name);
     AliAnalysisTaskNTGJ(const AliAnalysisTaskNTGJ &);
     AliAnalysisTaskNTGJ &operator=
@@ -440,6 +446,7 @@ public:
     //
     void SetStoredTrackMinPt(double min_pt = -INFINITY);
     void SetStoredJetMinPtRaw(double min_pt_raw = -INFINITY);
+    void SetNRandomIsolation(unsigned int nrandom_isolation = 0);
     ClassDef(AliAnalysisTaskNTGJ, 1);
 
 };

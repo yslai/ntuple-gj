@@ -12,6 +12,7 @@
 #include <TSystem.h>
 #include <TGeoManager.h>
 #include <TGeoGlobalMagField.h>
+#include <TRandom3.h>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Woverloaded-virtual"
@@ -172,6 +173,7 @@ ClassImp(AliAnalysisTaskNTGJ);
     _skim_multiplicity_tracklet_min_n(INT_MIN),             \
     _stored_track_min_pt(-INFINITY),                        \
     _stored_jet_min_pt_raw(-INFINITY),                      \
+    _nrandom_isolation(0),                                  \
     _emcal_mask(std::vector<bool>()),                       \
     _emcal_cell_position(NULL),                             \
     _emcal_cell_area(std::vector<double>()),                \
@@ -182,13 +184,7 @@ ClassImp(AliAnalysisTaskNTGJ);
     _alien_plugin(NULL),                                    \
     _metadata_filled(false)
 
-AliAnalysisTaskNTGJ::AliAnalysisTaskNTGJ(void)
-    : AliAnalysisTaskSE(), CLASS_INITIALIZATION
-{
-}
-
-AliAnalysisTaskNTGJ::AliAnalysisTaskNTGJ(
-    const char *name)
+AliAnalysisTaskNTGJ::AliAnalysisTaskNTGJ(const char *name)
     : AliAnalysisTaskSE(name), CLASS_INITIALIZATION
 {
     DefineOutput(1, TTree::Class());
@@ -716,6 +712,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
     event->GetEMCALClusters(&calo_cluster);
 
+    printf("%s:%d: %f\n", __FILE__, __LINE__, _skim_cluster_min_e);
     if (_skim_cluster_min_e > -INFINITY) {
         double cluster_e_max = -INFINITY;
 
@@ -733,6 +730,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             c->GetMomentum(p, _branch_primary_vertex);
             cluster_e_max = std::max(cluster_e_max, p.E());
         }
+        printf("%s:%d: %f %f\n", __FILE__, __LINE__, _skim_cluster_min_e, cluster_e_max);
         if (!(cluster_e_max >= _skim_cluster_min_e)) {
             return;
         }
@@ -1444,8 +1442,26 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     std::fill(_branch_cell_cluster_index,
               _branch_cell_cluster_index + EMCAL_NCELL, USHRT_MAX);
     _branch_ncluster = 0;
-    for (Int_t i = 0; i < calo_cluster.GetEntriesFast(); i++) {
-        AliVCluster *c =
+
+    const Int_t ncalo_cluster = _nrandom_isolation > 0 ?
+        _nrandom_isolation : calo_cluster.GetEntriesFast();
+    AliESDCaloCluster dummy_cluster;
+
+    for (Int_t i = 0; i < ncalo_cluster; i++) {
+#if 0
+        if (_nrandom_isolation > 0) {
+            TLorentzVector p;
+
+            p.SetPtEtaPhiM(1, _random.Uniform(-1.4, 1.4),
+                           _random.Uniform(-M_PI, M_PI), 0);
+            for (size_t j = 0; j < 3; j++) {
+                dummy_cluster.SetPosition(j, p(j) +
+                                          _branch_primary_vertex[j]);
+            }
+        }
+#endif
+
+        AliVCluster *c = _nrandom_isolation > 0 ? &dummy_cluster :
             static_cast<AliVCluster *>(calo_cluster.At(i));
         TLorentzVector p;
 
@@ -1569,6 +1585,10 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
             std::vector<std::pair<double, double> > delta_vs_iso_tpc;
             std::vector<std::pair<double, double> > delta_vs_iso_its;
+            std::vector<std::pair<double, double> >
+                delta_vs_iso_tpc_with_ue;
+            std::vector<std::pair<double, double> >
+                delta_vs_iso_its_with_ue;
 
             for (Int_t j = 0; j < esd_event->GetNumberOfTracks(); j++) {
                 AliESDtrack *t = esd_event->GetTrack(j);
@@ -1622,6 +1642,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                         delta_vs_iso_tpc.push_back(
                             std::pair<double, double>(
                                 sqrt(dr_2), track_pt_minus_ue));
+                        delta_vs_iso_tpc_with_ue.push_back(
+                            std::pair<double, double>(
+                                sqrt(dr_2), track_pt_minus_ue + ue));
                     }
                 }
                 if (_track_cut[4].AcceptTrack(t)) {
@@ -1666,6 +1689,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                         delta_vs_iso_its.push_back(
                             std::pair<double, double>(
                                 sqrt(dr_2), track_pt_minus_ue));
+                        delta_vs_iso_its_with_ue.push_back(
+                            std::pair<double, double>(
+                                sqrt(dr_2), track_pt_minus_ue + ue));
                     }
                 }
             }
@@ -1722,6 +1748,32 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             _branch_cluster_frixione_its_04_10[_branch_ncluster] =
                 half(frixione_iso_max_x_e_eps(delta_vs_iso_its,
                                               0.4, 1.0));
+
+            _branch_cluster_frixione_tpc_04_02_with_ue
+                [_branch_ncluster] =
+                half(frixione_iso_max_x_e_eps(
+                    delta_vs_iso_tpc_with_ue, 0.4, 0.2));
+            _branch_cluster_frixione_tpc_04_05_with_ue
+                [_branch_ncluster] =
+                half(frixione_iso_max_x_e_eps(
+                    delta_vs_iso_tpc_with_ue, 0.4, 0.5));
+            _branch_cluster_frixione_tpc_04_10_with_ue
+                [_branch_ncluster] =
+                half(frixione_iso_max_x_e_eps(
+                    delta_vs_iso_tpc_with_ue, 0.4, 1.0));
+
+            _branch_cluster_frixione_its_04_02_with_ue
+                [_branch_ncluster] =
+                half(frixione_iso_max_x_e_eps(
+                    delta_vs_iso_its_with_ue, 0.4, 0.2));
+            _branch_cluster_frixione_its_04_05_with_ue
+                [_branch_ncluster] =
+                half(frixione_iso_max_x_e_eps(
+                    delta_vs_iso_its_with_ue, 0.4, 0.5));
+            _branch_cluster_frixione_its_04_10_with_ue
+                [_branch_ncluster] =
+                half(frixione_iso_max_x_e_eps(
+                    delta_vs_iso_its_with_ue, 0.4, 1.0));
 
             _branch_cluster_anti_frixione_tpc_04_02
                 [_branch_ncluster] =
@@ -2089,6 +2141,7 @@ SetForceUESubtraction(bool force_ue_subtraction)
 void AliAnalysisTaskNTGJ::SetSkimClusterMinE(double min_e)
 {
     _skim_cluster_min_e = min_e;
+    fprintf(stdout, "%s:%d: %f %f\n", __FILE__, __LINE__, _skim_cluster_min_e, min_e);
 }
 
 void AliAnalysisTaskNTGJ::SetSkimTrackMinPt(double min_pt)
@@ -2134,4 +2187,10 @@ void AliAnalysisTaskNTGJ::SetStoredTrackMinPt(double min_pt)
 void AliAnalysisTaskNTGJ::SetStoredJetMinPtRaw(double min_pt_raw)
 {
     _stored_jet_min_pt_raw = min_pt_raw;
+}
+
+void AliAnalysisTaskNTGJ::
+SetNRandomIsolation(unsigned int nrandom_isolation)
+{
+    _nrandom_isolation = nrandom_isolation;
 }

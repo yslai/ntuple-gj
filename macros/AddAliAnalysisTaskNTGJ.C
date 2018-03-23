@@ -16,7 +16,8 @@ AddAliAnalysisTaskNTGJ(TString name,
                        double skim_jet_min_pt_3,
                        int skim_multiplicity_tracklet_min_n,
                        double stored_track_min_pt,
-                       double stored_jet_min_pt_raw)
+                       double stored_jet_min_pt_raw,
+                       unsigned int nrandom_isolation)
 {
     AliAnalysisManager *mgr =
         AliAnalysisManager::GetAnalysisManager();
@@ -110,6 +111,7 @@ AddAliAnalysisTaskNTGJ(TString name,
             skim_multiplicity_tracklet_min_n);
         task->SetStoredTrackMinPt(stored_track_min_pt);
         task->SetStoredJetMinPtRaw(stored_jet_min_pt_raw);
+        task->SetNRandomIsolation(nrandom_isolation);
     }
 
     return task;
