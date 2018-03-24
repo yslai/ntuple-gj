@@ -389,18 +389,18 @@ private:
 
     size_t _ncell; //!
 
-    std::string _emcal_geometry_filename; //!
-    std::string _emcal_local2master_filename; //!
+    std::string _emcal_geometry_filename;
+    std::string _emcal_local2master_filename;
 
-    bool _force_ue_subtraction; //!
-    double _skim_cluster_min_e; //!
-    double _skim_track_min_pt; //!
-    double _skim_muon_track_min_pt; //!
-    std::vector<double> _skim_jet_min_pt; //!
-    int _skim_multiplicity_tracklet_min_n; //!
-    double _stored_track_min_pt; //!
-    double _stored_jet_min_pt_raw; //!
-    unsigned int _nrandom_isolation; //!
+    bool _force_ue_subtraction;
+    double _skim_cluster_min_e;
+    double _skim_track_min_pt;
+    double _skim_muon_track_min_pt;
+    std::vector<double> _skim_jet_min_pt;
+    int _skim_multiplicity_tracklet_min_n;
+    double _stored_track_min_pt;
+    double _stored_jet_min_pt_raw;
+    unsigned int _nrandom_isolation;
 
     std::vector<bool> _emcal_mask; //!
 
@@ -417,10 +417,9 @@ private:
     AliAnalysisAlien *_alien_plugin; //!
     bool _metadata_filled; //!
 public:
-    AliAnalysisTaskNTGJ(const char *name);
+    AliAnalysisTaskNTGJ(const char *name = "NTGJ");
     AliAnalysisTaskNTGJ(const AliAnalysisTaskNTGJ &);
-    AliAnalysisTaskNTGJ &operator=
-        (const AliAnalysisTaskNTGJ &);
+    AliAnalysisTaskNTGJ &operator=(const AliAnalysisTaskNTGJ &);
     ~AliAnalysisTaskNTGJ(void);
     virtual void UserCreateOutputObjects(void);
     virtual void UserExec(Option_t *);

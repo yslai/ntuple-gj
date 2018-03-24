@@ -194,6 +194,19 @@ AliAnalysisTaskNTGJ::AliAnalysisTaskNTGJ(
     const AliAnalysisTaskNTGJ &x)
     : AliAnalysisTaskSE(), CLASS_INITIALIZATION
 {
+    _emcal_geometry_filename = x._emcal_geometry_filename;
+    _emcal_local2master_filename = x._emcal_local2master_filename;
+
+    _force_ue_subtraction = x._force_ue_subtraction;
+    _skim_cluster_min_e = x._skim_cluster_min_e;
+    _skim_track_min_pt = x._skim_track_min_pt;
+    _skim_muon_track_min_pt = x._skim_muon_track_min_pt;
+    _skim_jet_min_pt = x._skim_jet_min_pt;
+    _skim_multiplicity_tracklet_min_n =
+        x._skim_multiplicity_tracklet_min_n;
+    _stored_track_min_pt = x._stored_track_min_pt;
+    _stored_jet_min_pt_raw = x._stored_jet_min_pt_raw;
+    _nrandom_isolation = x._nrandom_isolation;
 }
 
 #undef ntrigger_class
@@ -218,7 +231,23 @@ AliAnalysisTaskNTGJ::AliAnalysisTaskNTGJ(
 AliAnalysisTaskNTGJ &AliAnalysisTaskNTGJ::operator=(
     const AliAnalysisTaskNTGJ &x)
 {
-    return *this;
+    if (this == &x) {
+        return *this;
+    }
+
+    _emcal_geometry_filename = x._emcal_geometry_filename;
+    _emcal_local2master_filename = x._emcal_local2master_filename;
+
+    _force_ue_subtraction = x._force_ue_subtraction;
+    _skim_cluster_min_e = x._skim_cluster_min_e;
+    _skim_track_min_pt = x._skim_track_min_pt;
+    _skim_muon_track_min_pt = x._skim_muon_track_min_pt;
+    _skim_jet_min_pt = x._skim_jet_min_pt;
+    _skim_multiplicity_tracklet_min_n =
+        x._skim_multiplicity_tracklet_min_n;
+    _stored_track_min_pt = x._stored_track_min_pt;
+    _stored_jet_min_pt_raw = x._stored_jet_min_pt_raw;
+    _nrandom_isolation = x._nrandom_isolation;
 }
 
 AliAnalysisTaskNTGJ::~AliAnalysisTaskNTGJ(void)
@@ -712,7 +741,6 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
     event->GetEMCALClusters(&calo_cluster);
 
-    printf("%s:%d: %f\n", __FILE__, __LINE__, _skim_cluster_min_e);
     if (_skim_cluster_min_e > -INFINITY) {
         double cluster_e_max = -INFINITY;
 
@@ -730,7 +758,6 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             c->GetMomentum(p, _branch_primary_vertex);
             cluster_e_max = std::max(cluster_e_max, p.E());
         }
-        printf("%s:%d: %f %f\n", __FILE__, __LINE__, _skim_cluster_min_e, cluster_e_max);
         if (!(cluster_e_max >= _skim_cluster_min_e)) {
             return;
         }
@@ -2141,7 +2168,6 @@ SetForceUESubtraction(bool force_ue_subtraction)
 void AliAnalysisTaskNTGJ::SetSkimClusterMinE(double min_e)
 {
     _skim_cluster_min_e = min_e;
-    fprintf(stdout, "%s:%d: %f %f\n", __FILE__, __LINE__, _skim_cluster_min_e, min_e);
 }
 
 void AliAnalysisTaskNTGJ::SetSkimTrackMinPt(double min_pt)

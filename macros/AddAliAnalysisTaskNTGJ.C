@@ -21,8 +21,6 @@ AddAliAnalysisTaskNTGJ(TString name,
 {
     AliAnalysisManager *mgr =
         AliAnalysisManager::GetAnalysisManager();
-    AliAnalysisTaskNTGJ *task =
-        new AliAnalysisTaskNTGJ(name.Data());
 
     // gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/"
     //               "AddTaskCentrality.C");
@@ -53,6 +51,27 @@ AddAliAnalysisTaskNTGJ(TString name,
         correction_task->Initialize();
     }
 
+    AliAnalysisTaskNTGJ *task =
+        new AliAnalysisTaskNTGJ(name.Data());
+
+    task->SetEMCALGeometryFilename(emcal_geometry_filename);
+    task->SetEMCALLocal2MasterFilename(emcal_local2master_filename);
+
+    if (force_ue_subtraction) {
+        task->SetForceUESubtraction(force_ue_subtraction);
+    }
+
+    task->SetSkimClusterMinE(skim_cluster_min_e);
+    task->SetSkimTrackMinPt(skim_track_min_pt);
+    task->SetSkimMuonTrackMinPt(skim_muon_track_min_pt);
+    task->SetSkimJetMinPt(skim_jet_min_pt_1, skim_jet_min_pt_2,
+                          skim_jet_min_pt_3);
+    task->SetSkimMultiplicityTrackletMinN(
+        skim_multiplicity_tracklet_min_n);
+    task->SetStoredTrackMinPt(stored_track_min_pt);
+    task->SetStoredJetMinPtRaw(stored_jet_min_pt_raw);
+    task->SetNRandomIsolation(nrandom_isolation);
+
     AliEMCALRecoUtils *reco_util = task->GetEMCALRecoUtils();
   
     gROOT->LoadMacro("$ALICE_PHYSICS/PWGPP/EMCAL/macros/"
@@ -73,13 +92,14 @@ AddAliAnalysisTaskNTGJ(TString name,
             AddTaskPhysicsSelection(physics_selection_mc_analysis,
                                     physics_selection_pileup_cut);
     }
-  
+
+    mgr->AddTask(task);
+    mgr->ConnectInput(task, 0, mgr->GetCommonInputContainer());
+
     TString filename = mgr->GetCommonFileName();
 
     filename += ":AliAnalysisTaskNTGJ";
 
-    mgr->AddTask(task);
-    mgr->ConnectInput(task, 0, mgr->GetCommonInputContainer());
     mgr->ConnectOutput(task, 1,
                        mgr->CreateContainer("tree", TTree::Class(),
                                             AliAnalysisManager::
@@ -93,25 +113,6 @@ AddAliAnalysisTaskNTGJ(TString name,
         task->SetAliPhysicsVersion(plugin->GetAliPhysicsVersion());
         task->SetGridDataDir(plugin->GetGridDataDir());
         task->SetGridDataPattern(plugin->GetDataPattern());
-
-        task->SetEMCALGeometryFilename(emcal_geometry_filename);
-        task->SetEMCALLocal2MasterFilename(
-            emcal_local2master_filename);
-
-        if (force_ue_subtraction) {
-            task->SetForceUESubtraction(force_ue_subtraction);
-        }
-
-        task->SetSkimClusterMinE(skim_cluster_min_e);
-        task->SetSkimTrackMinPt(skim_track_min_pt);
-        task->SetSkimMuonTrackMinPt(skim_muon_track_min_pt);
-        task->SetSkimJetMinPt(skim_jet_min_pt_1, skim_jet_min_pt_2,
-                              skim_jet_min_pt_3);
-        task->SetSkimMultiplicityTrackletMinN(
-            skim_multiplicity_tracklet_min_n);
-        task->SetStoredTrackMinPt(stored_track_min_pt);
-        task->SetStoredJetMinPtRaw(stored_jet_min_pt_raw);
-        task->SetNRandomIsolation(nrandom_isolation);
     }
 
     return task;
