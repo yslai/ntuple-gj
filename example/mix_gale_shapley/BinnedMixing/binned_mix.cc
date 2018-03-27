@@ -180,7 +180,7 @@ void Write_TTree (const char *filename, TString ProximityBranch, TString LimitUs
     TFile *newfile = new TFile("Bin_Mixed.root","recreate");
     TTree *newtree = hi_tree->CloneTree(0);
     
-    unsigned int n_mix_events = 10;
+    unsigned int n_mix_events = 50;
     ULong64_t nentries = hi_tree->GetEntries();
     Long64_t Prox_Mix_Events[n_mix_events];
     Long64_t LimUse_Mix_Events[n_mix_events];
@@ -189,9 +189,9 @@ void Write_TTree (const char *filename, TString ProximityBranch, TString LimitUs
     
     //TBranch *MixE = newtree->Branch("Simple_Mix_Events", Simple_Mix_Events, "&Simple_Mix_Events[10]/L");
     //    TString Branch = Branchname + "[10]/L";
-    TString ProximityBranchForm = ProximityBranch + "[10]/L";
+    TString ProximityBranchForm = ProximityBranch + "[50]/L";
     TBranch *PMixE = newtree->Branch(ProximityBranch, Prox_Mix_Events, ProximityBranchForm);
-    TString LimitUseBranchForm = LimitUseBranch + "[10]/L";
+    TString LimitUseBranchForm = LimitUseBranch + "[50]/L";
     TBranch *LMixE = newtree->Branch(LimitUseBranch, LimUse_Mix_Events, LimitUseBranchForm);
 
     for (ULong64_t t = 0; t<nentries;t++){
@@ -230,38 +230,46 @@ void Write_TTree (const char *filename, TString ProximityBranch, TString LimitUs
   }
   
 
-  void Match_Events(const char *filename){
-    
+void Match_Events(const char *filename_1, const char *filename_2){
+  
     int n_multp_bins = 20;
     int n_vert_bins = 7;
 
-    std::vector <float> multp_ranges, vertx_ranges;
-    range_extract(filename, n_multp_bins, n_vert_bins, multp_ranges, vertx_ranges) ;
+    std::vector <float> multp_ranges_1, vertx_ranges_1;
+    range_extract(filename_1, n_multp_bins, n_vert_bins, multp_ranges_1, vertx_ranges_1) ;
 
-    std::vector<std::pair<int,int> > Binned_Events = bin_extract(filename, multp_ranges, vertx_ranges);
+    std::vector<std::pair<int,int> > Binned_Events_1 = bin_extract(filename_1, multp_ranges_1, vertx_ranges_1);
     fprintf(stderr, "%s:%d:%s: %s\n", __FILE__, __LINE__,"Match_Events","Bins Extracted");
 
-    size_t n_mix = 10;
+    std::vector <float> multp_ranges_2, vertx_ranges_2;
+    range_extract(filename_2, n_multp_bins, n_vert_bins, multp_ranges_2, vertx_ranges_2) ;
+
+    std::vector<std::pair<int,int> > Binned_Events_2 = bin_extract(filename_2, multp_ranges_2, vertx_ranges_2);
+    fprintf(stderr, "%s:%d:%s: %s\n", __FILE__, __LINE__,"Match_Events","Bins Extracted");
+
+    size_t n_mix = 50;
     std::vector<std::vector<size_t> > Proximity_Matches, LimitUse_Matches;
     std::vector <size_t> flat;
 
     fprintf(stderr, "%s:%d:%s: %s\n", __FILE__, __LINE__,"Match_Events","Starting Matching");
 
-    for (size_t i = 0; i < Binned_Events.size(); i++){
+    for (size_t i = 0; i < Binned_Events_1.size(); i++){
       fprintf(stderr, "%s:%d:%s: %lu\n", __FILE__, __LINE__,"Match_Events Proximity",i);
       flat.push_back(i);
+      //create offset for assymetric files sizes, assuming
+      int rough_offset = Binned_Events_2.size()/Binned_Events_1.size();
       size_t j;
       //      if (i>500) j = i-500;//rough sliding window
-      j = i+1;
+      j = i+rough_offset;
       //      else j = 0;
       while (flat.size() < n_mix+1){
 	if (j==i) {
 	  j++;
 	  continue;
 	}
-	//	if (j == Binned_Events.size()) j = i-1000;
-	if (j == Binned_Events.size()) j = i-1500;
-	if (bin_compare(Binned_Events[i],Binned_Events[j])){
+	//	if (j == Binned_Events_1.size()) j = i-1000;
+	if (j == Binned_Events_1.size()) j = i-1500;
+	if (bin_compare(Binned_Events_1[i],Binned_Events_2[j])){
 	  flat.push_back(j);
 	}
 	j++;
@@ -272,18 +280,18 @@ void Write_TTree (const char *filename, TString ProximityBranch, TString LimitUs
     }
     fprintf(stderr, "%s:%d:%s: %s\n", __FILE__, __LINE__,"Match_Events","Proximity Mixed Events Done");
 
-    int n_events = Binned_Events.size();
+    int n_events = Binned_Events_1.size();
     int counters [n_events];
     counters [n_events] = {0};
     std::cout<<counters[3]<<std::endl;
 
-    for (size_t i = 0; i < Binned_Events.size(); i++){
+    for (size_t i = 0; i < Binned_Events_1.size(); i++){
     //for(size_t i = 0; i < 1; i++){
       fprintf(stderr, "%s:%d:%s: %lu\n", __FILE__, __LINE__,"Match_Events Limit Use",i);
       flat.push_back(i);
       size_t j=0;
       while (flat.size() < n_mix+1){
-	if (j == Binned_Events.size()) j = 0;
+	if (j == Binned_Events_1.size()) j = 0;
 	if (j==i){
 	    j++;
 	    continue;
@@ -292,7 +300,7 @@ void Write_TTree (const char *filename, TString ProximityBranch, TString LimitUs
 	  j++;
 	  continue;
 	}
-	if (bin_compare(Binned_Events[i],Binned_Events[j])){
+	if (bin_compare(Binned_Events_1[i],Binned_Events_2[j])){
 	  flat.push_back(j);
 	  counters[j] = counters[j]+1;
 	  if(i%10000==0){
@@ -309,7 +317,7 @@ void Write_TTree (const char *filename, TString ProximityBranch, TString LimitUs
     TString LimitUseBranch = "LimitUse_Mixed_Events";
     fprintf(stderr, "%s:%d:%s: %s\n", __FILE__, __LINE__,"Match_Events","Matches Filled. Writing to TTree");
 
-    Write_TTree(filename,ProximityBranch,LimitUseBranch,Proximity_Matches,LimitUse_Matches);
+    Write_TTree(filename_1,ProximityBranch,LimitUseBranch,Proximity_Matches,LimitUse_Matches);
     fprintf(stderr, "%s:%d:%s: %s\n", __FILE__, __LINE__,"Match_Events","Done");
 
     Proximity_Matches.clear();
@@ -319,8 +327,8 @@ void Write_TTree (const char *filename, TString ProximityBranch, TString LimitUs
 int main(int argc, char *argv[])
 {
 	if (argc < 2) {
-	  fprintf(stderr,"%s\n","Argument Syntax is [Command] [File]");
+	  fprintf(stderr,"%s\n","Argument Syntax is [Command] [File 1] [File 2] where File 2 is larger/equal in size");
 		return EXIT_FAILURE;
 	}
-	Match_Events(argv[1]);
+	Match_Events(argv[1], argv[2]);
 }
