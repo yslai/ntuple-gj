@@ -166,7 +166,7 @@ ClassImp(AliAnalysisTaskNTGJ);
     _emcal_geometry_filename("geometry_2015.root"),         \
     _emcal_local2master_filename("EMCALlocal2master.root"), \
     _force_ue_subtraction(false),                           \
-    _skim_cluster_min_e(-INFINITY),                         \
+     _skim_cluster_min_e(8.0),				    \
     _skim_track_min_pt(-INFINITY),                          \
     _skim_muon_track_min_pt(-INFINITY),                     \
     _skim_jet_min_pt(std::vector<double>(3, -INFINITY)),    \

@@ -1,10 +1,10 @@
 gridWorkingDir:		workingdir
-gridOutputDir:		outputdir_13b_pass4_v2_3run
+gridOutputDir:		outputdir_13f_pass2_wSkimLine_v2
 aliROOTVersion:		v5-09-23-1
 aliPhysicsVersion:	vAN-20180222-1
-gridDataDir:		/alice/data/2013/LHC13b
+gridDataDir:		/alice/data/2013/LHC13f
 dataPattern:		/pass4/*/AliESDs.root
 runPrefix:              000
-runNumber:		[195344, 195351, 195389]
+runNumber:		[197342]
 emcalCorrection:	emcal_correction.yaml
-nrandomIsolation:	1
+skimClusterMinE: 	10.0
