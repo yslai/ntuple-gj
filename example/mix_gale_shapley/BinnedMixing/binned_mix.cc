@@ -168,16 +168,19 @@ namespace {
     return ret;
   }
   
-void Write_TTree (const char *filename, TString ProximityBranch, TString LimitUseBranch, 
-		  std::vector <std::vector<size_t> > Proximity_Matches,
-		  std::vector <std::vector<size_t> > LimitUse_Matches){
+// void Write_TTree (const char *filename, TString ProximityBranch, TString LimitUseBranch, 
+// 		  std::vector <std::vector<size_t> > Proximity_Matches,
+// 		  std::vector <std::vector<size_t> > LimitUse_Matches){
+
+void Write_TTree (const char *filename, TString ProximityBranch,
+		  std::vector <std::vector<size_t> > Proximity_Matches){
 
     TFile *root_file = new TFile(filename,"update");
     TTree *hi_tree = dynamic_cast<TTree *>
       (dynamic_cast<TDirectoryFile *>
        (root_file->Get("AliAnalysisTaskNTGJ"))->Get("_tree_event"));
 
-    TFile *newfile = new TFile("Bin_Mixed.root","recreate");
+    TFile *newfile = new TFile("Bin_Mixed_13dc.root","recreate");
     TTree *newtree = hi_tree->CloneTree(0);
     
     unsigned int n_mix_events = 50;
@@ -191,8 +194,8 @@ void Write_TTree (const char *filename, TString ProximityBranch, TString LimitUs
     //    TString Branch = Branchname + "[10]/L";
     TString ProximityBranchForm = ProximityBranch + "[50]/L";
     TBranch *PMixE = newtree->Branch(ProximityBranch, Prox_Mix_Events, ProximityBranchForm);
-    TString LimitUseBranchForm = LimitUseBranch + "[50]/L";
-    TBranch *LMixE = newtree->Branch(LimitUseBranch, LimUse_Mix_Events, LimitUseBranchForm);
+    //TString LimitUseBranchForm = LimitUseBranch + "[50]/L";
+    //TBranch *LMixE = newtree->Branch(LimitUseBranch, LimUse_Mix_Events, LimitUseBranchForm);
 
     for (ULong64_t t = 0; t<nentries;t++){
       hi_tree->GetEntry(t);
@@ -200,7 +203,7 @@ void Write_TTree (const char *filename, TString ProximityBranch, TString LimitUs
       if(t < Proximity_Matches.size()){
 	for (size_t s=1; s<(Proximity_Matches[t]).size();s++){
 	  Prox_Mix_Events[s-1] = Proximity_Matches[t][s];
-	  LimUse_Mix_Events[s-1] = LimitUse_Matches[t][s];
+	  //LimUse_Mix_Events[s-1] = LimitUse_Matches[t][s];
 	  fprintf(stderr, "%llu:%lld %lld\n", t,Prox_Mix_Events[s-1],LimUse_Mix_Events[s-1]);
 	}
       }
@@ -208,7 +211,7 @@ void Write_TTree (const char *filename, TString ProximityBranch, TString LimitUs
       else if (t >= Proximity_Matches.size()){
 	for(size_t u = 0; u<n_mix_events; u++){
 	  Prox_Mix_Events[u] = t; //Fill with own event number. Skip During correlation function                                                
-	  LimUse_Mix_Events[u] = t;
+	  //LimUse_Mix_Events[u] = t;
 	  fprintf(stderr, "%llu:%lld %lld\n", t,Prox_Mix_Events[u],LimUse_Mix_Events[u]);
 	}
       }
@@ -226,7 +229,7 @@ void Write_TTree (const char *filename, TString ProximityBranch, TString LimitUs
   bool bin_compare(const std::pair<int, int> u,
 		   const std::pair<int, int> v)
   {
-    return u.first == v.first && u.second == v.second;
+    return u.first == v.first && u.second == v.second; //2 bins match
   }
   
 
@@ -253,75 +256,77 @@ void Match_Events(const char *filename_1, const char *filename_2){
 
     fprintf(stderr, "%s:%d:%s: %s\n", __FILE__, __LINE__,"Match_Events","Starting Matching");
 
+    int rough_offset = Binned_Events_2.size()/Binned_Events_1.size();
     for (size_t i = 0; i < Binned_Events_1.size(); i++){
       fprintf(stderr, "%s:%d:%s: %lu\n", __FILE__, __LINE__,"Match_Events Proximity",i);
       flat.push_back(i);
       //create offset for assymetric files sizes, assuming
-      int rough_offset = Binned_Events_2.size()/Binned_Events_1.size();
+      //std::cout<<"rough offset = "<<rough_offset<<std::endl;
       size_t j;
-      //      if (i>500) j = i-500;//rough sliding window
-      j = i+rough_offset;
-      //      else j = 0;
-      while (flat.size() < n_mix+1){
+      j = i*rough_offset;
+      while (flat.size() <= n_mix){
 	if (j==i) {
 	  j++;
 	  continue;
 	}
 	//	if (j == Binned_Events_1.size()) j = i-1000;
-	if (j == Binned_Events_1.size()) j = i-1500;
+	if (j >= Binned_Events_2.size()) j = j-5000;
 	if (bin_compare(Binned_Events_1[i],Binned_Events_2[j])){
 	  flat.push_back(j);
+	  //std::cout<<j<<std::endl;
 	}
 	j++;
       }
 
       Proximity_Matches.push_back(flat);
       flat.clear();
-    }
+    } //i loop
     fprintf(stderr, "%s:%d:%s: %s\n", __FILE__, __LINE__,"Match_Events","Proximity Mixed Events Done");
 
-    int n_events = Binned_Events_1.size();
+    int n_events = Binned_Events_2.size();
     int counters [n_events];
     counters [n_events] = {0};
-    std::cout<<counters[3]<<std::endl;
 
-    for (size_t i = 0; i < Binned_Events_1.size(); i++){
-    //for(size_t i = 0; i < 1; i++){
-      fprintf(stderr, "%s:%d:%s: %lu\n", __FILE__, __LINE__,"Match_Events Limit Use",i);
-      flat.push_back(i);
-      size_t j=0;
-      while (flat.size() < n_mix+1){
-	if (j == Binned_Events_1.size()) j = 0;
-	if (j==i){
-	    j++;
-	    continue;
-	  }
-	if (counters[j] >= 50){
-	  j++;
-	  continue;
-	}
-	if (bin_compare(Binned_Events_1[i],Binned_Events_2[j])){
-	  flat.push_back(j);
-	  counters[j] = counters[j]+1;
-	  if(i%10000==0){
-	    fprintf(stderr, "%s:%d:%s: %i\n", __FILE__, __LINE__,"Match_Events Limit Use",counters[j]); 
-	  }
-	}
-	j++;
-      }
-      LimitUse_Matches.push_back(flat);
-      flat.clear();
-    }
+//     for (size_t i = 0; i < Binned_Events_1.size(); i++){
+//     //for(size_t i = 0; i < 1; i++){
+//       fprintf(stderr, "%s:%d:%s: %lu\n", __FILE__, __LINE__,"Match_Events Limit Use",i);
+//       flat.push_back(i);
+//       size_t j=0;
+//       while (flat.size() < n_mix+1){
+// 	if (j >= Binned_Events_2.size()) j = 0;
+// 	if (j==i){
+// 	    j++;
+// 	    continue;
+// 	  }
+// 	if (counters[j] >= 50){
+// 	  j++;
+// 	  continue;
+// 	}
+// 	if (bin_compare(Binned_Events_1[i],Binned_Events_2[j])){
+// 	  flat.push_back(j);
+// 	  counters[j] = counters[j]+1;
+// 	  if(i%10000==0){
+// 	    fprintf(stderr, "%s:%d:%s: %i\n", __FILE__, __LINE__,"Match_Events Limit Use",counters[j]); 
+// 	  }
+// 	}
+// 	j++;
+//       }
+//       LimitUse_Matches.push_back(flat);
+//       flat.clear();
+//     }
 
     TString ProximityBranch = "Proximity_Mixed_Events";
-    TString LimitUseBranch = "LimitUse_Mixed_Events";
+    //TString LimitUseBranch = "LimitUse_Mixed_Events";
     fprintf(stderr, "%s:%d:%s: %s\n", __FILE__, __LINE__,"Match_Events","Matches Filled. Writing to TTree");
 
-    Write_TTree(filename_1,ProximityBranch,LimitUseBranch,Proximity_Matches,LimitUse_Matches);
+//     Write_TTree(filename_1,ProximityBranch,LimitUseBranch,Proximity_Matches,LimitUse_Matches);
+//     fprintf(stderr, "%s:%d:%s: %s\n", __FILE__, __LINE__,"Match_Events","Done");
+
+    Write_TTree(filename_1,ProximityBranch,Proximity_Matches);
     fprintf(stderr, "%s:%d:%s: %s\n", __FILE__, __LINE__,"Match_Events","Done");
 
     Proximity_Matches.clear();
-    LimitUse_Matches.clear();
+    //LimitUse_Matches.clear();
   }
 
 int main(int argc, char *argv[])
