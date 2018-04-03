@@ -319,9 +319,9 @@ std::vector<index_t> gale_shapley(std::vector<std::list<index_t> > &mp,
 void mix_gale_shapley(const char *filename_0, const char *filename_1, const char *mixing_start, const char *mixing_end,
 					  const int nfeature, const int nduplicate)
 {
-
         int mix_start = atoi(mixing_start);
 	int mix_end = atoi(mixing_end);
+
 	const size_t nevent_0 = nevent(filename_0);
 	const size_t nevent_1 = nevent(filename_1);//FIXME Doesn't work for unskimmed data sets
 
@@ -335,7 +335,7 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 	size_t lmin,lmax; 
 
 	//1/2 number of mixed events -> 1/2 number of blocks
-	size_t width = 25; //if changed, also must change when writing to Tree
+	size_t width = 500; //if changed, also must change when writing to Tree
 
 	//in case of many mixed events, but small file
 	//FIXME: 1000 mixed events wont work, to granular a block
@@ -433,7 +433,7 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 	  } //i
 	  for (size_t j = 0; j < k[0].size(); j++){
 	    std::vector <Long64_t> P;
-	    P.push_back(event_start_0+j);
+	    //    P.push_back(event_start_0+j); //taken out for now such that merging does not constantly contain same event.
 	    for (size_t l = 0; l < k.size(); l++){
 	      P.push_back(k[l][j]);
 	    }
@@ -454,17 +454,12 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 	  
 
 	// write to TTree
-
 	//if (strcmp(filename_0,filename_1) == 0){
 
 	  TFile *root_file = new TFile(filename_0,"update");
-// 	  TTree *hi_tree = dynamic_cast<TTree *>
-// 	    (dynamic_cast<TDirectoryFile *>
-// 	     (root_file->Get("AliAnalysisTaskNTGJ"))->Get("_tree_event"));
-
 	  TTree *hi_tree = dynamic_cast<TTree *>(root_file->Get(HI_TREE));
-	  
 	  TFile *newfile = new TFile("gs_mixed.root","recreate");	  
+
 	  //TFiles are more closely associated with TTrees, need to clone, not append....
 	  TTree *newtree = hi_tree->CloneTree(0);
 
@@ -474,7 +469,7 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 
 	  fprintf(stderr, "%llu\n",nentries);
 	  
-	  TBranch *MixE = newtree->Branch("Mix_Events", Mix_Events, "&Mix_Events[50]/L");
+	  TBranch *MixE = newtree->Branch("Mix_Events", Mix_Events, "&Mix_Events[1000]/L");
 	  
 	  for (ULong64_t t = 0; t<nentries;t++){
 	    hi_tree->GetEntry(t);
