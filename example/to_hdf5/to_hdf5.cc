@@ -19,8 +19,7 @@
 #define RANK 3
 
 void find_ntrack_ncluster_max(char *argv_first[], char *argv_last[], UInt_t &ntrack_max, UInt_t &ncluster_max)
-{
- 
+{ 
    for (char **p = argv_first; p != argv_last; p++) {
         // Cautious opening of the TTree, capturing all modes of
         // failure, and keep the TDirectoryFile (to be deleted later)
@@ -31,19 +30,20 @@ void find_ntrack_ncluster_max(char *argv_first[], char *argv_last[], UInt_t &ntr
             continue;
         }
 
-        TDirectoryFile *df = dynamic_cast<TDirectoryFile *>
-            (file->Get("AliAnalysisTaskNTGJ"));
+         TDirectoryFile *df = dynamic_cast<TDirectoryFile *>
+             (file->Get("AliAnalysisTaskNTGJ"));
 
-        if (df == NULL) {
-            continue;
-        }
+         if (df == NULL) {
+	       fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, "Cannot open TFile");
+             continue;
+         }
 
-        TTree *hi_tree = dynamic_cast<TTree *>
-            (df->Get("_tree_event"));
+         TTree *hi_tree = dynamic_cast<TTree *>
+             (df->Get("_tree_event"));
 
-        if (hi_tree == NULL) {
-          
-	  continue;
+	 if (hi_tree == NULL) {
+	   fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, "Cannot open _tree_event");
+	   continue;
         }
 
         // Get the maximum of the "ntrack"
@@ -54,17 +54,19 @@ void find_ntrack_ncluster_max(char *argv_first[], char *argv_last[], UInt_t &ntr
         hi_tree->SetBranchAddress("ntrack", &ntrack);
         hi_tree->SetBranchAddress("ncluster", &ncluster);
 
+	fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, "Obtaining ntrack and ncluster max for hdf5 file");
+
         for (Long64_t i = 0; i < hi_tree->GetEntries(); i++) {
             hi_tree->GetEntry(i);
             ntrack_max = std::max(ntrack_max, ntrack);
 	    ncluster_max = std::max(ncluster_max, ncluster);
-	    fprintf(stderr, "\r%s:%d: %llu", __FILE__, __LINE__, i);
+	    fprintf(stderr, "\r%s:%d: %llu / %llu", __FILE__, __LINE__, i, hi_tree->GetEntries());
 	}
 	fprintf(stderr, "\n");
         // Fully delete everything
 
         hi_tree->Delete();
-        delete df;
+	delete df;
         file->Close();
         delete file;
     }
@@ -105,6 +107,9 @@ void write_track_cluster(H5::DataSet &track_data_set, H5::DataSet &cluster_data_
         std::vector<UChar_t> track_quality(ntrack_max, NAN);
         std::vector<Float_t> track_eta_emcal(ntrack_max, NAN);
         std::vector<Float_t> track_phi_emcal(ntrack_max, NAN);
+        std::vector<UChar_t> track_its_ncluster(ntrack_max, NAN);
+        std::vector<Float_t> track_its_chi_square(ntrack_max, NAN);
+        std::vector<Float_t> track_dca_xy(ntrack_max, NAN);
 
 	UInt_t ncluster;
 	std::vector<Float_t> cluster_e(ncluster_max, NAN);
@@ -122,6 +127,9 @@ void write_track_cluster(H5::DataSet &track_data_set, H5::DataSet &cluster_data_
         hi_tree->SetBranchAddress("track_quality", &track_quality[0]);
         hi_tree->SetBranchAddress("track_eta_emcal", &track_eta_emcal[0]);
         hi_tree->SetBranchAddress("track_phi_emcal", &track_phi_emcal[0]);
+        hi_tree->SetBranchAddress("track_its_ncluster", &track_its_ncluster[0]);
+        hi_tree->SetBranchAddress("track_its_chi_square", &track_its_chi_square[0]);
+        hi_tree->SetBranchAddress("track_dca_xy", &track_dca_xy[0]);
 
         hi_tree->SetBranchAddress("ncluster", &ncluster);
         hi_tree->SetBranchAddress("cluster_e", &cluster_e[0]);
@@ -134,18 +142,21 @@ void write_track_cluster(H5::DataSet &track_data_set, H5::DataSet &cluster_data_
         for (Long64_t i = 0; i < hi_tree->GetEntries(); i++) {
             hi_tree->GetEntry(i);
 
-            std::vector<float> track_data(ntrack_max * 7, NAN);
+            std::vector<float> track_data(ntrack_max * 10, NAN);
             std::vector<float> cluster_data(ncluster_max * 5, NAN);
 
             for (Long64_t j = 0; j < ntrack; j++) {
                 // Note HDF5 is always row-major (C-like)
-                track_data[j * 7 + 0] = track_e[j];
-                track_data[j * 7 + 1] = track_pt[j];
-                track_data[j * 7 + 2] = track_eta[j];
-                track_data[j * 7 + 3] = track_phi[j];
-                track_data[j * 7 + 4] = track_quality[j];
-                track_data[j * 7 + 5] = track_eta_emcal[j];
-                track_data[j * 7 + 6] = track_phi_emcal[j];
+                track_data[j * 10 + 0] = track_e[j];
+                track_data[j * 10 + 1] = track_pt[j];
+                track_data[j * 10 + 2] = track_eta[j];
+                track_data[j * 10 + 3] = track_phi[j];
+                track_data[j * 10 + 4] = track_quality[j];
+                track_data[j * 10 + 5] = track_eta_emcal[j];
+                track_data[j * 10 + 6] = track_phi_emcal[j];
+                track_data[j * 10 + 7] = track_its_ncluster[j];
+                track_data[j * 10 + 8] = track_its_chi_square[j];
+                track_data[j * 10 + 9] = track_dca_xy[j];
             }
 
 	    for(Long64_t n = 0; n < ncluster; n++){
@@ -225,7 +236,8 @@ void write_track_cluster(H5::DataSet &track_data_set, H5::DataSet &cluster_data_
 
 int main(int argc, char *argv[])
 {
-    if (argc < 2) {
+    if (argc < 3) {
+      fprintf(stderr, "%s", "Syntax is [root_file] [new hdf5 file name]");
         exit(EXIT_FAILURE);
     }
 
@@ -235,7 +247,6 @@ int main(int argc, char *argv[])
     UInt_t ncluster_max = 0;
 
     find_ntrack_ncluster_max(argv + 1, argv + argc - 1, ntrack_max, ncluster_max);
-
     fprintf(stderr, "%sf:%d: ntrack_max = %u, ncluster_max = %u\n", __FILE__, __LINE__, ntrack_max, ncluster_max);
 
     // Access mode H5F_ACC_TRUNC truncates any existing file, while
@@ -243,7 +254,7 @@ int main(int argc, char *argv[])
     H5::H5File file(argv[argc - 1], H5F_ACC_TRUNC);
 
     // How many properties per track is written
-    static const size_t track_row_size = 7;
+    static const size_t track_row_size = 10;
     static const size_t cluster_row_size = 5;
     //easier to just make cluster use same # properties, reuse dim_extend
 

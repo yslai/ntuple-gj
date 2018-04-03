@@ -12,8 +12,8 @@
 #include <iostream>
 
 //#define HI_TREE "hiEvtAnalyzer/HiTree"
-#define HI_TREE "AliAnalysisTaskNTGJ/_tree_event"
-
+#define HI_TREE "_tree_event"
+#define HI_TREE_2 "AliAnalysisTaskNTGJ/_tree_event"
 namespace {
 
 	typedef unsigned short index_t;
@@ -23,13 +23,18 @@ namespace {
 		TFile *root_file = TFile::Open(filename);
 
 		if (root_file == NULL) {
+		  fprintf(stderr, "%s:%d: ROOT FILE FAIL\n",__FILE__, __LINE__);
 			return 0;
 		}
 
 		TTree *hi_tree = dynamic_cast<TTree *>(root_file->Get(HI_TREE));
 
 		if (hi_tree == NULL) {
-			return 0;
+		  hi_tree = dynamic_cast<TTree *>(root_file->Get(HI_TREE_2));		
+		  if(hi_tree == NULL){
+		    fprintf(stderr, "%s:%d: TREE FAIL\n",__FILE__, __LINE__);
+		    return 0;
+		  }
 		}
 
 		const size_t ret = hi_tree->GetEntries();
@@ -47,13 +52,18 @@ namespace {
 		TFile *root_file = TFile::Open(filename);
 
 		if (root_file == NULL) {
+		  fprintf(stderr, "%s:%d: ROOT FILE FAIL\n",__FILE__, __LINE__);
 			return std::vector<float>();
 		}
 
 		TTree *hi_tree = dynamic_cast<TTree *>(root_file->Get(HI_TREE));
 
 		if (hi_tree == NULL) {
-			return std::vector<float>();
+		  hi_tree = dynamic_cast<TTree *>(root_file->Get(HI_TREE_2));
+		  if(hi_tree == NULL){
+		    fprintf(stderr, "%s:%d: TREE FAIL\n",__FILE__, __LINE__);
+		    return std::vector<float>();
+		  }
 		}
 
 		double v[3];
@@ -228,7 +238,7 @@ void order_preference(std::vector<std::list<index_t> > &up,
 		}
 	}
 
-	fprintf(stderr, "%s:%d:\n", __FILE__, __LINE__);
+	fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, "Order Preference done for this block");
 }
 
 std::vector<index_t> gale_shapley(std::vector<std::list<index_t> > &mp,
@@ -306,34 +316,43 @@ std::vector<index_t> gale_shapley(std::vector<std::list<index_t> > &mp,
 	return m_to_f_engaged;
 }
 
-void mix_gale_shapley(const char *filename_0, const char *filename_1,
+void mix_gale_shapley(const char *filename_0, const char *filename_1, const char *mixing_start, const char *mixing_end,
 					  const int nfeature, const int nduplicate)
 {
+
+        int mix_start = atoi(mixing_start);
+	int mix_end = atoi(mixing_end);
 	const size_t nevent_0 = nevent(filename_0);
-	const size_t nevent_1 = nevent(filename_1);
+	const size_t nevent_1 = nevent(filename_1);//FIXME Doesn't work for unskimmed data sets
 
 	const size_t block_size_max = 2000;
-
 	const size_t nblocks = std::min(nevent_0, nevent_1 * nduplicate) /
 		block_size_max + 1;
-	const size_t nblock = nblocks - 1; // FIXME:Use % and rounding to get all events 
+
+	//const size_t nblock = nblocks - 1; // FIXME:Use % and rounding to get all events 
+	size_t nblock = nblocks - 1; // FIXME:Use % and rounding to get all events 
 
 	size_t lmin,lmax; 
-	size_t width = 5; //if changed, also must change when writing to Tree
+
+	//1/2 number of mixed events -> 1/2 number of blocks
+	size_t width = 25; //if changed, also must change when writing to Tree
+
+	//in case of many mixed events, but small file
+	//FIXME: 1000 mixed events wont work, to granular a block
+	//while(nblock < 2*width) nblock++;
 
 	std::vector<std::vector<Long64_t> > Matches;
 
-	for(size_t h = 0; h < nblock+1; h++){
-	  //for(size_t h = 0; h < 1; h++){
-	    const size_t event_start_0 = h * nevent_0 / (nblock + 1); 
-	    const size_t event_end_0 = (h + 1) * nevent_0 / (nblock + 1);
+	//loop through blocks
+	for(size_t h = 0; h < nblock+1; h++){ //h= offset read from argument
+	  //for(size_t h = nblock; h < nblock+1; h++){
+	  const size_t event_start_0 = h * nevent_0 / (nblock + 1);
+	  const size_t event_end_0 = (h + 1) * nevent_0 / (nblock + 1);
 	    const size_t nevents_0 = event_end_0 - event_start_0;	  
-	    
 	    std::vector<std::vector<Long64_t> > k;		  
 	  
 	    std::vector<float> feature_0 =
-	      feature_extract(filename_0, event_start_0, event_end_0,
-			      nfeature);
+	      feature_extract(filename_0, event_start_0, event_end_0,nfeature);
 	    
 	    fprintf(stderr,"%s %lu %s %lu\n","Block",h,"of",nblock);
 	    
@@ -351,17 +370,32 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 	      lmin = h-width;  	 
 	      lmax = h+width+1;
 	    }
-	    
-	    for (size_t i = lmin; i < lmax; i++) {
+	    //for (size_t i = lmin; i < lmax; i++) {//offset should be here?
+	    for (size_t i = lmin+mix_start; i < lmin+mix_end+1; i++) {//offset should be here?
+
+	      //if (i==h) continue;
+
+	      //for similar files:
+	      //fprintf(stderr,"%s","Using Similar file size block distribution");
+// 	      size_t event_start_1 = i * nevent_1 / (nblock+1);
+// 	      size_t event_end_1 = (i + nduplicate) * nevent_1 /
+// 		(nblock + nduplicate);
 	      
-	      if (i==h) continue;
-	     	      
-	      size_t event_start_1 = i * nevent_1 / (nblock+1);
-	      size_t event_end_1 = (i + nduplicate) * nevent_1 /
-		(nblock + nduplicate);
+// 	      const size_t nevents_1 = event_end_1 - event_start_1;
+
+//            size_t event_start_1 = i * nevent_0 / (nblock+1);
+// 	      size_t event_end_1 = (i + nduplicate) * nevent_0 /
+// 		(nblock + nduplicate);
 	      
+	      //for assymtric files:
+	      fprintf(stderr,"\n%s\n","Using Assymetric File block distribution, LARGER FILE: SECEND ARG"); 
+	      fprintf(stderr,"%s:%d:%s %lu %s %lu: %s %zu %s %lu\n\n",__FILE__, __LINE__,"Block",h,"of",nblock, "Event",i-lmin+1, "of",width*2);
+	      size_t event_start_1 = i * nevent_1 / (nblock+1); //i is a function of h
+	      size_t event_end_1 = event_start_1 + (event_end_0 - event_start_0); //ensure block sizes are equal
 	      const size_t nevents_1 = event_end_1 - event_start_1;
-	      if(nevents_1<nevents_0) event_end_1 += (nevents_0-nevents_1);
+
+
+	      //if(nevents_1<nevents_0) event_end_1 += (nevents_0-nevents_1);
 	      //FIXME:small # events mix with themselves once. need conditional using last block
 	      
 		std::vector<float> feature_1 =
@@ -393,8 +427,7 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 			for (size_t j = 0; j < m.size(); j++) {                                        
 			  Long64_t q = event_start_1 + (m[j] % feature_1_size_nfeature);
 			  tempflat.push_back(q);
-			}
-			
+			}			
 			k.push_back(tempflat);
 		}
 	  } //i
@@ -409,25 +442,30 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 
 	}//h
 
-	  // //	  write to txt
-	  FILE * txtfile = fopen ("pairs.txt","w");
-	  for (size_t t=0; t<Matches.size();t++){
-	    for (size_t s=1; s<Matches[t].size();s++){
-	      fprintf(txtfile, "%lld ", Matches[t][s]);
-	    }
-	    fprintf(txtfile, "%s\n","");
-	  }
-	  fclose (txtfile);
+	  //    write to txt
+// 	  FILE * txtfile = fopen ("pairs.txt","w");
+// 	  for (size_t t=0; t<Matches.size();t++){
+// 	    for (size_t s=1; s<Matches[t].size();s++){
+// 	      fprintf(txtfile, "%lld ", Matches[t][s]);
+// 	    }
+// 	    fprintf(txtfile, "%s\n","");
+// 	  }
+// 	  fclose (txtfile);
 	  
-	  //	  write to TTree
-	if (strcmp(filename_0,filename_1) == 0){
+
+	// write to TTree
+
+	//if (strcmp(filename_0,filename_1) == 0){
 
 	  TFile *root_file = new TFile(filename_0,"update");
-	  TTree *hi_tree = dynamic_cast<TTree *>
-	    (dynamic_cast<TDirectoryFile *>
-	     (root_file->Get("AliAnalysisTaskNTGJ"))->Get("_tree_event"));
+// 	  TTree *hi_tree = dynamic_cast<TTree *>
+// 	    (dynamic_cast<TDirectoryFile *>
+// 	     (root_file->Get("AliAnalysisTaskNTGJ"))->Get("_tree_event"));
 
-	  TFile *newfile = new TFile("mixed.root","recreate");	  
+	  TTree *hi_tree = dynamic_cast<TTree *>(root_file->Get(HI_TREE));
+	  
+	  TFile *newfile = new TFile("gs_mixed.root","recreate");	  
+	  //TFiles are more closely associated with TTrees, need to clone, not append....
 	  TTree *newtree = hi_tree->CloneTree(0);
 
 	  unsigned int n_mix_events = 2*width;
@@ -436,7 +474,7 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 
 	  fprintf(stderr, "%llu\n",nentries);
 	  
-	  TBranch *MixE = newtree->Branch("Mix_Events", Mix_Events, "&Mix_Events[10]/L");
+	  TBranch *MixE = newtree->Branch("Mix_Events", Mix_Events, "&Mix_Events[50]/L");
 	  
 	  for (ULong64_t t = 0; t<nentries;t++){
 	    hi_tree->GetEntry(t);
@@ -463,17 +501,17 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1,
 
 	  delete root_file;
 	  delete newfile;
-	}
-	else fprintf(stderr, "%s\n","Nothing written to root file.");
+	  //}
+	  //else fprintf(stderr, "%s\n","Nothing written to root file.");
 	
 	gSystem->Exit(0);
 }
 
 int main(int argc, char *argv[])
 {
-	if (argc < 3) {
-	  fprintf(stderr,"%s\n","Argument Syntax is [Command] [File] [File]");
+	if (argc < 5) {
+	  fprintf(stderr,"%s\n","Argument Syntax is [Command] [File] [File] [mix start] [mix end]");
 		return EXIT_FAILURE;
 	}
-	mix_gale_shapley(argv[1], argv[2], 2, 1);
+	mix_gale_shapley(argv[1], argv[2], argv[3], argv[4], 2, 1);
 }

@@ -1,6 +1,7 @@
 CXX =		g++
 CC =		$(CXX)
-CXXFLAGS =      -g -O #-frounding-math
+#CXXFLAGS =      -g -O -s -frounding-math
+CXXFLAGS =      -O
 CXXFLAGS +=     -Wextra -Wall -Werror -fPIC
 CXXFLAGS +=	-Wno-unused-variable -Wno-unused-parameter
 CXXFLAGS +=	-Wno-unused-function
@@ -15,11 +16,14 @@ CXXFLAGS +=	$(shell root-config --cflags)
 LDFLAGS =	$(shell root-config --ldflags)
 LDLIBS =	$(shell root-config --libs)
 
-HDF5_ROOT =	/opt/local/lib/hdf5-18
+HDF5_ROOT =	/opt/local/
 CXXFLAGS +=	-I$(HDF5_ROOT)/include
-LDLIBS +=	-L$(HDF5_ROOT)/lib64 -L$(HDF5_ROOT)/lib -lhdf5_cpp -lhdf5
-
+LDLIBS +=	 -L$(HDF5_ROOT)/lib -lhdf5_cpp -lhdf5
 CXXFLAGS +=	-I$(BOOST_ROOT)/include
+
+#LIDLIBS for other systems
+#LDLIBS +=	-L$(HDF5_ROOT)/lib64 -L$(HDF5_ROOT)/lib -lhdf5_cpp -lhdf5
+
 
 TARGET =	to_hdf5
 
