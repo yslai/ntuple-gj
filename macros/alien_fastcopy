@@ -18,7 +18,6 @@ alien_expand() {
 }
 
 copy() {
-    nproc=0
     for f in $(alien_expand "$1"); do
 	case "$f" in
 	    *analysis.jdl)
