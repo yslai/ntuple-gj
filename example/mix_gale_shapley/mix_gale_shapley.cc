@@ -342,7 +342,7 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 	//while(nblock < 2*width) nblock++;
 
 	std::vector<std::vector<Long64_t> > Matches;
-
+	fprintf(stderr,"\n%s\n","Using Assymetric File block distribution, LARGER FILE: SECEND ARG"); 
 	//loop through blocks
 	for(size_t h = 0; h < nblock+1; h++){ //h= offset read from argument
 	  //for(size_t h = nblock; h < nblock+1; h++){
@@ -362,8 +362,8 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 	    }
 
 	    else if (h+width > nblock) {
-	    lmin = nblock-2*width;
-	    lmax = nblock+1;
+	      lmin = nblock-2*width; 
+	      lmax = nblock+1;
 	    }
 
 	    else {
@@ -388,12 +388,18 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 // 		(nblock + nduplicate);
 	      
 	      //for assymtric files:
-	      fprintf(stderr,"\n%s\n","Using Assymetric File block distribution, LARGER FILE: SECEND ARG"); 
-	      fprintf(stderr,"%s:%d:%s %lu %s %lu: %s %zu %s %lu\n\n",__FILE__, __LINE__,"Block",h,"of",nblock, "Event",i-lmin+1, "of",width*2);
-	      size_t event_start_1 = i * nevent_1 / (nblock+1); //i is a function of h
-	      size_t event_end_1 = event_start_1 + (event_end_0 - event_start_0); //ensure block sizes are equal
-	      const size_t nevents_1 = event_end_1 - event_start_1;
 
+	      //size_t event_start_1 = i * nevent_1 / (nblock+1); //i is a function of h
+	      size_t event_start_1 = i * nevent_1 / (2*width+1);
+	      size_t event_end_1 = event_start_1 + (event_end_0 - event_start_0); //ensure block sizes are equal
+	      const size_t nevents_1 = event_end_1 - event_start_1; //might fail if remainder is < 2000....
+	      if (event_end_1 > nevent_1) {
+		fprintf(stderr,"%s:%d: event_end out of bounds",__FILE__, __LINE__);
+		continue;
+		  }
+
+	      fprintf(stderr,"%s:%d:%s %lu %s %lu: %s %zu %s %lu, Event in larger NTuple: %zu \n\n",
+		      __FILE__, __LINE__,"Block",h,"of",nblock, "Event",i-lmin+1, "of",width*2, event_start_1);
 
 	      //if(nevents_1<nevents_0) event_end_1 += (nevents_0-nevents_1);
 	      //FIXME:small # events mix with themselves once. need conditional using last block
