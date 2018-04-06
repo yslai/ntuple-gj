@@ -40,6 +40,7 @@ private:
     BRANCH_STR(version_jec)                                         \
     BRANCH_STR(grid_data_dir)                                       \
     BRANCH_STR(grid_data_pattern)                                   \
+    BRANCH(beam_energy, F)                                          \
     BRANCH_ARRAY(beam_particle, 2, I)                               \
     BRANCH(ntrigger_class, b)                                       \
     BRANCH_STR_ARRAY(trigger_class, ntrigger_class)                 \
@@ -65,9 +66,11 @@ private:
     BRANCH_ARRAY(primary_vertex_spd, 3, D)                          \
     BRANCH_ARRAY(primary_vertex_spd_sigma, 3, D)                    \
     BRANCH(primary_vertex_spd_ncontributor, I)                      \
+    BRANCH(is_pileup_from_spd_3_08, O)                              \
+    BRANCH(is_pileup_from_spd_5_08, O)                              \
     BRANCH(npileup_vertex_spd, I)                                   \
-    BRANCH(pileup_vertex_spd_ncontributor, I)                       \
-    BRANCH(pileup_vertex_spd_min_z_distance, D)                     \
+    BRANCH(ncluster_tpc, I)                                         \
+    BRANCH(event_selected, O)                                       \
     BRANCH(eg_signal_process_id, I)                                 \
     BRANCH(eg_mpi, I)                                               \
     BRANCH(eg_pt_hat, F)                                            \
@@ -93,10 +96,11 @@ private:
     BRANCH_ARRAY2(cluster_lambda_square, ncluster, 2, F)            \
     BRANCH_ARRAY(cluster_tof, ncluster, F)                          \
     BRANCH_ARRAY(cluster_ncell, ncluster, I)                        \
+    BRANCH_ARRAY(cluster_nlocal_maxima, ncluster, b)                \
+    BRANCH_ARRAY(cluster_distance_to_bad_channel, ncluster, F)      \
     BRANCH_ARRAY(cluster_cell_id_max, ncluster, s)                  \
     BRANCH_ARRAY(cluster_e_max, ncluster, F)                        \
     BRANCH_ARRAY(cluster_e_cross, ncluster, F)                      \
-    BRANCH_ARRAY(cluster_nlocal_maxima, ncluster, b)                \
     BRANCH_ARRAY(cluster_nmc_truth, ncluster, i)                    \
     BRANCH_ARRAY2(cluster_mc_truth_index, ncluster, 32, s)          \
     BRANCH_ARRAY(cluster_iso_tpc_01, ncluster, F)                   \
@@ -121,6 +125,18 @@ private:
     BRANCH_ARRAY(cluster_frixione_its_04_02, ncluster, F)           \
     BRANCH_ARRAY(cluster_frixione_its_04_05, ncluster, F)           \
     BRANCH_ARRAY(cluster_frixione_its_04_10, ncluster, F)           \
+    BRANCH_ARRAY(cluster_frixione_tpc_04_02_with_ue, ncluster, F)   \
+    BRANCH_ARRAY(cluster_frixione_tpc_04_05_with_ue, ncluster, F)   \
+    BRANCH_ARRAY(cluster_frixione_tpc_04_10_with_ue, ncluster, F)   \
+    BRANCH_ARRAY(cluster_frixione_its_04_02_with_ue, ncluster, F)   \
+    BRANCH_ARRAY(cluster_frixione_its_04_05_with_ue, ncluster, F)   \
+    BRANCH_ARRAY(cluster_frixione_its_04_10_with_ue, ncluster, F)   \
+    BRANCH_ARRAY(cluster_anti_frixione_tpc_04_02, ncluster, F)      \
+    BRANCH_ARRAY(cluster_anti_frixione_tpc_04_05, ncluster, F)      \
+    BRANCH_ARRAY(cluster_anti_frixione_tpc_04_10, ncluster, F)      \
+    BRANCH_ARRAY(cluster_anti_frixione_its_04_02, ncluster, F)      \
+    BRANCH_ARRAY(cluster_anti_frixione_its_04_05, ncluster, F)      \
+    BRANCH_ARRAY(cluster_anti_frixione_its_04_10, ncluster, F)      \
     BRANCH_ARRAY(cluster_iso_01_truth, ncluster, F)                 \
     BRANCH_ARRAY(cluster_iso_02_truth, ncluster, F)                 \
     BRANCH_ARRAY(cluster_iso_03_truth, ncluster, F)                 \
@@ -128,6 +144,9 @@ private:
     BRANCH_ARRAY(cluster_frixione_04_02_truth, ncluster, F)         \
     BRANCH_ARRAY(cluster_frixione_04_05_truth, ncluster, F)         \
     BRANCH_ARRAY(cluster_frixione_04_10_truth, ncluster, F)         \
+    BRANCH_ARRAY(cluster_anti_frixione_04_02_truth, ncluster, F)    \
+    BRANCH_ARRAY(cluster_anti_frixione_04_05_truth, ncluster, F)    \
+    BRANCH_ARRAY(cluster_anti_frixione_04_10_truth, ncluster, F)    \
     BRANCH_ARRAY2(cluster_s_nphoton, ncluster, 4, F)                \
     BRANCH_ARRAY2(cluster_s_ncharged_hadron, ncluster, 4, F)        \
     BRANCH_ARRAY(cell_e, 17664, F)                                  \
@@ -325,7 +344,7 @@ private:
 #define BRANCH_STR(b)                           \
     char _branch_ ## b[BUFSIZ];
 #define BRANCH_STR_ARRAY(b, d)                  \
-    TClonesArray _branch_ ## b;
+    std::vector<std::string> _branch_ ## b;
 
     MEMBER_BRANCH;
 
@@ -369,13 +388,19 @@ private:
     AliMuonTrackCuts *_muon_track_cut; //!
 
     size_t _ncell; //!
-    double _skim_cluster_min_e; //!
-    double _skim_track_min_pt; //!
-    double _skim_muon_track_min_pt; //!
-    std::vector<double> _skim_jet_min_pt; //!
-    int _skim_multiplicity_tracklet_min_n; //!
-    double _stored_track_min_pt; //!
-    double _stored_jet_min_pt_raw; //!
+
+    std::string _emcal_geometry_filename;
+    std::string _emcal_local2master_filename;
+
+    bool _force_ue_subtraction;
+    double _skim_cluster_min_e;
+    double _skim_track_min_pt;
+    double _skim_muon_track_min_pt;
+    std::vector<double> _skim_jet_min_pt;
+    int _skim_multiplicity_tracklet_min_n;
+    double _stored_track_min_pt;
+    double _stored_jet_min_pt_raw;
+    unsigned int _nrandom_isolation;
 
     std::vector<bool> _emcal_mask; //!
 
@@ -392,11 +417,9 @@ private:
     AliAnalysisAlien *_alien_plugin; //!
     bool _metadata_filled; //!
 public:
-    AliAnalysisTaskNTGJ(void);
-    AliAnalysisTaskNTGJ(const char *name);
+    AliAnalysisTaskNTGJ(const char *name = "NTGJ");
     AliAnalysisTaskNTGJ(const AliAnalysisTaskNTGJ &);
-    AliAnalysisTaskNTGJ &operator=
-        (const AliAnalysisTaskNTGJ &);
+    AliAnalysisTaskNTGJ &operator=(const AliAnalysisTaskNTGJ &);
     ~AliAnalysisTaskNTGJ(void);
     virtual void UserCreateOutputObjects(void);
     virtual void UserExec(Option_t *);
@@ -406,6 +429,12 @@ public:
     void SetGridDataDir(const char *dir);
     void SetGridDataPattern(const char *pattern);
     //
+    void SetEMCALGeometryFilename(const char *
+                                  emcal_geometry_filename);
+    void SetEMCALLocal2MasterFilename(const char *
+                                      emcal_local2master_filename);
+    //
+    void SetForceUESubtraction(bool force_ue_subtraction = true);
     void SetSkimClusterMinE(double min_e = -INFINITY);
     void SetSkimTrackMinPt(double min_pt = -INFINITY);
     void SetSkimMuonTrackMinPt(double min_pt = -INFINITY);
@@ -416,6 +445,7 @@ public:
     //
     void SetStoredTrackMinPt(double min_pt = -INFINITY);
     void SetStoredJetMinPtRaw(double min_pt_raw = -INFINITY);
+    void SetNRandomIsolation(unsigned int nrandom_isolation = 0);
     ClassDef(AliAnalysisTaskNTGJ, 1);
 
 };

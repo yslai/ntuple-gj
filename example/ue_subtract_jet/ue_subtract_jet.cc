@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
             (dynamic_cast<TDirectoryFile *>
              (file->Get("AliAnalysisTaskNTGJ"))->Get("_tree_event"));
 
-        ULong64_t ntrack;
+        UInt_t ntrack;
         Float_t track_e[NTRACK_MAX];
         Float_t track_pt[NTRACK_MAX];
         Float_t track_eta[NTRACK_MAX];
@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
             std::map<size_t, size_t> track_reco_index;
             double sum_pt = 0;
 
-            for (ULong64_t j = 0; j < ntrack; j++) {
+            for (UInt_t j = 0; j < ntrack; j++) {
                 if ((track_quality[j] & 3) != 0 &&
                     std::isfinite(track_eta[j]) &&
                     std::isfinite(track_phi[j])) {

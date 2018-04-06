@@ -6,19 +6,6 @@ inputObjects:
     clusterContainers:
         defaultClusterContainer:
             branchName: "usedefault"
-        defaultClusterContainer_1:
-            minE: 0.0
-            minPt: 0.0
-        defaultClusterContainer_2:
-            minE: 0.0
-            minPt: 0.0
-            clusNonLinCorrEnergyCut: 0.15
-    trackContainers:
-        defaultTrackContainer:
-            branchName: "usedefault"
-        defaultTrackContainer_1:
-            minPt: 0.15
-            trackFilterType: kHybridTracks
 CellEnergy:
     enabled: true
     createHistos: false
@@ -41,10 +28,4 @@ Clusterizer:
     w0: 4.5
 
 ClusterTrackMatcher:
-    enabled: true
-    createHistos: false
-    maxDist: 0.1
-    useDCA: true
-    usePIDmass: true
-    trackContainersNames:
-        - defaultTrackContainer
+    enabled: false

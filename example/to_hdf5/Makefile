@@ -1,6 +1,6 @@
 CXX =		g++
 CC =		$(CXX)
-CXXFLAGS =      -g -O3 -s -frounding-math
+CXXFLAGS =      -g -O -s -frounding-math
 CXXFLAGS +=     -Wextra -Wall -Werror -fPIC
 CXXFLAGS +=	-Wno-unused-variable -Wno-unused-parameter
 CXXFLAGS +=	-Wno-unused-function
@@ -11,12 +11,16 @@ ifeq ($(findstring g++,$(CXX)),g++)
                 -D_FORTIFY_SOURCE=1 -fstack-protector
 endif
 CXXFLAGS +=     -std=c++11
-CXXFLAGS +=     -fopenmp
 CXXFLAGS +=	$(shell root-config --cflags)
 LDFLAGS =	$(shell root-config --ldflags)
 LDLIBS =	$(shell root-config --libs)
 
-TARGET =	mix_gale_shapley
+HDF5_ROOT =	/usr/local/hdf5
+CXXFLAGS +=	-I$(HDF5_ROOT)/include
+LDFLAGS +=	-L$(HDF5_ROOT)/lib64 -L$(HDF5_ROOT)/lib
+LDLIBS +=	-lhdf5_cpp -lhdf5
+
+TARGET =	to_hdf5
 
 all:		$(TARGET)
 

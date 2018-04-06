@@ -69,24 +69,23 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     gSystem->Load("libEMCALUtils");
     gSystem->Load("libPWGPPEMCAL");
 
-    gSystem->Load("libCGAL.so");
-    gSystem->Load("libfastjet.so");
-    gSystem->Load("libsiscone.so");
-    gSystem->Load("libsiscone_spherical.so");
-    gSystem->Load("libfastjetplugins.so");
-    gSystem->Load("libfastjetcontribfragile.so");
+    gSystem->Load("libCGAL");
+    gSystem->Load("libfastjet");
+    gSystem->Load("libsiscone");
+    gSystem->Load("libsiscone_spherical");
+    gSystem->Load("libfastjetplugins");
+    gSystem->Load("libfastjetcontribfragile");
 
     gROOT->ProcessLine(".L AliAnalysisTaskNTGJ.cxx+g");
 
     AliAnalysisManager *mgr = new AliAnalysisManager();
 
-    gROOT->Macro("$ALICE_ROOT/ANALYSIS/macros/train/"
-                 "AddESDHandler.C");
-    gROOT->Macro("$ALICE_ROOT/ANALYSIS/macros/train/"
-                 "AddMCHandler.C");
+    gROOT->ProcessLine(".x $ALICE_ROOT/ANALYSIS/macros/train/"
+                       "AddESDHandler.C");
+    gROOT->ProcessLine(".x $ALICE_ROOT/ANALYSIS/macros/train/"
+                       "AddMCHandler.C");
 
-    AliAnalysisAlien *plugin =
-        new AliAnalysisAlien("pluginNTGJ");
+    AliAnalysisAlien *plugin = new AliAnalysisAlien("pluginNTGJ");
 
     for (const char **p = package; *p != NULL; p++) {
         plugin->AddExternalPackage(*p);
@@ -104,21 +103,34 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
 
     plugin->AddIncludePath(include_path);
 
-
+    // Light-weight parsing of a YAML conform file, with what is
+    // available in ROOT/CINT
     FILE *fp = fopen(config_filename, "r");
     char line[4096];
-    TString emcal_correction_filename;
-	TString skim_cluster_min_e = "-1e+309";
-	TString skim_track_min_pt = "-1e+309";
-	TString skim_muon_track_min_pt = "-1e+309";
-	TString skim_jet_min_pt_1 = "-1e+309";
-	TString skim_jet_min_pt_2 = "-1e+309";
-	TString skim_jet_min_pt_3 = "-1e+309";
-	TString skim_multiplicity_tracklet_min_n = "-2147483648";
-	TString stored_track_min_pt = "-1e+309";
-	TString stored_jet_min_pt_raw = "-1e+309";
+    // Default values
+    TString emcal_correction_filename = "emcal_correction.yaml";
+    TString emcal_geometry_filename = "";
+    TString emcal_local2master_filename = "";
+    bool mult_selection = true;
+    bool physics_selection = false;
+    bool physics_selection_mc_analysis = false;
+    bool physics_selection_pileup_cut = true;
+    bool force_ue_subtraction = false;
+    // 1e+309 = INFINITY (for IEEE 754 double)
+    TString skim_cluster_min_e = "-1e+309";
+    TString skim_track_min_pt = "-1e+309";
+    TString skim_muon_track_min_pt = "-1e+309";
+    TString skim_jet_min_pt_1 = "-1e+309";
+    TString skim_jet_min_pt_2 = "-1e+309";
+    TString skim_jet_min_pt_3 = "-1e+309";
+    // -2147483648 = INT_MIN
+    TString skim_multiplicity_tracklet_min_n = "-2147483648";
+    TString stored_track_min_pt = "-1e+309";
+    TString stored_jet_min_pt_raw = "-1e+309";
+    TString nrandom_isolation = "0";
 
     while (fgets(line, 4096, fp) != NULL) {
+        // Skip comments
         if (line[0] == '#') {
             continue;
         }
@@ -129,7 +141,17 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
 
         key[0] = '\0';
         value[0] = '\0';
-        sscanf(line, "%[^:]:%[ \t]%4096[^\n]", key, dummy, value);
+        // Key is arbitrarily many characters until ':', followed by
+        // arbitrarily many combinations of space/tabs (both assuming
+        // user will not actually enter >= 4096 of those), then at
+        // most 4096 caracters of value (which could be very long, for
+        // run lists). Tailing spaces for numerical values are
+        // generally passed on to CINT, which also does not become an
+        // issue.
+        sscanf(line, "%[^:]:%[ \t]%4096[^\n\r]", key, dummy, value);
+
+        // AliEn related options
+
         if (strcmp(key, "gridWorkingDir") == 0) {
             plugin->SetGridWorkingDir(value);
         }
@@ -148,17 +170,42 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         else if (strcmp(key, "dataPattern") == 0) {
             plugin->SetDataPattern(value);
         }
+        else if (strcmp(key, "inputFormat") == 0) {
+            plugin->SetInputFormat(value);
+        }
+        else if (strcmp(key, "masterResubmitThreshold") == 0) {
+            plugin->SetMasterResubmitThreshold(atoi(value));
+        }
+        else if (strcmp(key, "maxInitFailed") == 0) {
+            plugin->SetMaxInitFailed(atoi(value));
+        }
+        else if (strcmp(key, "nrunsPerMaster") == 0) {
+            plugin->SetNrunsPerMaster(atoi(value));
+        }
+        else if (strcmp(key, "numberOfReplicas") == 0) {
+            plugin->SetNumberOfReplicas(atoi(value));
+        }
+        else if (strcmp(key, "overwriteMode") == 0) {
+            plugin->SetOverwriteMode(atoi(value));
+        }
         else if (strcmp(key, "runNumber") == 0) {
+            // Split an array of run numbers
             for (const char *v = value; *v != '\0';) {
+                // Move forward until *v is a digit, but not further
+                // than the end of the C string
                 while (*v != '\0' && !isdigit(*v)) {
                     v++;
                 }
 
+                // Convert the digit into an integer and add to AliEn
                 int n;
 
                 sscanf(v, "%d", &n);
                 plugin->AddRunNumber(n);
-                while (*v != '\0' && isdigit(*v)) {
+                // Move forward until *v is a non-digit, i.e. skipping
+                // the number characters processed by sscanf(). Note
+                // isdigit('\0') = 0 = false.
+                while (isdigit(*v)) {
                     v++;
                 }
             }
@@ -166,8 +213,42 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         else if (strcmp(key, "runPrefix") == 0) {
             plugin->SetRunPrefix(value);
         }
+        else if (strcmp(key, "splitMaxInputFileNumber") == 0) {
+            plugin->SetSplitMaxInputFileNumber(atoi(value));
+        }
+        else if (strcmp(key, "splitMode") == 0) {
+            plugin->SetSplitMode(value);
+        }
+        else if (strcmp(key, "ttl") == 0) {
+            plugin->SetTTL(atoi(value));
+        }
+
+        // Task related options
+
         else if (strcmp(key, "emcalCorrection") == 0) {
             emcal_correction_filename = value;
+        }
+        else if (strcmp(key, "multSelection") == 0) {
+            mult_selection = strncmp(value, "true", 4) == 0;
+        }
+        else if (strcmp(key, "physicsSelection") == 0) {
+            physics_selection = strncmp(value, "true", 4) == 0;
+        }
+        else if (strcmp(key, "physicsSelectionMCAnalysis") == 0) {
+            physics_selection_mc_analysis = strncmp(value, "true", 4) == 0;
+        }
+        else if (strcmp(key, "physicsSelectionPileupCut") == 0) {
+            physics_selection_pileup_cut =
+                strncmp(value, "true", 4) == 0;
+        }
+        else if (strcmp(key, "emcalGeometryFilename") == 0) {
+            emcal_geometry_filename = value;
+        }
+        else if (strcmp(key, "emcalLocal2MasterFilename") == 0) {
+            emcal_local2master_filename = value;
+        }
+        else if (strcmp(key, "forceUESubtraction") == 0) {
+            force_ue_subtraction = strncmp(value, "true", 4) == 0;
         }
         else if (strcmp(key, "skimClusterMinE") == 0) {
             skim_cluster_min_e = value;
@@ -196,13 +277,28 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         else if (strcmp(key, "storedJetMinPtRaw") == 0) {
             stored_jet_min_pt_raw = value;
         }
+        else if (strcmp(key, "nrandomIsolation") == 0) {
+            nrandom_isolation = value;
+        }
     }
     fclose(fp);
 
-    TString mklml_filename;
+    // This is preparing for possible neural network inference with
+    // Intel MKLML
+
+    TString mklml_filename = "";
+    TString oadb_filename = "";
 
     if (!gSystem->AccessPathName("libmklml_gnu_so")) {
-        mklml_filename = "libiomp5_so libmklml_gnu_so ";
+        mklml_filename = "libiomp5_so libmklml_gnu_so";
+    }
+    if (strchr(emcal_geometry_filename.Data(), '/') == NULL) {
+        oadb_filename += emcal_geometry_filename;
+        oadb_filename += " ";
+    }
+    if (strchr(emcal_local2master_filename.Data(), '/') == NULL) {
+        oadb_filename += emcal_local2master_filename;
+        oadb_filename += " ";
     }
     plugin->SetAdditionalLibs(
         "AliAnalysisTaskNTGJ.h "
@@ -213,11 +309,15 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         "half.h halfLimits.h toFloat.h "
         "keras_model.h keras_model.cc "
         "photon_discr.model "
+        // Not sure if this helps against the missing pyqpar_ when
+        // dlopen() "libAliPythia6.so"
+        "libpythia6.so libAliPythia6.so "
         "libCGAL.so libfastjet.so libsiscone.so "
         "libsiscone_spherical.so libfastjetplugins.so "
         "libfastjetcontribfragile.so " +
-        mklml_filename +
-        emcal_correction_filename);
+        mklml_filename + " " +
+        emcal_correction_filename + " " +
+        oadb_filename);
     plugin->SetAnalysisSource("AliAnalysisTaskNTGJ.cxx");
 
     // Honor alien_CLOSE_SE for the output also, e.g. when
@@ -239,17 +339,30 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
 
     plugin->SetRunMode(run_mode);
     mgr->SetGridHandler(plugin);
-    gROOT->Macro(TString("macros/AddAliAnalysisTaskNTGJ.C"
-                         "(\"AliAnalysisTaskNTGJ\",\"") +
-                 emcal_correction_filename + "\"," +
-                 skim_cluster_min_e + "," +
-                 skim_track_min_pt + "," +
-                 skim_muon_track_min_pt + "," +
-                 skim_jet_min_pt_1 + "," + skim_jet_min_pt_2 + "," +
-                 skim_jet_min_pt_3 + "," +
-                 skim_multiplicity_tracklet_min_n + "," +
-                 stored_track_min_pt + "," +
-                 stored_jet_min_pt_raw + ")");
+
+    TString add_task_line = ".x macros/AddAliAnalysisTaskNTGJ.C("
+        "\"AliAnalysisTaskNTGJ\",\"";
+
+    add_task_line += emcal_correction_filename + "\"," +
+        (mult_selection ? "true" : "false") + "," +
+        (physics_selection ? "true" : "false") + "," +
+        (physics_selection_mc_analysis ? "true" : "false") + "," +
+        (physics_selection_pileup_cut ? "true" : "false") + ",\"" +
+        emcal_geometry_filename + "\",\"" +
+        emcal_local2master_filename + "\"," +
+        (force_ue_subtraction ? "true" : "false") + "," +
+        skim_cluster_min_e + "," +
+        skim_track_min_pt + "," +
+        skim_muon_track_min_pt + "," +
+        skim_jet_min_pt_1 + "," + skim_jet_min_pt_2 + "," +
+        skim_jet_min_pt_3 + "," +
+        skim_multiplicity_tracklet_min_n + "," +
+        stored_track_min_pt + "," +
+        stored_jet_min_pt_raw + "," +
+        nrandom_isolation + ")";
+    fprintf(stderr, "%s:%d: add_task_line = `%s'\n", __FILE__,
+            __LINE__, add_task_line.Data());
+    gROOT->ProcessLine(add_task_line);
 
     if (mgr->InitAnalysis()) {
         mgr->StartAnalysis("grid");
