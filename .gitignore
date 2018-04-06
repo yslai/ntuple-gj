@@ -6,12 +6,15 @@
 *.so
 *~
 000*.xml
+AnalysisResults.root
 AutoDict_*_.cxx
+EventStat_temp.root
 ROOTMERGE-*.root
 analysis.jdl
 analysis.root
 analysis.sh
 analysis_validation.sh
+event_stat.root
 myAnalysis.C
 outputs_valid
 stderr
