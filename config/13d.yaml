@@ -1,9 +1,12 @@
 gridWorkingDir:		workingdir
 gridOutputDir:		outputdir_13d
-aliROOTVersion:		v5-09-11-1
-aliPhysicsVersion:	v5-09-11-01-1
+aliROOTVersion:         v5-09-23-1
+aliPhysicsVersion:      vAN-20180222-1
 gridDataDir:		/alice/data/2013/LHC13d
 dataPattern:		/pass4/*/AliESDs.root
 runPrefix:              000
 runNumber:		[195872, 195871, 195867, 195831, 195829, 195787, 195783, 195767, 195760, 195724]
 emcalCorrection:	emcal_correction.yaml
+emcalGeometryFilename:  geometry_2015.root
+emcalLocal2MasterFilename:  EMCALlocal2master.root
+skimClusterMinE:        10.0

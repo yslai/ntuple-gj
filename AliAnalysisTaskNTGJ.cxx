@@ -166,7 +166,7 @@ ClassImp(AliAnalysisTaskNTGJ);
     _emcal_geometry_filename(""),                           \
     _emcal_local2master_filename(""),                       \
     _force_ue_subtraction(false),                           \
-    _skim_cluster_min_e(-INFINITY),                         \
+    _skim_cluster_min_e(10.0),                         \
     _skim_track_min_pt(-INFINITY),                          \
     _skim_muon_track_min_pt(-INFINITY),                     \
     _skim_jet_min_pt(std::vector<double>(3, -INFINITY)),    \
@@ -1500,10 +1500,24 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         _branch_cluster_phi[_branch_ncluster] =
             half(angular_range_reduce(p.Phi()));
 
-        _branch_cluster_lambda_square[_branch_ncluster][0] =
+	_branch_cluster_lambda_square[_branch_ncluster][0] =
             half(c->GetM02());
-        _branch_cluster_lambda_square[_branch_ncluster][1] =
-            half(c->GetM20());
+	_branch_cluster_lambda_square[_branch_ncluster][1] =
+           half(c->GetM20());
+
+
+
+        GetEMCALRecoUtils()->SetShowerShapeCellLocationType(1);
+	Float_t l0   = 0., l1   = 0.;
+	Float_t dispp= 0., dEta = 0., dPhi    = 0.;
+	Float_t sEta = 0., sPhi = 0., sEtaPhi = 0.;
+
+	GetEMCALRecoUtils()->RecalculateClusterShowerShapeParameters(_emcal_geometry, emcal_cell, c, l0, l1, dispp, dEta, dPhi, sEta, sPhi, sEtaPhi);
+        _branch_cluster_lambda_square_angle[_branch_ncluster][0] = half(l0);
+        _branch_cluster_lambda_square_angle[_branch_ncluster][1] = half(l1);
+
+
+
         _branch_cluster_tof[_branch_ncluster] =
             half(c->GetTOF() * 1e+9);
         _branch_cluster_ncell[_branch_ncluster] = c->GetNCells();
