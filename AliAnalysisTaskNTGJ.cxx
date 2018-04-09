@@ -464,7 +464,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             _track_cut.back().SetRequireTPCRefit(kTRUE);
             _track_cut.back().SetMaxFractionSharedTPCClusters(0.4);
             _track_cut.back().SetRequireITSRefit(kTRUE);
-            _track_cut.back().SetMaxDCAToVertexXY(2.4);
+            _track_cut.back().SetMaxDCAToVertexXY();
             _track_cut.back().SetMaxDCAToVertexZ(3.2);
             _track_cut.back().SetDCAToVertex2D(kTRUE);
             _track_cut.back().SetMaxChi2PerClusterITS(36);
@@ -531,10 +531,13 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         // _track_cut.back().SetRequireITSStandAlone(kFALSE);
         _track_cut.back().SetRequireITSPureStandAlone(kTRUE);
         // _track_cut.back().SetRequireITSRefit(kTRUE); 
-        // _track_cut.back().SetMinNClustersITS(4);
-        // _track_cut.back().SetClusterRequirementITS(
-        //  AliESDtrackCuts::kSPD, AliESDtrackCuts::kAny);
-        // esdTrackCuts->SetMaxChi2PerClusterITS(2.5);
+        // _track_cut.back().SetClusterRequirementITS(AliESDtrackCuts::kSPD, AliESDtrackCuts::kAny);
+	 _track_cut.back().SetPtRange(0.15, 1e+15);
+	 _track_cut.back().SetMinNClustersITS(5);
+	 _track_cut.back().SetMaxDCAToVertexXY(2.4);
+	 _track_cut.back().SetMaxDCAToVertexZ(3.2);
+	 _track_cut.back().SetDCAToVertex2D(kTRUE);
+	 _track_cut.back().SetMaxChi2PerClusterITS(36);
     }
 
     AliVVZERO *v0 = event->GetVZEROData();
