@@ -464,7 +464,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             _track_cut.back().SetRequireTPCRefit(kTRUE);
             _track_cut.back().SetMaxFractionSharedTPCClusters(0.4);
             _track_cut.back().SetRequireITSRefit(kTRUE);
-            _track_cut.back().SetMaxDCAToVertexXY();
+            _track_cut.back().SetMaxDCAToVertexXY(2.4);
             _track_cut.back().SetMaxDCAToVertexZ(3.2);
             _track_cut.back().SetDCAToVertex2D(kTRUE);
             _track_cut.back().SetMaxChi2PerClusterITS(36);
