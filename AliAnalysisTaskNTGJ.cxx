@@ -759,6 +759,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             cluster_e_max = std::max(cluster_e_max, p.E());
         }
         if (!(cluster_e_max >= _skim_cluster_min_e)) {
+            // Discard this event
             return;
         }
     }
@@ -2003,6 +2004,21 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                     cluster_sequence_reco_tagged_ak04its,
                     ak04, jet_truth_ak04,
                     particle_reco_area_its, ue_estimate_its);
+
+    if (_skim_jet_min_pt[0] > -INFINITY) {
+        // FIXME: JEC?
+        std::vector<float>
+            pt(_branch_jet_ak04tpc_pt_raw,
+               _branch_jet_ak04tpc_pt_raw + _branch_njet_ak04tpc);
+        std::partial_sort(pt.begin(), pt.begin() + 3, pt.end(),
+                          std::greater<float>());
+        if (!(pt[0] >= _skim_jet_min_pt[0] &&
+              pt[1] >= _skim_jet_min_pt[1] &&
+              pt[2] >= _skim_jet_min_pt[2])) {
+            // Discard this event
+            return;
+        }
+    }
 
     std::fill(_branch_cell_e, _branch_cell_e + EMCAL_NCELL, NAN);
     std::fill(_branch_cell_tof, _branch_cell_tof + EMCAL_NCELL, NAN);
