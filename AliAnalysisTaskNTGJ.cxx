@@ -12,7 +12,6 @@
 #include <TSystem.h>
 #include <TGeoManager.h>
 #include <TGeoGlobalMagField.h>
-#include <TRandom3.h>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Woverloaded-virtual"
@@ -1559,7 +1558,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 stored_mc_truth_index.size() &&
                 stored_mc_truth_index[mc_truth_index] !=
                 ULONG_MAX &&
-                cluster_mc_truth_index.find(mc_truth_index) ==
+                cluster_mc_truth_index.find(
+                    stored_mc_truth_index[mc_truth_index]) ==
                 cluster_mc_truth_index.end()) {
                 const unsigned short u =
                     SAFE_MC_TRUTH_INDEX_TO_USHRT(mc_truth_index);
@@ -1570,7 +1570,11 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                             mc_truth_index]],
                         u));
             }
-            cluster_mc_truth_index.insert(mc_truth_index);
+            // Test (above) and insertion must be done via
+            // stored_mc_truth_index[], since mc_truth_index are
+            // potentially secondaries
+            cluster_mc_truth_index.insert(
+                stored_mc_truth_index[mc_truth_index]);
         }
         std::sort(mc_truth_energy_index.begin(),
                   mc_truth_energy_index.end());
