@@ -1,0 +1,138 @@
+
+Test: ClusterMonitor is at voboxalice7.cern.ch:8084
+Execution machine:  b6868f589c.cern.ch
+=========================================
+############## PATH : ##############
+/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliPhysics/vAN-20180222-1/bin:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliRoot/v5-09-23-1/bin:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/Vc/1.3.2-1/bin:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/GEANT4_VMC/v3-2-p1-alice1-17/bin:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/GEANT4/v4.10.01.p03-alice1-1/bin:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/GEANT3/v2-4-12/bin:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/DPMJET/v3.0.5-alice4-1/bin:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/ROOT/v5-34-30-alice9-3/bin:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/FreeType/v2.6-35/bin:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/GSL/v1.16-14/bin:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliEn-Runtime/v2-19-le-33/bin:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/fastjet/v3.2.1_1.024-alice1-7/bin:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/cgal/v4.6.3-21/bin:/cvmfs/alice.cern.ch/el6-x86_64/Packages/GCC-Toolchain/v4.9.3-alice3-1/bin:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliEn/v2-19-395/bin:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliEn/v2-19-395/x86_64-unknown-linux-gnu/4.1.2/bin:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliEn/v2-19-395/bin:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliEn/v2-19-395/api/bin:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliEn/v2-19-395/globus/bin:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliEn/v2-19-395/httpd/bin:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliEn/v2-19-395/api/bin:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliEn/v2-19-395/bin:/afs/cern.ch/group/z2/bin:/home/grid/alisgm54/scripts:/usr/sue/bin:/usr/lib64/qt-3.3/bin:/usr/kerberos/sbin:/usr/kerberos/bin:/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin:/opt/puppetlabs/bin:/cvmfs/alice.cern.ch/bin:/cvmfs/alice.cern.ch/bin
+############## LD_LIBRARY_PATH : ##############
+.:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliPhysics/vAN-20180222-1/lib:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliRoot/v5-09-23-1/lib:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/Vc/1.3.2-1/lib:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/GEANT4_VMC/v3-2-p1-alice1-17/lib:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/vgm/4.3-alice1-17/lib:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/GEANT4/v4.10.01.p03-alice1-1/lib:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/GEANT3/v2-4-12/lib64:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/DPMJET/v3.0.5-alice4-1/lib:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/ROOT/v5-34-30-alice9-3/lib:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/FreeType/v2.6-35/lib:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/GSL/v1.16-14/lib:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliEn-Runtime/v2-19-le-33/lib:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/fastjet/v3.2.1_1.024-alice1-7/lib:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/cgal/v4.6.3-21/lib:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/boost/v1.59.0-16/lib:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/MPFR/v3.1.3-4/lib:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/GMP/v6.0.0-2/lib:/cvmfs/alice.cern.ch/el6-x86_64/Packages/GCC-Toolchain/v4.9.3-alice3-1/lib64:/cvmfs/alice.cern.ch/el6-x86_64/Packages/GCC-Toolchain/v4.9.3-alice3-1/lib:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliEn/v2-19-395/lib:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliEn/v2-19-395/lib:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliEn/v2-19-395/api/lib:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliEn/v2-19-395/globus/lib:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliEn/v2-19-395/httpd/lib:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliEn/v2-19-395/x86_64-unknown-linux-gnu/4.1.2/lib:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliEn/v2-19-395/api/lib:/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliEn/v2-19-395/x86_64-unknown-linux-gnu/4.1.2
+############## ROOTSYS : ##############
+/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/ROOT/v5-34-30-alice9-3
+############## which root : ##############
+/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/ROOT/v5-34-30-alice9-3/bin/root
+############## ALICE_ROOT : ##############
+/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliRoot/v5-09-23-1
+############## which aliroot : ##############
+/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliRoot/v5-09-23-1/bin/aliroot
+############## system limits : ##############
+core file size          (blocks, -c) 2097151
+data seg size           (kbytes, -d) unlimited
+scheduling priority             (-e) 0
+file size               (blocks, -f) unlimited
+pending signals                 (-i) 58222
+max locked memory       (kbytes, -l) 64
+max memory size         (kbytes, -m) unlimited
+open files                      (-n) 1024
+pipe size            (512 bytes, -p) 8
+POSIX message queues     (bytes, -q) 819200
+real-time priority              (-r) 0
+stack size              (kbytes, -s) unlimited
+cpu time               (seconds, -t) unlimited
+max user processes              (-u) 58222
+virtual memory          (kbytes, -v) unlimited
+file locks                      (-x) unlimited
+############## memory : ##############
+             total       used       free     shared    buffers     cached
+Mem:      14933544   13569052    1364492        856      25144    1798136
+-/+ buffers/cache:   11745772    3187772
+Swap:     20479996    1896792   18583204
+=========================================
+  *******************************************
+  *                                         *
+  *        W E L C O M E  to  R O O T       *
+  *                                         *
+  *   Version   5.34/30     23 April 2015   *
+  *                                         *
+  *  You are welcome to visit our Web site  *
+  *          http://root.cern.ch            *
+  *                                         *
+  *******************************************
+
+ROOT 5.34/30 (heads/v5-34-00-patches@v5-34-28-57-gec27989, Feb 14 2018, 16:48:00 on linuxx8664gcc)
+
+CINT/ROOT C/C++ Interpreter version 5.18.00, July 2, 2010
+Type ? for help. Commands must be C++ statements.
+Enclose multiple statements between { }.
+
+Processing myAnalysis.C...
+=> Trying to connect to Server [3] root://137.138.99.175:10000 as User alisgm54 
+Include path: -I. -I"/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/ROOT/v5-34-30-alice9-3/include" -I. -I$ALICE_ROOT/include -I$ALICE_PHYSICS/include -I$ALICE_ROOT/../../fastjet/v3.2.1_1.024-alice1-7/include -I$ALICE_ROOT/../../cgal/v4.6.3-21/include -I$ALICE_ROOT/../../boost/v1.59.0-16/include -I$ALICE_ROOT/../../MPFR/v3.1.3-4/include -I$ALICE_ROOT/../../GMP/v6.0.0-2/include -I$ALICE_ROOT/../../GCC-Toolchain/v4.9.3-alice3-1/include    -I"/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/ROOT/v5-34-30-alice9-3/include"  -I"$ALICE_ROOT/include" 
+=== TOP CONTAINER:
+Container: cAUTO_INPUT     DATA TYPE: TChain
+= Not connected to a data producer
+ = Client tasks indented below:
+______________________________________________________________________________
+   task: taskMultSelection  ACTIVE=0 POST_LOOP=0
+      INPUT #0: TChain <-  [cAUTO_INPUT]
+      OUTPUT #0: TTree ->  [NO CONTAINER]
+      OUTPUT #1: TList ->  [cListMultSelection]
+      Container: cListMultSelection     DATA TYPE: TList
+       = Filename: AnalysisResults.root  folder: MultSelection_MC
+______________________________________________________________________________
+   task: AliAnalysisTaskNTGJ  ACTIVE=0 POST_LOOP=0
+      INPUT #0: TChain <-  [cAUTO_INPUT]
+      OUTPUT #0: TTree ->  [NO CONTAINER]
+      OUTPUT #1: TTree ->  [tree]
+      Container: tree     DATA TYPE: TTree
+       = Filename: AnalysisResults.root  folder: AliAnalysisTaskNTGJ
+***************************************
+    Getting chain of trees esdTree
+***************************************
+### Run number detected from chain: 196310
+(class TClass*)0x20a4e20
+===== RUNNING LOCAL ANALYSIS mgr ON TREE esdTree
+(class TClass*)0x20a4e20
+Initialization time: 1.1849 [sec]
+E-TChain::SetBranchAddress: unknown branch -> fNTPCClusters
+E-TTree::SetBranchStatus: unknown branch -> fNTPCClusters
+ <message repeated 1 time>
+E-TAlienFile::Open: No more images to try - giving up
+E-AliMCEventHandler::Init: AliMCEventHandler:galice.root not found in directory alien:///alice/data/2013/LHC13e/000196310/pass4/13000196310037.62/ ! 
+
+======== ERROR : myAnalysis.C finished with NON zero code: 1 ========
+*******************************************************
+* Automatically generated validation script           *
+* Time:    Thu Mar  1 23:05:42 CET 2018 
+* Dir:     /home/grid/alisgm54/alien-job-1109687783
+* Workdir: /home/grid/alisgm54/alien-job-1109687783
+* ----------------------------------------------------*
+total 8652
+drwxr-x--- 2 alisgm54 z2    4096 Mar  1 23:05 .
+drwx------ 5 alisgm54 z2    4096 Mar  1 23:01 ..
+-rw-r----- 1 alisgm54 z2   81586 Mar  1 23:01 AliAnalysisTaskNTGJ.cxx
+-rw-r----- 1 alisgm54 z2  174720 Mar  1 23:02 AliAnalysisTaskNTGJ_cxx.d
+-rwxr-x--- 1 alisgm54 z2 6588416 Mar  1 23:02 AliAnalysisTaskNTGJ_cxx.so
+-rw-r----- 1 alisgm54 z2   23879 Mar  1 23:01 AliAnalysisTaskNTGJ.h
+-rw-r----- 1 alisgm54 z2     572 Mar  1 23:05 AnalysisResults.root
+-rw-r----- 1 alisgm54 z2  489614 Mar  1 23:01 analysis.root
+-rwxr-x--- 1 alisgm54 z2    2557 Mar  1 23:01 analysis_validation.sh
+-rw-r----- 1 alisgm54 z2      50 Mar  1 23:01 bad_channel.h
+-rwxr-x--- 1 alisgm54 z2    1408 Mar  1 23:01 command
+-rw-r----- 1 alisgm54 z2       0 Mar  1 23:01 develTrace_1109687783
+-rw-r----- 1 alisgm54 z2    3355 Mar  1 23:01 eLut.cpp
+-rw-r----- 1 alisgm54 z2    3976 Mar  1 23:01 eLut.h
+-rw-r----- 1 alisgm54 z2   11156 Mar  1 23:01 emcal.h
+-rw-r----- 1 alisgm54 z2   24747 Mar  1 23:01 EMCALlocal2master.root
+-rw-r----- 1 alisgm54 z2    7577 Mar  1 23:01 half.cpp
+-rw-r----- 1 alisgm54 z2     757 Mar  1 23:01 halfExport.h
+-rw-r----- 1 alisgm54 z2    4944 Mar  1 23:01 halfFunction.h
+-rw-r----- 1 alisgm54 z2   17630 Mar  1 23:01 half.h
+-rw-r----- 1 alisgm54 z2    3818 Mar  1 23:01 halfLimits.h
+-rw-r----- 1 alisgm54 z2    2175 Mar  1 23:01 isolation.h
+-rw-r----- 1 alisgm54 z2   51510 Mar  1 23:01 jet.h
+-rw-r----- 1 alisgm54 z2   21084 Mar  1 23:01 keras_model.cc
+-rw-r----- 1 alisgm54 z2   12793 Mar  1 23:01 keras_model.h
+-rw-r----- 1 alisgm54 z2     562 Mar  1 23:01 mc_truth.h
+-rw-r----- 1 alisgm54 z2    4140 Mar  1 23:01 myAnalysis.C
+-rw-r----- 1 alisgm54 z2   67236 Mar  1 23:01 photon_discr.model
+-rw-r----- 1 alisgm54 z2   12983 Mar  1 23:05 resources
+-rw-r----- 1 alisgm54 z2    1259 Mar  1 23:01 special_function.h
+-rw-r----- 1 alisgm54 z2  135073 Mar  1 23:05 stderr
+-rw-r----- 1 alisgm54 z2    9050 Mar  1 23:05 stdout
+-rw-r----- 1 alisgm54 z2  999496 Mar  1 23:01 toFloat.h
+-rw-r----- 1 alisgm54 z2   23472 Mar  1 23:01 wn.xml
+* ----------------------------------------------------*
+* ########## Job not validated - Segment. violation  ###
+ *** Break *** segmentation violation
+Error = 1
+Output files were not validated by the analysis manager

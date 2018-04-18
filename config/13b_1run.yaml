@@ -1,0 +1,10 @@
+gridWorkingDir:		workingdir
+gridOutputDir:		outputdir_13b_pass4_v2_3run
+aliROOTVersion:		v5-09-23-1
+aliPhysicsVersion:	vAN-20180222-1
+gridDataDir:		/alice/data/2013/LHC13b
+dataPattern:		/pass4/*/AliESDs.root
+runPrefix:              000
+runNumber:		[195344, 195351, 195389]
+emcalCorrection:	emcal_correction.yaml
+nrandomIsolation:	1

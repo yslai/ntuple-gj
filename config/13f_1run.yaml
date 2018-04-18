@@ -1,0 +1,10 @@
+gridWorkingDir:		workingdir
+gridOutputDir:		outputdir_13f_pass4_minbias_v2_1run
+aliROOTVersion:		v5-09-23-1
+aliPhysicsVersion:	vAN-20180222-1
+gridDataDir:		/alice/data/2013/LHC13f
+dataPattern:		/pass4/*/AliESDs.root
+runPrefix:              000
+runNumber:		[197342]
+emcalCorrection:	emcal_correction.yaml
+skimClusterMinE: 	-INFINITY

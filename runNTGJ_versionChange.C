@@ -103,14 +103,12 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
 
     plugin->AddIncludePath(include_path);
 
-    // Light-weight parsing of a YAML conform file, with what is
-    // available in ROOT/CINT
+
     FILE *fp = fopen(config_filename, "r");
     char line[4096];
-    // Default values
     TString emcal_correction_filename = "emcal_correction.yaml";
-    TString emcal_geometry_filename = "";
-    TString emcal_local2master_filename = "";
+    TString emcal_geometry_filename = "geometry_2015.root";
+    TString emcal_local2master_filename = "EMCALlocal2master.root";
     bool mult_selection = true;
     bool physics_selection = false;
     bool physics_selection_mc_analysis = false;
@@ -127,10 +125,8 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     TString skim_multiplicity_tracklet_min_n = "-2147483648";
     TString stored_track_min_pt = "-1e+309";
     TString stored_jet_min_pt_raw = "-1e+309";
-    TString nrandom_isolation = "0";
 
     while (fgets(line, 4096, fp) != NULL) {
-        // Skip comments
         if (line[0] == '#') {
             continue;
         }
@@ -141,14 +137,7 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
 
         key[0] = '\0';
         value[0] = '\0';
-        // Key is arbitrarily many characters until ':', followed by
-        // arbitrarily many combinations of space/tabs (both assuming
-        // user will not actually enter >= 4096 of those), then at
-        // most 4096 caracters of value (which could be very long, for
-        // run lists). Tailing spaces for numerical values are
-        // generally passed on to CINT, which also does not become an
-        // issue.
-        sscanf(line, "%[^:]:%[ \t]%4096[^\n\r]", key, dummy, value);
+        sscanf(line, "%[^:]:%[ \t]%4096[^\n]", key, dummy, value);
 
         // AliEn related options
 
@@ -189,23 +178,16 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
             plugin->SetOverwriteMode(atoi(value));
         }
         else if (strcmp(key, "runNumber") == 0) {
-            // Split an array of run numbers
             for (const char *v = value; *v != '\0';) {
-                // Move forward until *v is a digit, but not further
-                // than the end of the C string
                 while (*v != '\0' && !isdigit(*v)) {
                     v++;
                 }
 
-                // Convert the digit into an integer and add to AliEn
                 int n;
 
                 sscanf(v, "%d", &n);
                 plugin->AddRunNumber(n);
-                // Move forward until *v is a non-digit, i.e. skipping
-                // the number characters processed by sscanf(). Note
-                // isdigit('\0') = 0 = false.
-                while (isdigit(*v)) {
+                while (*v != '\0' && isdigit(*v)) {
                     v++;
                 }
             }
@@ -235,7 +217,8 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
             physics_selection = strncmp(value, "true", 4) == 0;
         }
         else if (strcmp(key, "physicsSelectionMCAnalysis") == 0) {
-            physics_selection_mc_analysis = strncmp(value, "true", 4) == 0;
+            physics_selection_mc_analysis =
+                strncmp(value, "true", 4) == 0;
         }
         else if (strcmp(key, "physicsSelectionPileupCut") == 0) {
             physics_selection_pileup_cut =
@@ -277,9 +260,6 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         else if (strcmp(key, "storedJetMinPtRaw") == 0) {
             stored_jet_min_pt_raw = value;
         }
-        else if (strcmp(key, "nrandomIsolation") == 0) {
-            nrandom_isolation = value;
-        }
     }
     fclose(fp);
 
@@ -293,11 +273,11 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         mklml_filename = "libiomp5_so libmklml_gnu_so";
     }
     if (strchr(emcal_geometry_filename.Data(), '/') == NULL) {
-        oadb_filename += emcal_geometry_filename;
+        oadb_filename = emcal_geometry_filename;
         oadb_filename += " ";
     }
     if (strchr(emcal_local2master_filename.Data(), '/') == NULL) {
-        oadb_filename += emcal_local2master_filename;
+        oadb_filename = emcal_local2master_filename;
         oadb_filename += " ";
     }
     plugin->SetAdditionalLibs(
@@ -358,8 +338,7 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         skim_jet_min_pt_3 + "," +
         skim_multiplicity_tracklet_min_n + "," +
         stored_track_min_pt + "," +
-        stored_jet_min_pt_raw + "," +
-        nrandom_isolation + ")";
+        stored_jet_min_pt_raw + ")";
     fprintf(stderr, "%s:%d: add_task_line = `%s'\n", __FILE__,
             __LINE__, add_task_line.Data());
     gROOT->ProcessLine(add_task_line);

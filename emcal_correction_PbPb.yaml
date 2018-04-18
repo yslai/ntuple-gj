@@ -1,4 +1,4 @@
-pass: pass4
+pass: pass1
 inputObjects:
     cells:
         defaultCells:
@@ -8,16 +8,16 @@ inputObjects:
             branchName: "usedefault"
 CellEnergy:
     enabled: true
-    createHistos: true
+    createHistos: false
 CellBadChannel:
     enabled: true
-    createHistos: true
+    createHistos: false
 CellTimeCalib:
     enabled: true
-    createHistos: true
+    createHistos: false
 Clusterizer:
     enabled: true
-    createHistos: true
+    createHistos: false
     clusterizer: kClusterizerv2
     recalDistToBadChannels: true
     cellE: 0.1
