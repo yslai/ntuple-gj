@@ -1,0 +1,399 @@
+#include <TFile.h>
+#include <TTree.h>
+#include <TLorentzVector.h>
+
+#include <TROOT.h>
+#include <TApplication.h>
+#include <TCanvas.h>
+#include <TStyle.h>
+#include <TH2D.h>
+#include <TProfile.h>
+
+#include <special_function.h>
+
+namespace {
+
+    void to_sm_nphi(unsigned int &sm, unsigned int &nphi,
+                    unsigned int n)
+    {
+        sm = n < 11520 ? n / 1152 :
+            n < 12288 ? 10 + (n - 11520) / 384 :
+            n < 16896 ? 12 + (n - 12288) / 768 :
+            18 + (n - 16896) / 384;
+        nphi = sm < 10 ? 24 : sm < 12 ? 8 : sm < 18 ? 24 : 8;
+    }
+
+    void to_sm_ieta_iphi(unsigned int &sm, unsigned int &ieta,
+                         unsigned int &iphi, unsigned int n)
+    {
+        unsigned int nphi;
+
+        to_sm_nphi(sm, nphi, n);
+
+        const unsigned int n0 =
+            sm < 10 ? sm * 1152 :
+            sm < 12 ? 11520 + (sm - 10) * 384 :
+            sm < 18 ? 12288 + (sm - 12) * 768 :
+            16896 + (sm - 18) * 384;
+        const unsigned int n1 = n - n0;
+
+        ieta = 2 * (n1 / (2 * nphi)) + 1 - (n1 % 2);
+        iphi = (n1 / 2) % nphi;
+    }
+
+    void neta_nphi(unsigned int &neta, unsigned int &nphi,
+                    const unsigned int sm)
+    {
+        neta = sm < 12 ? 48 : sm < 18 ? 32 : 48;
+        nphi = sm < 10 ? 24 : sm < 12 ? 8 : sm < 18 ? 24 : 8;
+    }
+
+    bool inside_edge(unsigned int n, unsigned int d)
+    {
+        unsigned int sm;
+        unsigned int ieta;
+        unsigned int iphi;
+
+        to_sm_ieta_iphi(sm, ieta, iphi, n);
+
+        unsigned int neta;
+        unsigned int nphi;
+
+        neta_nphi(neta, nphi, sm);
+
+        return (ieta >= d && iphi >= d &&
+                ieta < neta - d && iphi < nphi - d);
+    }
+
+    void cell_5_5(unsigned int n_5_5[], const unsigned int n,
+                  const unsigned int ld = 5)
+    {
+        const unsigned int sm = n < 11520 ? n / 1152 :
+            n < 12288 ? 10 + (n - 11520) / 384 :
+            n < 16896 ? 12 + (n - 12288) / 768 :
+            18 + (n - 16896) / 384;
+        const unsigned int nphi =
+            sm < 10 ? 24 : sm < 12 ? 8 : sm < 18 ? 24 : 8;
+
+        n_5_5[0 * ld + 0] = n - 2 * nphi - 4;
+        n_5_5[0 * ld + 1] = n - 2 * nphi - 2;
+        n_5_5[0 * ld + 2] = n - 2 * nphi;
+        n_5_5[0 * ld + 3] = n - 2 * nphi + 2;
+        n_5_5[0 * ld + 4] = n - 2 * nphi + 4;
+        if (n % 2 == 0) {
+            n_5_5[1 * ld + 0] = n - 3;
+            n_5_5[1 * ld + 1] = n - 1;
+            n_5_5[1 * ld + 2] = n + 1;
+            n_5_5[1 * ld + 3] = n + 3;
+            n_5_5[1 * ld + 4] = n + 5;
+        }
+        else {
+            n_5_5[1 * ld + 0] = n - 2 * nphi - 5;
+            n_5_5[1 * ld + 1] = n - 2 * nphi - 3;
+            n_5_5[1 * ld + 2] = n - 2 * nphi - 1;
+            n_5_5[1 * ld + 3] = n - 2 * nphi + 1;
+            n_5_5[1 * ld + 4] = n - 2 * nphi + 3;
+        }
+        n_5_5[2 * ld + 0] = n - 4;
+        n_5_5[2 * ld + 1] = n - 2;
+        n_5_5[2 * ld + 2] = n;
+        n_5_5[2 * ld + 3] = n + 2;
+        n_5_5[2 * ld + 4] = n + 4;
+        if (n % 2 == 0) {
+            n_5_5[3 * ld + 0] = n + 2 * nphi - 3;
+            n_5_5[3 * ld + 1] = n + 2 * nphi - 1;
+            n_5_5[3 * ld + 2] = n + 2 * nphi + 1;
+            n_5_5[3 * ld + 3] = n + 2 * nphi + 3;
+            n_5_5[3 * ld + 4] = n + 2 * nphi + 5;
+        }
+        else {
+            n_5_5[3 * ld + 0] = n - 5;
+            n_5_5[3 * ld + 1] = n - 3;
+            n_5_5[3 * ld + 2] = n - 1;
+            n_5_5[3 * ld + 3] = n + 1;
+            n_5_5[3 * ld + 4] = n + 3;
+        }
+        n_5_5[4 * ld + 0] = n + 2 * nphi - 4;
+        n_5_5[4 * ld + 1] = n + 2 * nphi - 2;
+        n_5_5[4 * ld + 2] = n + 2 * nphi;
+        n_5_5[4 * ld + 3] = n + 2 * nphi + 2;
+        n_5_5[4 * ld + 4] = n + 2 * nphi + 4;
+    }
+
+    float unit_step(float x)
+    {
+        return std::isfinite(x) ? x >= 0.0F ? 1.0F : 0.0F : x;
+    }
+
+    void cluster_center_recal(float &pseudorapidity, float &azimuth)
+    {
+        static const float alice_emcal_granularity = 0.0143F;
+        const float p = pseudorapidity - alice_emcal_granularity * (
+	        6.26120e-03F -
+            7.93806e-02F * unit_step(azimuth - 1.745F) +
+            7.01157e-02F * unit_step(azimuth - 2.094F) -
+            5.67665e-02F * unit_step(azimuth - 2.443F) -
+            3.12072e-02F * unit_step(azimuth - 2.792F) -
+            0.0681282 + 0.30579 * pseudorapidity +
+            0.174691 * std::pow(pseudorapidity, 2));
+        const float a = azimuth - alice_emcal_granularity * (
+	        (1.80892e-01F + 3.88693e-02F + 2.17416e-02F + 9.48413e-03F) -
+            (2.88726e-01F + 7.01681e-02F + 1.31708e-02F - 7.20175e-04F) *
+            unit_step(azimuth - 1.745F) -
+            (1.77386e-01F + 8.19726e-02F + 4.11356e-02F + 1.04680e-03F) *
+            unit_step(azimuth - 2.094F) -
+            (1.38388e-01F + 3.72398e-02F + 2.81211e-03F + 7.69352e-03F) *
+            unit_step(azimuth - 2.443F) -
+            (1.02816e-01F + 3.30964e-02F - 8.73742e-03F + 6.21222e-03F) *
+            unit_step(azimuth - 2.792F) -
+            (0.00410491F + 0.000346243F) -
+            (0.0682701F + 0.0270903F) * pseudorapidity -
+            (0.060021F - 0.0362166F) * std::pow(pseudorapidity, 2));
+
+        pseudorapidity = p;
+        azimuth = a;
+    }
+
+    float min_sm_dazimuth(float pseudorapidity, float azimuth)
+    {
+        static const float sm_center[20] = {
+            1.57079583F, 1.57079670F, 1.91986285F, 1.91986059F,
+            2.26892674F, 2.26892899F, 2.61799219F, 2.61799514F,
+            2.96706059F, 2.96705799F, 3.20794364F, 3.20839677F,
+            -1.57079635F, -1.57079688F, -1.22173021F, -1.22173229F,
+            -0.87266589F, -0.87266172F, -0.63178698F, -0.63132969F
+        };
+        float min_dazimuth = M_PI;
+
+        for (size_t i = 0; i < 20; i++) {
+            if ((i % 2 == 0 ? 1.0F : -1.0F) * pseudorapidity >= 0) {
+                const float dazimuth =
+                    angular_range_reduce(azimuth - sm_center[i]);
+
+                if (fabsf(dazimuth) < min_dazimuth) {
+                    min_dazimuth = dazimuth;
+                }
+            }
+        }
+
+        return min_dazimuth;
+    }
+
+}
+
+#define NTRACK_MAX (1U << 15)
+#define NCLUSTER_MAX (1U << 15)
+#define NMC_TRUTH_MAX (1U << 15)
+#define CLUSTER_NMC_TRUTH_MAX 32
+
+int main(int argc, char *argv[])
+{
+    if (argc < 2) {
+        exit(EXIT_FAILURE);
+    }
+
+    int dummyc = 1;
+    char **dummyv = new char *[1];
+
+    dummyv[0] = strdup("main");
+
+    std::vector<float> X_train;
+    std::vector<unsigned int> y_train;
+    std::vector<float> X_test;
+    std::vector<unsigned int> y_test;
+
+    for (int iarg = 1; iarg < argc; iarg++) {
+        TFile *file = TFile::Open(argv[iarg]);
+
+        if (file == NULL) {
+            continue;
+        }
+
+        TDirectoryFile *df = dynamic_cast<TDirectoryFile *>
+            (file->Get("AliAnalysisTaskNTGJ"));
+
+        if (df == NULL) {
+            continue;
+        }
+
+        TTree *_tree_event = dynamic_cast<TTree *>
+            (df->Get("_tree_event"));
+
+        if (_tree_event == NULL) {
+            continue;
+        }
+
+        fprintf(stderr, "%s:%d: %s (%d / %d)\n", __FILE__, __LINE__,
+                argv[iarg], iarg - 1, argc - 1);
+
+        Float_t multiplicity_v0[64];
+
+        _tree_event->SetBranchAddress("multiplicity_v0", multiplicity_v0);
+
+        UInt_t ncluster;
+        Float_t cluster_e[NCLUSTER_MAX];
+        Float_t cluster_pt[NCLUSTER_MAX];
+        Float_t cluster_eta[NCLUSTER_MAX];
+        Float_t cluster_phi[NCLUSTER_MAX];
+        Float_t cluster_lambda_square[NCLUSTER_MAX][2];
+        Float_t cluster_tof[NCLUSTER_MAX];
+        Int_t cluster_ncell[NCLUSTER_MAX];
+        UShort_t cluster_cell_id_max[NCLUSTER_MAX];
+        Float_t cluster_e_max[NCLUSTER_MAX];
+        Float_t cluster_e_cross[NCLUSTER_MAX];
+        Float_t cluster_s_nphoton[NCLUSTER_MAX][4];
+        UInt_t cluster_nmc_truth[NCLUSTER_MAX];
+        UShort_t cluster_mc_truth_index[NCLUSTER_MAX][CLUSTER_NMC_TRUTH_MAX];
+
+        _tree_event->SetBranchAddress("ncluster", &ncluster);
+        _tree_event->SetBranchAddress("cluster_e", cluster_e);
+        _tree_event->SetBranchAddress("cluster_pt", cluster_pt);
+        _tree_event->SetBranchAddress("cluster_eta", cluster_eta);
+        _tree_event->SetBranchAddress("cluster_phi", cluster_phi);
+        _tree_event->SetBranchAddress("cluster_lambda_square",
+                                      cluster_lambda_square);
+        _tree_event->SetBranchAddress("cluster_tof", cluster_tof);
+        _tree_event->SetBranchAddress("cluster_ncell",
+                                      cluster_ncell);
+        _tree_event->SetBranchAddress("cluster_cell_id_max",
+                                      cluster_cell_id_max);
+        _tree_event->SetBranchAddress("cluster_e_max",
+                                      cluster_e_max);
+        _tree_event->SetBranchAddress("cluster_e_cross",
+                                      cluster_e_cross);
+        _tree_event->SetBranchAddress("cluster_nmc_truth",
+                                      cluster_nmc_truth);
+        _tree_event->SetBranchAddress("cluster_mc_truth_index",
+                                      cluster_mc_truth_index);
+
+        UInt_t ntrack;
+        Float_t track_e[NTRACK_MAX];
+        Float_t track_pt[NTRACK_MAX];
+        Float_t track_eta[NTRACK_MAX];
+        Float_t track_phi[NTRACK_MAX];
+        UChar_t track_quality[NTRACK_MAX];
+        Float_t track_eta_emcal[NTRACK_MAX];
+        Float_t track_phi_emcal[NTRACK_MAX];
+
+        _tree_event->SetBranchAddress("ntrack", &ntrack);
+        _tree_event->SetBranchAddress("track_e", track_e);
+        _tree_event->SetBranchAddress("track_pt", track_pt);
+        _tree_event->SetBranchAddress("track_eta", track_eta);
+        _tree_event->SetBranchAddress("track_phi", track_phi);
+        _tree_event->SetBranchAddress("track_quality",
+                                      track_quality);
+        _tree_event->SetBranchAddress("track_eta_emcal",
+                                      track_eta_emcal);
+        _tree_event->SetBranchAddress("track_phi_emcal",
+                                      track_phi_emcal);
+
+        Float_t cell_e[17664];
+        Float_t cell_tof[17664];
+
+        _tree_event->SetBranchAddress("cell_e", cell_e);
+        _tree_event->SetBranchAddress("cell_tof", cell_tof);
+
+        UInt_t nmc_truth;
+        Float_t mc_truth_e[NMC_TRUTH_MAX];
+        Short_t mc_truth_first_parent_pdg_code[NMC_TRUTH_MAX];
+
+        _tree_event->SetBranchAddress("nmc_truth", &nmc_truth);
+        _tree_event->SetBranchAddress("mc_truth_e", mc_truth_e);
+        _tree_event->SetBranchAddress("mc_truth_first_parent_pdg_code",
+                                      mc_truth_first_parent_pdg_code);
+
+        for (Long64_t i = 0; i < _tree_event->GetEntries(); i++) {
+            _tree_event->GetEntry(i);
+            for (UInt_t j = 0; j < ncluster; j++) {
+                if (cluster_e[j] >= 0.0F &&
+                    cluster_ncell[j] >= 2 &&
+                    cluster_e_cross[j] > 0.05 * cluster_e_max[j]) {
+                    unsigned int c55j[25];
+
+                    cell_5_5(c55j, cluster_cell_id_max[j]);
+
+                    float mc_truth_e_max = -INFINITY;
+                    bool prompt = false;
+
+                    for (size_t k = 0; k < cluster_nmc_truth[j]; k++) {
+                        if (mc_truth_e[cluster_mc_truth_index[j][k]] > mc_truth_e_max) {
+                            prompt = std::abs(mc_truth_first_parent_pdg_code[cluster_mc_truth_index[j][k]]) < 100;
+                            mc_truth_e_max = mc_truth_e[cluster_mc_truth_index[j][k]];
+                        }
+                    }
+
+                    if (inside_edge(cluster_cell_id_max[j], 2) &&
+                        mc_truth_e_max >= 0) {
+                        std::vector<float> *X =
+                            X_train.size() < X_test.size() ?
+                            &X_train : &X_test;
+                        std::vector<unsigned int> *y =
+                            y_train.size() < y_test.size() ?
+                            &y_train : &y_test;
+
+                        for (size_t k = 0; k < 25; k++) {
+                            X->push_back(
+                                std::isfinite(cell_e[c55j[k]]) ?
+                                cell_e[c55j[k]] / cluster_e[j] : 0);
+                        }
+                        X->push_back(1.0F / sqrtf(cluster_e[j]));
+                        X->push_back(cluster_eta[j]);
+                        X->push_back(min_sm_dazimuth(
+                             cluster_eta[j], cluster_phi[j]));
+                        X->push_back(std::accumulate(
+                            multiplicity_v0,
+                            multiplicity_v0 + 64, 0));
+                        y->push_back(prompt ? 1 : 0);
+                    }
+                }
+            }
+            if (i % 1000 == 0) {
+                fprintf(stderr, "%s:%d: %lld / %lld\n",
+                        __FILE__, __LINE__, i,
+                        _tree_event->GetEntries());
+            }
+        }
+        _tree_event->Delete();
+
+        delete df;
+
+        file->Close();
+
+        delete file;
+    }
+
+    FILE *fp = fopen("ml_out.py", "w");
+
+    fprintf(fp, "# n = %lu\n", X_train.size() + X_test.size());
+    fprintf(fp, "import numpy\n");
+    fprintf(fp, "X_train = numpy.array([[");
+    for (size_t i = 0; i < X_train.size(); i++) {
+        fprintf(fp, "%.8e%s", X_train[i],
+                i == X_train.size() - 1 ? "" :
+                i % (25 + 4) == 25 + 4 - 1 ? "], [" : ", ");
+    }
+    fprintf(fp, "]])\n");
+    fprintf(fp, "y_train = numpy.array([");
+    for (size_t i = 0; i < y_train.size(); i++) {
+        fprintf(fp, "%u%s", y_train[i],
+                i == y_train.size() - 1 ? "" : ", ");
+    }
+    fprintf(fp, "])\n");
+    fprintf(fp, "X_test = numpy.array([[");
+    for (size_t i = 0; i < X_test.size(); i++) {
+        fprintf(fp, "%.8e%s", X_test[i],
+                i == X_test.size() - 1 ? "" :
+                i % (25 + 4) == 25 + 4 - 1 ? "], [" : ", ");
+    }
+    fprintf(fp, "]])\n");
+    fprintf(fp, "y_test = numpy.array([");
+    for (size_t i = 0; i < y_test.size(); i++) {
+        fprintf(fp, "%u%s", y_test[i],
+                i == y_test.size() - 1 ? "" : ", ");
+    }
+    fprintf(fp, "])\n");
+
+    fclose(fp);
+
+    return EXIT_SUCCESS;
+}
