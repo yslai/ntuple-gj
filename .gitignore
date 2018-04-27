@@ -4,6 +4,7 @@
 *.png
 *.pyc
 *.so
+*.root
 *~
 000*.xml
 AutoDict_*_.cxx
