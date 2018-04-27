@@ -9,6 +9,7 @@
 
 #include <Compression.h>
 #include <TFile.h>
+#include <TSystem.h>
 #include <TGeoManager.h>
 #include <TGeoGlobalMagField.h>
 
@@ -147,8 +148,8 @@ ClassImp(AliAnalysisTaskNTGJ);
 #define BRANCH_ARRAY(b, d, t)
 #define BRANCH_ARRAY2(b, d, e, t)
 #define BRANCH_STR(b)
-#define BRANCH_STR_ARRAY(b, d)                  \
-    _branch_ ## b("TObjArray", (d)),
+#define BRANCH_STR_ARRAY(b, d)                          \
+    _branch_ ## b(std::vector<std::string>()),
 
 #define CLASS_INITIALIZATION                                \
     _emcal_geometry_name(EMCAL_GEOMETRY_NAME),              \
@@ -161,13 +162,17 @@ ClassImp(AliAnalysisTaskNTGJ);
     _emcal_geometry(NULL),                                  \
     _muon_track_cut(new AliMuonTrackCuts),                  \
     _ncell(EMCAL_NCELL),                                    \
-    _skim_cluster_min_e(-INFINITY),                         \
+    _emcal_geometry_filename("geometry_2015.root"),         \
+    _emcal_local2master_filename("EMCALlocal2master.root"), \
+    _force_ue_subtraction(false),                           \
+     _skim_cluster_min_e(8.0),				    \
     _skim_track_min_pt(-INFINITY),                          \
     _skim_muon_track_min_pt(-INFINITY),                     \
     _skim_jet_min_pt(std::vector<double>(3, -INFINITY)),    \
     _skim_multiplicity_tracklet_min_n(INT_MIN),             \
     _stored_track_min_pt(-INFINITY),                        \
     _stored_jet_min_pt_raw(-INFINITY),                      \
+    _nrandom_isolation(0),                                  \
     _emcal_mask(std::vector<bool>()),                       \
     _emcal_cell_position(NULL),                             \
     _emcal_cell_area(std::vector<double>()),                \
@@ -178,13 +183,7 @@ ClassImp(AliAnalysisTaskNTGJ);
     _alien_plugin(NULL),                                    \
     _metadata_filled(false)
 
-AliAnalysisTaskNTGJ::AliAnalysisTaskNTGJ(void)
-    : AliAnalysisTaskSE(), CLASS_INITIALIZATION
-{
-}
-
-AliAnalysisTaskNTGJ::AliAnalysisTaskNTGJ(
-    const char *name)
+AliAnalysisTaskNTGJ::AliAnalysisTaskNTGJ(const char *name)
     : AliAnalysisTaskSE(name), CLASS_INITIALIZATION
 {
     DefineOutput(1, TTree::Class());
@@ -194,6 +193,19 @@ AliAnalysisTaskNTGJ::AliAnalysisTaskNTGJ(
     const AliAnalysisTaskNTGJ &x)
     : AliAnalysisTaskSE(), CLASS_INITIALIZATION
 {
+    _emcal_geometry_filename = x._emcal_geometry_filename;
+    _emcal_local2master_filename = x._emcal_local2master_filename;
+
+    _force_ue_subtraction = x._force_ue_subtraction;
+    _skim_cluster_min_e = x._skim_cluster_min_e;
+    _skim_track_min_pt = x._skim_track_min_pt;
+    _skim_muon_track_min_pt = x._skim_muon_track_min_pt;
+    _skim_jet_min_pt = x._skim_jet_min_pt;
+    _skim_multiplicity_tracklet_min_n =
+        x._skim_multiplicity_tracklet_min_n;
+    _stored_track_min_pt = x._stored_track_min_pt;
+    _stored_jet_min_pt_raw = x._stored_jet_min_pt_raw;
+    _nrandom_isolation = x._nrandom_isolation;
 }
 
 #undef ntrigger_class
@@ -218,7 +230,23 @@ AliAnalysisTaskNTGJ::AliAnalysisTaskNTGJ(
 AliAnalysisTaskNTGJ &AliAnalysisTaskNTGJ::operator=(
     const AliAnalysisTaskNTGJ &x)
 {
-    return *this;
+    if (this == &x) {
+        return *this;
+    }
+
+    _emcal_geometry_filename = x._emcal_geometry_filename;
+    _emcal_local2master_filename = x._emcal_local2master_filename;
+
+    _force_ue_subtraction = x._force_ue_subtraction;
+    _skim_cluster_min_e = x._skim_cluster_min_e;
+    _skim_track_min_pt = x._skim_track_min_pt;
+    _skim_muon_track_min_pt = x._skim_muon_track_min_pt;
+    _skim_jet_min_pt = x._skim_jet_min_pt;
+    _skim_multiplicity_tracklet_min_n =
+        x._skim_multiplicity_tracklet_min_n;
+    _stored_track_min_pt = x._stored_track_min_pt;
+    _stored_jet_min_pt_raw = x._stored_jet_min_pt_raw;
+    _nrandom_isolation = x._nrandom_isolation;
 }
 
 AliAnalysisTaskNTGJ::~AliAnalysisTaskNTGJ(void)
@@ -265,7 +293,7 @@ void AliAnalysisTaskNTGJ::UserCreateOutputObjects(void)
         #b, _branch_ ## b, #b "/C");
 #define BRANCH_STR_ARRAY(b, d)                  \
     _tree_event->Branch(                        \
-        #b, &_branch_ ## b, #b "[" #d "]/C");
+        #b, &_branch_ ## b);
 
     MEMBER_BRANCH;
 
@@ -284,14 +312,75 @@ void AliAnalysisTaskNTGJ::UserCreateOutputObjects(void)
 
 void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 {
+    if (!_emcal_geometry_filename.empty() &&
+        !_emcal_local2master_filename.empty() &&
+        _emcal_geometry == NULL) {
+        if (!gSystem->
+            AccessPathName(gSystem->
+                           ExpandPathName(_emcal_geometry_filename.
+                                          c_str()))) {
+            TGeoManager::Import(_emcal_geometry_filename.c_str());
+            _emcal_geometry = AliEMCALGeometry::
+                GetInstance(_emcal_geometry_name);
+        }
+
+        AliOADBContainer emcal_geometry_container("emcal");
+
+        if (!gSystem->
+            AccessPathName(gSystem->
+                           ExpandPathName(_emcal_local2master_filename.
+                                          c_str()))) {
+            emcal_geometry_container.
+                InitFromFile(_emcal_local2master_filename.c_str(),
+                             "AliEMCALgeo");
+        }
+
+        TObjArray *geometry_matrix = dynamic_cast<TObjArray *>(
+            emcal_geometry_container.GetObject(
+                _branch_run_number, "EmcalMatrices"));
+        if (_emcal_geometry != NULL && geometry_matrix != NULL) {
+            const Int_t nsm = _emcal_geometry->GetEMCGeometry()->
+                GetNumberOfSuperModules();
+
+            for (Int_t sm = 0; sm < nsm; sm++) {
+                _emcal_geometry->SetMisalMatrix(
+                    dynamic_cast<TGeoHMatrix *>(
+                        geometry_matrix->At(sm)),
+                    sm);
+             }
+             _branch_has_misalignment_matrix = true;
+        }
+    }
+
+    if (_load_intel_mklml) {
+        if (_libiomp5 == NULL) {
+            _libiomp5 = dlopen("libiomp5_so", RTLD_NOW |
+                               RTLD_GLOBAL | RTLD_NODELETE);
+        }
+        _branch_debug_libmklml_gnu_error[0] = '\0';
+        if (_libmklml_gnu == NULL) {
+            _libmklml_gnu = dlopen("libmklml_gnu_so",
+                                   RTLD_NOW | RTLD_NODELETE);
+            if (_libmklml_gnu == NULL) {
+                snprintf(_branch_debug_libmklml_gnu_error, BUFSIZ,
+                         "%s:%d: %s\n", __FILE__, __LINE__,
+                         dlerror());
+                _branch_debug_libmklml_gnu_loaded = false;
+            }
+            else {
+                _branch_debug_libmklml_gnu_loaded = true;
+            }
+        }
+    }
+
     if (_emcal_mask.size() != EMCAL_NCELL) {
         _emcal_mask.resize(EMCAL_NCELL);
-#if 1 // Keep = 1 to for an actual EMCAL mask (and not all channels
+#if 0 // Keep = 1 to for an actual EMCAL mask (and not all channels
       // turned on)
         for (unsigned int i = 0; i < EMCAL_NCELL; i++) {
             _emcal_mask[i] = inside_edge(i, 1);
         }
-#include "bad_channel.h"
+// #include "bad_channel.h"
         for (unsigned int i = 0; bad_channel_emcal[i] != -1; i++) {
             if (inside_edge(bad_channel_emcal[i], 1)) {
                 unsigned int bad_cell_3_3[9];
@@ -315,8 +404,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         return;
     }
 
-#if 1
     if (event->GetRunNumber() != _run_number_current) {
+        _metadata_filled = false;
         _run_number_current = event->GetRunNumber();
         if (_muon_track_cut != NULL) {
             _muon_track_cut->SetAllowDefaultParams(kTRUE);
@@ -326,7 +415,6 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                  GetInputEventHandler()));
         }
     }
-#endif
 
     AliESDEvent *esd_event = dynamic_cast<AliESDEvent *>(event);
     AliAODEvent *aod_event = NULL;
@@ -437,15 +525,19 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         // AliESDtrackCuts::GetStandardITSPureSATrackCuts2010() in
         // AliRoot/ANALYSIS/ANALYSISalice/AliESDtrackCuts.cxx
 
+	//ITS only track cuts
         _track_cut.push_back(AliESDtrackCuts("AliESDtrackCuts"));
 
         // _track_cut.back().SetRequireITSStandAlone(kFALSE);
         _track_cut.back().SetRequireITSPureStandAlone(kTRUE);
         // _track_cut.back().SetRequireITSRefit(kTRUE); 
-        // _track_cut.back().SetMinNClustersITS(4);
-        // _track_cut.back().SetClusterRequirementITS(
-        //  AliESDtrackCuts::kSPD, AliESDtrackCuts::kAny);
-        // esdTrackCuts->SetMaxChi2PerClusterITS(2.5);
+        // _track_cut.back().SetClusterRequirementITS(AliESDtrackCuts::kSPD, AliESDtrackCuts::kAny);
+	 _track_cut.back().SetPtRange(0.15, 1e+15);
+	 _track_cut.back().SetMinNClustersITS(5);
+	 _track_cut.back().SetMaxDCAToVertexXY(2.4);
+	 _track_cut.back().SetMaxDCAToVertexZ(3.2);
+	 _track_cut.back().SetDCAToVertex2D(kTRUE);
+	 _track_cut.back().SetMaxChi2PerClusterITS(36);
     }
 
     AliVVZERO *v0 = event->GetVZEROData();
@@ -500,55 +592,6 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                     event, 10, i,
                     _branch_event_plane_q_v0[i - 1][0],
                     _branch_event_plane_q_v0[i - 1][1]);
-        }
-    }
-
-    if (_emcal_geometry == NULL) {
-        TGeoManager::Import(
-            "$ALICE_PHYSICS/OADB/EMCAL/geometry_2015.root");
-        _emcal_geometry =
-            AliEMCALGeometry::GetInstance(_emcal_geometry_name);
-
-        AliOADBContainer emcal_geometry_container("emcal");
-        emcal_geometry_container.InitFromFile(
-            "$ALICE_PHYSICS/OADB/EMCAL/EMCALlocal2master.root",
-            "AliEMCALgeo");
-        TObjArray *geometry_matrix = dynamic_cast<TObjArray *>(
-            emcal_geometry_container.GetObject(
-                _branch_run_number, "EmcalMatrices"));
-        if (geometry_matrix != NULL) {
-            const Int_t nsm = _emcal_geometry->GetEMCGeometry()->
-                GetNumberOfSuperModules();
-
-            for (Int_t sm = 0; sm < nsm; sm++) {
-                _emcal_geometry->SetMisalMatrix(
-                    dynamic_cast<TGeoHMatrix *>(
-                        geometry_matrix->At(sm)),
-                    sm);
-             }
-             _branch_has_misalignment_matrix = true;
-        }
-    }
-
-
-    if (_load_intel_mklml) {
-        if (_libiomp5 == NULL) {
-            _libiomp5 = dlopen("libiomp5_so", RTLD_NOW |
-                               RTLD_GLOBAL | RTLD_NODELETE);
-        }
-        _branch_debug_libmklml_gnu_error[0] = '\0';
-        if (_libmklml_gnu == NULL) {
-            _libmklml_gnu = dlopen("libmklml_gnu_so",
-                                   RTLD_NOW | RTLD_NODELETE);
-            if (_libmklml_gnu == NULL) {
-                snprintf(_branch_debug_libmklml_gnu_error, BUFSIZ,
-                         "%s:%d: %s\n", __FILE__, __LINE__,
-                         dlerror());
-                _branch_debug_libmklml_gnu_loaded = false;
-            }
-            else {
-                _branch_debug_libmklml_gnu_loaded = true;
-            }
         }
     }
 
@@ -617,9 +660,6 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         stack = mc_truth_event->Stack();
     }
 
-#if 0
-    AliMagF *field = (AliMagF *)TGeoGlobalMagField::Instance()->GetField();
-#endif
     if (esd_event != NULL) {
         esd_event->InitMagneticField();
     }
@@ -674,26 +714,21 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         }
     }
 
+    _branch_is_pileup_from_spd_3_08 = false;
+    _branch_is_pileup_from_spd_5_08 = false;
     _branch_npileup_vertex_spd = INT_MIN;
-    _branch_pileup_vertex_spd_ncontributor = INT_MIN;
-    _branch_pileup_vertex_spd_min_z_distance = INFINITY;
+    _branch_ncluster_tpc = INT_MIN;
     if (esd_event != NULL) {
+        _branch_is_pileup_from_spd_3_08 =
+            esd_event->IsPileupFromSPD(3, 0.8);
+        _branch_is_pileup_from_spd_5_08 =
+            esd_event->IsPileupFromSPD(5, 0.8);
         _branch_npileup_vertex_spd =
             esd_event->GetNumberOfPileupVerticesSPD();
-        for (Int_t i = 0; i < _branch_npileup_vertex_spd; i++) {
-            const AliESDVertex *pileup_vertex_spd =
-                esd_event->GetPileupVertexSPD(i);
-
-            if (pileup_vertex_spd != NULL) {
-                _branch_pileup_vertex_spd_ncontributor =
-                    pileup_vertex_spd->GetNContributors();
-                _branch_pileup_vertex_spd_min_z_distance =
-                    std::min(_branch_pileup_vertex_spd_min_z_distance,
-                             fabs(pileup_vertex_spd->GetZ() -
-                                  _branch_primary_vertex_spd[2]));
-            }
-        }
+        _branch_ncluster_tpc =
+            esd_event->GetNumberOfTPCClusters();
     }
+    _branch_event_selected = fInputHandler->IsEventSelected();
 
     if (_skim_multiplicity_tracklet_min_n > INT_MIN) {
         AliVMultiplicity *multiplicity = event->GetMultiplicity();
@@ -727,10 +762,34 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             cluster_e_max = std::max(cluster_e_max, p.E());
         }
         if (!(cluster_e_max >= _skim_cluster_min_e)) {
+            // Discard this event
             return;
         }
     }
 
+    //skim tracks                                                                                                                                    
+    if (_skim_track_min_pt > -INFINITY){
+      if (esd_event != NULL) {
+	double track_pt_max = -INFINITY;
+	std::cout<<"Doing Track Skimming"<<std::endl;
+	for (Int_t i = 0; i < esd_event->GetNumberOfTracks(); i++) {
+	  AliESDtrack *t = esd_event->GetTrack(i);
+	  
+	  if (t == NULL) continue;
+	  
+	  //ITS Only track cuts
+	  if (!(_track_cut[4].AcceptTrack(t))) continue;
+	  track_pt_max = std::max(track_pt_max,t->Pt());
+	}
+	std::cout<<"max track pT"<<track_pt_max<<std::endl;
+	if (!(track_pt_max >= _skim_track_min_pt)){
+	  //Discard this event
+	  return;
+	}
+      }
+    }
+    
+    
     if (!_metadata_filled) {
         // Use gitattributes ident mechanism to track the blob object
         // name
@@ -739,6 +798,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         strncpy(_branch_version_jec, jec.version(), BUFSIZ);
         _branch_version_jec[BUFSIZ - 1] = '\0';
         if (esd_event != NULL) {
+            _branch_beam_energy = esd_event->GetBeamEnergy();
             for (size_t i = 0; i < 2; i++) {
                 _branch_beam_particle[i] =
                     esd_event->GetBeamParticle(i);
@@ -747,54 +807,62 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             const AliESDRun *esd_run = esd_event->GetESDRun();
 
             if (esd_run != NULL) {
-                // _branch_trigger_class.Delete();
+                _branch_trigger_class.clear();
                 for (size_t i = 0; i < NTRIGGER_CLASS_MAX; i++) {
-                    new (_branch_trigger_class[i])
-                        TObjString(esd_run->GetTriggerClass(i));
+                    _branch_trigger_class.push_back(
+                        std::string(esd_run->GetTriggerClass(i)));
                 }
             }
         }
         else if (aod_event != NULL) {
             // FIXME: AOD not handled
+            _branch_beam_energy = NAN;
             std::fill(_branch_beam_particle,
                       _branch_beam_particle + 2, 0);
         }
 
-        _emcal_cell_position = new std::vector<point_2d_t>();
-        for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
-            TVector3 v;
+        std::fill(_branch_cell_eta, _branch_cell_eta + EMCAL_NCELL,
+                  NAN);
+        std::fill(_branch_cell_phi, _branch_cell_phi + EMCAL_NCELL,
+                  NAN);
+        if (_emcal_geometry != NULL) {
+            _emcal_cell_position = new std::vector<point_2d_t>();
+            for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
+                TVector3 v;
 
-            _emcal_geometry->GetGlobal(cell_id, v);
-            _branch_cell_eta[cell_id] = v.Eta();
-            _branch_cell_phi[cell_id] = v.Phi();
-            reinterpret_cast<std::vector<point_2d_t> *>
-                (_emcal_cell_position)->push_back(
-                    point_2d_t(v.Eta(), v.Phi()));
-        }
-
-        voronoi_area_incident(
-            _emcal_cell_area, _emcal_cell_incident,
-            *reinterpret_cast<std::vector<point_2d_t> *>
-            (_emcal_cell_position));
-
-        double sum_area_inside = 0;
-        size_t count_inside = 0;
-
-        for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
-            if (inside_edge(cell_id, 1)) {
-                sum_area_inside += _emcal_cell_area[cell_id];
-                count_inside++;
+                _emcal_geometry->GetGlobal(cell_id, v);
+                _branch_cell_eta[cell_id] = v.Eta();
+                _branch_cell_phi[cell_id] = v.Phi();
+                reinterpret_cast<std::vector<point_2d_t> *>
+                    (_emcal_cell_position)->push_back(
+                        point_2d_t(v.Eta(), v.Phi()));
             }
-        }
 
-        const double mean_area_inside = sum_area_inside / count_inside;
+            voronoi_area_incident(
+                _emcal_cell_area, _emcal_cell_incident,
+                *reinterpret_cast<std::vector<point_2d_t> *>
+                (_emcal_cell_position));
 
-        for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
-            if (!inside_edge(cell_id, 1)) {
-                _emcal_cell_area[cell_id] = mean_area_inside;
+            double sum_area_inside = 0;
+            size_t count_inside = 0;
+
+            for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
+                if (inside_edge(cell_id, 1)) {
+                    sum_area_inside += _emcal_cell_area[cell_id];
+                    count_inside++;
+                }
             }
-            _branch_cell_voronoi_area[cell_id] =
-                _emcal_cell_area[cell_id];
+
+            const double mean_area_inside =
+                sum_area_inside / count_inside;
+
+            for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
+                if (!inside_edge(cell_id, 1)) {
+                    _emcal_cell_area[cell_id] = mean_area_inside;
+                }
+                _branch_cell_voronoi_area[cell_id] =
+                    _emcal_cell_area[cell_id];
+            }
         }
 
         _metadata_filled = true;
@@ -810,7 +878,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         _branch_grid_data_pattern[0] = '\0';
         std::fill(_branch_beam_particle,
                   _branch_beam_particle + 2, 0);
-        _branch_trigger_class.Delete();
+        _branch_trigger_class.clear();
 
         for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
             _branch_cell_eta[cell_id] = NAN;
@@ -944,10 +1012,19 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 _branch_track_e[_branch_ntrack] = half(t->E());
                 _branch_track_pt[_branch_ntrack] = half(t->Pt());
                 _branch_track_eta[_branch_ntrack] = half(t->Eta());
-                _branch_track_phi[_branch_ntrack] = half(angular_range_reduce(t->Phi()));
-                _branch_track_eta_emcal[_branch_ntrack] = half(t->GetTrackEtaOnEMCal());
-                _branch_track_phi_emcal[_branch_ntrack] = half(angular_range_reduce(t->GetTrackPhiOnEMCal()));
-
+                _branch_track_phi[_branch_ntrack] =
+                    half(angular_range_reduce(t->Phi()));
+                if (gGeoManager != NULL) {
+                    _branch_track_eta_emcal[_branch_ntrack] =
+                        half(t->GetTrackEtaOnEMCal());
+                    _branch_track_phi_emcal[_branch_ntrack] =
+                        half(angular_range_reduce(
+                            t->GetTrackPhiOnEMCal()));
+                }
+                else {
+                    _branch_track_eta_emcal[_branch_ntrack] = NAN;
+                    _branch_track_phi_emcal[_branch_ntrack] = NAN;
+                }
                 _branch_track_charge[_branch_ntrack] =
                     std::min(static_cast<Short_t>(CHAR_MAX),
                              std::max(static_cast<Short_t>(CHAR_MIN),
@@ -1099,7 +1176,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         BEAM_PARTICLE_P = 1001
     };
 
-    const bool subtract_ue = esd_event != NULL ?
+    const bool subtract_ue =
+        _force_ue_subtraction ? true :
+        esd_event != NULL ?
         !(esd_event->GetBeamParticle(0) == BEAM_PARTICLE_P &&
           esd_event->GetBeamParticle(1) == BEAM_PARTICLE_P) :
         false;
@@ -1133,10 +1212,10 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
     // A value of 2^(-30) < 10^(-9) would map a 10 TeV particle to
     // less than 10 MeV, sufficient to remove any significant momentum
-    // bias while not being too greedy with the dynamic range. Ghost
-    // scaling factor is chosen as power of two to maintain the
+    // bias while not being too greedy to limit the exponent range.
+    // Ghost scaling factor is chosen as power of two to maintain the
     // multiplication/division being numerically exact (provided px,
-    // py, pz >= 2^(-1022+30) which os of the order 10^(-290) eV).
+    // py, pz >= 2^(-1022+30) which is of the order 10^(-290) eV).
 
     static const double scale_ghost = pow(2.0, -30.0);
 
@@ -1171,7 +1250,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             }
 
             if (p->GetGeneratorIndex() != 0 || !subtract_ue) {
-                const unsigned int abs_pdg_code = std::abs(p->PdgCode());
+                const unsigned int abs_pdg_code =
+                    std::abs(p->PdgCode());
 
                 switch (abs_pdg_code) {
                 case PDG_CODE_ELECTRON_NEUTRINO:
@@ -1386,7 +1466,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     _branch_debug_njet_ue_estimation = 0;
     for (std::vector<fastjet::PseudoJet>::const_iterator
              iterator_jet = jet_ue_estimation_tpc.begin();
-        iterator_jet != jet_ue_estimation_tpc.end(); iterator_jet++) {
+         iterator_jet != jet_ue_estimation_tpc.end();
+         iterator_jet++) {
         _branch_debug_jet_ue_estimation_pt_raw
             [_branch_debug_njet_ue_estimation] =
             iterator_jet->perp();
@@ -1404,17 +1485,37 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
     std::pair<std::vector<double>, std::vector<double> >
         ue_estimate_tpc = ue_estimation_truncated_mean(
-            cluster_sequence_ue_estimation_tpc, particle_reco_area_tpc);
+            cluster_sequence_ue_estimation_tpc,
+            particle_reco_area_tpc);
 
     std::pair<std::vector<double>, std::vector<double> >
         ue_estimate_its = ue_estimation_truncated_mean(
-            cluster_sequence_ue_estimation_its, particle_reco_area_its);
+            cluster_sequence_ue_estimation_its,
+            particle_reco_area_its);
 
     std::fill(_branch_cell_cluster_index,
               _branch_cell_cluster_index + EMCAL_NCELL, USHRT_MAX);
     _branch_ncluster = 0;
-    for (Int_t i = 0; i < calo_cluster.GetEntriesFast(); i++) {
-        AliVCluster *c =
+
+    const Int_t ncalo_cluster = _nrandom_isolation > 0 ?
+        _nrandom_isolation : calo_cluster.GetEntriesFast();
+    AliESDCaloCluster dummy_cluster;
+
+    for (Int_t i = 0; i < ncalo_cluster; i++) {
+#if 0
+        if (_nrandom_isolation > 0) {
+            TLorentzVector p;
+
+            p.SetPtEtaPhiM(1, _random.Uniform(-1.4, 1.4),
+                           _random.Uniform(-M_PI, M_PI), 0);
+            for (size_t j = 0; j < 3; j++) {
+                dummy_cluster.SetPosition(j, p(j) +
+                                          _branch_primary_vertex[j]);
+            }
+        }
+#endif
+
+        AliVCluster *c = _nrandom_isolation > 0 ? &dummy_cluster :
             static_cast<AliVCluster *>(calo_cluster.At(i));
         TLorentzVector p;
 
@@ -1430,8 +1531,13 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             half(c->GetM02());
         _branch_cluster_lambda_square[_branch_ncluster][1] =
             half(c->GetM20());
-        _branch_cluster_tof[_branch_ncluster] = half(c->GetTOF());
+        _branch_cluster_tof[_branch_ncluster] =
+            half(c->GetTOF() * 1e+9);
         _branch_cluster_ncell[_branch_ncluster] = c->GetNCells();
+        _branch_cluster_nlocal_maxima[_branch_ncluster] =
+            c->GetNExMax();
+        _branch_cluster_distance_to_bad_channel[_branch_ncluster] =
+            half(c->GetDistanceToBadChannel());
 
         const UShort_t *cell_index = c->GetCellsAbsId();
 
@@ -1448,6 +1554,19 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 }
             }
         }
+
+        Int_t cell_id_max = -1;
+        Double_t cell_energy_max = -INFINITY;
+        Double_t energy_cross = NAN;
+
+        cell_max_cross(cell_id_max, cell_energy_max, energy_cross,
+                       c, emcal_cell);
+        _branch_cluster_cell_id_max[_branch_ncluster] =
+            cell_id_max;
+        _branch_cluster_e_max[_branch_ncluster] =
+            half(cell_energy_max);
+        _branch_cluster_e_cross[_branch_ncluster] =
+            half(energy_cross);
 
         _branch_cluster_nmc_truth[_branch_ncluster] =
             c->GetNLabels();
@@ -1466,7 +1585,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 stored_mc_truth_index.size() &&
                 stored_mc_truth_index[mc_truth_index] !=
                 ULONG_MAX &&
-                cluster_mc_truth_index.find(mc_truth_index) ==
+                cluster_mc_truth_index.find(
+                    stored_mc_truth_index[mc_truth_index]) ==
                 cluster_mc_truth_index.end()) {
                 const unsigned short u =
                     SAFE_MC_TRUTH_INDEX_TO_USHRT(mc_truth_index);
@@ -1477,7 +1597,11 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                             mc_truth_index]],
                         u));
             }
-            cluster_mc_truth_index.insert(mc_truth_index);
+            // Test (above) and insertion must be done via
+            // stored_mc_truth_index[], since mc_truth_index are
+            // potentially secondaries
+            cluster_mc_truth_index.insert(
+                stored_mc_truth_index[mc_truth_index]);
         }
         std::sort(mc_truth_energy_index.begin(),
                   mc_truth_energy_index.end());
@@ -1498,22 +1622,6 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 [cluster_nmctruth_index] = iterator->second;
             cluster_nmctruth_index++;
         }
-
-        Int_t cell_id_max = -1;
-        Double_t cell_energy_max = -INFINITY;
-        Double_t energy_cross = NAN;
-
-        cell_max_cross(cell_id_max, cell_energy_max, energy_cross,
-                       c, emcal_cell);
-        _branch_cluster_cell_id_max[_branch_ncluster] =
-            cell_id_max;
-        _branch_cluster_e_max[_branch_ncluster] =
-            half(cell_energy_max);
-        _branch_cluster_e_cross[_branch_ncluster] =
-            half(energy_cross);
-
-        _branch_cluster_nlocal_maxima[_branch_ncluster] =
-            c->GetNExMax();
 
         if (esd_event != NULL) {
             double cluster_iso_tpc_01 = 0;
@@ -1536,6 +1644,10 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
             std::vector<std::pair<double, double> > delta_vs_iso_tpc;
             std::vector<std::pair<double, double> > delta_vs_iso_its;
+            std::vector<std::pair<double, double> >
+                delta_vs_iso_tpc_with_ue;
+            std::vector<std::pair<double, double> >
+                delta_vs_iso_its_with_ue;
 
             for (Int_t j = 0; j < esd_event->GetNumberOfTracks(); j++) {
                 AliESDtrack *t = esd_event->GetTrack(j);
@@ -1589,6 +1701,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                         delta_vs_iso_tpc.push_back(
                             std::pair<double, double>(
                                 sqrt(dr_2), track_pt_minus_ue));
+                        delta_vs_iso_tpc_with_ue.push_back(
+                            std::pair<double, double>(
+                                sqrt(dr_2), track_pt_minus_ue + ue));
                     }
                 }
                 if (_track_cut[4].AcceptTrack(t)) {
@@ -1633,6 +1748,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                         delta_vs_iso_its.push_back(
                             std::pair<double, double>(
                                 sqrt(dr_2), track_pt_minus_ue));
+                        delta_vs_iso_its_with_ue.push_back(
+                            std::pair<double, double>(
+                                sqrt(dr_2), track_pt_minus_ue + ue));
                     }
                 }
             }
@@ -1689,6 +1807,58 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             _branch_cluster_frixione_its_04_10[_branch_ncluster] =
                 half(frixione_iso_max_x_e_eps(delta_vs_iso_its,
                                               0.4, 1.0));
+
+            _branch_cluster_frixione_tpc_04_02_with_ue
+                [_branch_ncluster] =
+                half(frixione_iso_max_x_e_eps(
+                    delta_vs_iso_tpc_with_ue, 0.4, 0.2));
+            _branch_cluster_frixione_tpc_04_05_with_ue
+                [_branch_ncluster] =
+                half(frixione_iso_max_x_e_eps(
+                    delta_vs_iso_tpc_with_ue, 0.4, 0.5));
+            _branch_cluster_frixione_tpc_04_10_with_ue
+                [_branch_ncluster] =
+                half(frixione_iso_max_x_e_eps(
+                    delta_vs_iso_tpc_with_ue, 0.4, 1.0));
+
+            _branch_cluster_frixione_its_04_02_with_ue
+                [_branch_ncluster] =
+                half(frixione_iso_max_x_e_eps(
+                    delta_vs_iso_its_with_ue, 0.4, 0.2));
+            _branch_cluster_frixione_its_04_05_with_ue
+                [_branch_ncluster] =
+                half(frixione_iso_max_x_e_eps(
+                    delta_vs_iso_its_with_ue, 0.4, 0.5));
+            _branch_cluster_frixione_its_04_10_with_ue
+                [_branch_ncluster] =
+                half(frixione_iso_max_x_e_eps(
+                    delta_vs_iso_its_with_ue, 0.4, 1.0));
+
+            _branch_cluster_anti_frixione_tpc_04_02
+                [_branch_ncluster] =
+                half(anti_frixione_iso_max_x_e_eps(delta_vs_iso_tpc,
+                                                   0.4, 0.2));
+            _branch_cluster_anti_frixione_tpc_04_05
+                [_branch_ncluster] =
+                half(anti_frixione_iso_max_x_e_eps(delta_vs_iso_tpc,
+                                                   0.4, 0.5));
+            _branch_cluster_anti_frixione_tpc_04_10
+                [_branch_ncluster] =
+                half(anti_frixione_iso_max_x_e_eps(delta_vs_iso_tpc,
+                                                   0.4, 1.0));
+
+            _branch_cluster_anti_frixione_its_04_02
+                [_branch_ncluster] =
+                half(anti_frixione_iso_max_x_e_eps(delta_vs_iso_its,
+                                                   0.4, 0.2));
+            _branch_cluster_anti_frixione_its_04_05
+                [_branch_ncluster] =
+                half(anti_frixione_iso_max_x_e_eps(delta_vs_iso_its,
+                                                   0.4, 0.5));
+            _branch_cluster_anti_frixione_its_04_10
+                [_branch_ncluster] =
+                half(anti_frixione_iso_max_x_e_eps(delta_vs_iso_its,
+                                                   0.4, 1.0));
         }
         else {
             _branch_cluster_iso_tpc_01[_branch_ncluster] = NAN;
@@ -1701,13 +1871,33 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             _branch_cluster_iso_its_03[_branch_ncluster] = NAN;
             _branch_cluster_iso_its_04[_branch_ncluster] = NAN;
 
-            _branch_cluster_frixione_tpc_04_02[_branch_ncluster] = NAN;
-            _branch_cluster_frixione_tpc_04_05[_branch_ncluster] = NAN;
-            _branch_cluster_frixione_tpc_04_10[_branch_ncluster] = NAN;
+            _branch_cluster_frixione_tpc_04_02[_branch_ncluster] =
+                NAN;
+            _branch_cluster_frixione_tpc_04_05[_branch_ncluster] =
+                NAN;
+            _branch_cluster_frixione_tpc_04_10[_branch_ncluster] =
+                NAN;
 
-            _branch_cluster_frixione_its_04_02[_branch_ncluster] = NAN;
-            _branch_cluster_frixione_its_04_05[_branch_ncluster] = NAN;
-            _branch_cluster_frixione_its_04_10[_branch_ncluster] = NAN;
+            _branch_cluster_frixione_its_04_02[_branch_ncluster] =
+                NAN;
+            _branch_cluster_frixione_its_04_05[_branch_ncluster] =
+                NAN;
+            _branch_cluster_frixione_its_04_10[_branch_ncluster] =
+                NAN;
+
+            _branch_cluster_anti_frixione_tpc_04_02
+                [_branch_ncluster] = NAN;
+            _branch_cluster_anti_frixione_tpc_04_05
+                [_branch_ncluster] = NAN;
+            _branch_cluster_anti_frixione_tpc_04_10
+                [_branch_ncluster] = NAN;
+
+            _branch_cluster_anti_frixione_its_04_02
+                [_branch_ncluster] = NAN;
+            _branch_cluster_anti_frixione_its_04_05
+                [_branch_ncluster] = NAN;
+            _branch_cluster_anti_frixione_its_04_10
+                [_branch_ncluster] = NAN;
         }
 
         if (mc_truth_event != NULL) {
@@ -1728,7 +1918,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                             mc_truth_event->GetTrack(j));
 
                     if (t->GetGeneratorIndex() != 0 || !subtract_ue) {
-                        const double dpseudorapidity = t->Eta() - p.Eta();
+                        const double dpseudorapidity =
+                            t->Eta() - p.Eta();
                         const double dazimuth = angular_range_reduce(
                             angular_range_reduce(t->Phi()) -
                             angular_range_reduce(p.Phi()));
@@ -1763,26 +1954,55 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 half(cluster_iso_04_truth);
 
             _branch_cluster_frixione_04_02_truth[_branch_ncluster] =
-                half(frixione_iso_max_x_e_eps(delta_vs_iso, 0.4, 0.2));
+                half(frixione_iso_max_x_e_eps(delta_vs_iso,
+                                              0.4, 0.2));
             _branch_cluster_frixione_04_05_truth[_branch_ncluster] =
-                half(frixione_iso_max_x_e_eps(delta_vs_iso, 0.4, 0.5));
+                half(frixione_iso_max_x_e_eps(delta_vs_iso,
+                                              0.4, 0.5));
             _branch_cluster_frixione_04_10_truth[_branch_ncluster] =
-                half(frixione_iso_max_x_e_eps(delta_vs_iso, 0.4, 1.0));
+                half(frixione_iso_max_x_e_eps(delta_vs_iso,
+                                              0.4, 1.0));
+
+            _branch_cluster_anti_frixione_04_02_truth
+                [_branch_ncluster] =
+                half(anti_frixione_iso_max_x_e_eps(delta_vs_iso,
+                                                   0.4, 0.2));
+            _branch_cluster_anti_frixione_04_05_truth
+                [_branch_ncluster] =
+                half(anti_frixione_iso_max_x_e_eps(delta_vs_iso,
+                                                   0.4, 0.5));
+            _branch_cluster_anti_frixione_04_10_truth
+                [_branch_ncluster] =
+                half(anti_frixione_iso_max_x_e_eps(delta_vs_iso,
+                                                   0.4, 1.0));
         }
         else {
             _branch_cluster_iso_01_truth[_branch_ncluster] = NAN;
             _branch_cluster_iso_02_truth[_branch_ncluster] = NAN;
             _branch_cluster_iso_03_truth[_branch_ncluster] = NAN;
             _branch_cluster_iso_04_truth[_branch_ncluster] = NAN;
-            _branch_cluster_frixione_04_02_truth[_branch_ncluster] = NAN;
-            _branch_cluster_frixione_04_05_truth[_branch_ncluster] = NAN;
-            _branch_cluster_frixione_04_10_truth[_branch_ncluster] = NAN;
+
+            _branch_cluster_frixione_04_02_truth[_branch_ncluster] =
+                NAN;
+            _branch_cluster_frixione_04_05_truth[_branch_ncluster] =
+                NAN;
+            _branch_cluster_frixione_04_10_truth[_branch_ncluster] =
+                NAN;
+
+            _branch_cluster_anti_frixione_04_02_truth
+                [_branch_ncluster] = NAN;
+            _branch_cluster_anti_frixione_04_05_truth
+                [_branch_ncluster] = NAN;
+            _branch_cluster_anti_frixione_04_10_truth
+                [_branch_ncluster] = NAN;
         }
 
         std::fill(_branch_cluster_s_nphoton[_branch_ncluster],
-                  _branch_cluster_s_nphoton[_branch_ncluster] + 4, NAN);
+                  _branch_cluster_s_nphoton[_branch_ncluster] + 4,
+                  NAN);
         std::fill(_branch_cluster_s_ncharged_hadron[_branch_ncluster],
-                  _branch_cluster_s_ncharged_hadron[_branch_ncluster] + 4, NAN);
+                  _branch_cluster_s_ncharged_hadron
+                  [_branch_ncluster] + 4, NAN);
 
         std::vector<float> output_tensor =
             cluster_cell_keras_inference(
@@ -1816,6 +2036,21 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                     ak04, jet_truth_ak04,
                     particle_reco_area_its, ue_estimate_its);
 
+    if (_skim_jet_min_pt[0] > -INFINITY) {
+        // FIXME: JEC?
+        std::vector<float>
+            pt(_branch_jet_ak04tpc_pt_raw,
+               _branch_jet_ak04tpc_pt_raw + _branch_njet_ak04tpc);
+        std::partial_sort(pt.begin(), pt.begin() + 3, pt.end(),
+                          std::greater<float>());
+        if (!(pt[0] >= _skim_jet_min_pt[0] &&
+              pt[1] >= _skim_jet_min_pt[1] &&
+              pt[2] >= _skim_jet_min_pt[2])) {
+            // Discard this event
+            return;
+        }
+    }
+
     std::fill(_branch_cell_e, _branch_cell_e + EMCAL_NCELL, NAN);
     std::fill(_branch_cell_tof, _branch_cell_tof + EMCAL_NCELL, NAN);
     std::fill(_branch_cell_mc_truth_index,
@@ -1832,7 +2067,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             kTRUE &&
             cell_number >= 0 && cell_number < EMCAL_NCELL) {
             _branch_cell_e[cell_number]   = half(cell_energy);
-            _branch_cell_tof[cell_number] = half(tof);
+            _branch_cell_tof[cell_number] = half(tof * 1e+9);
             _branch_cell_mc_truth_index[cell_number] =
                 SAFE_MC_TRUTH_INDEX_TO_USHRT(mc_truth_index);
 
@@ -1959,6 +2194,24 @@ void AliAnalysisTaskNTGJ::SetGridDataPattern(const char *pattern)
     _branch_grid_data_pattern[BUFSIZ - 1] = '\0';
 }
 
+void AliAnalysisTaskNTGJ::
+SetEMCALGeometryFilename(const char *emcal_geometry_filename)
+{
+    _emcal_geometry_filename = emcal_geometry_filename;
+}
+
+void AliAnalysisTaskNTGJ::
+SetEMCALLocal2MasterFilename(const char *emcal_local2master_filename)
+{
+    _emcal_local2master_filename = emcal_local2master_filename;
+}
+
+void AliAnalysisTaskNTGJ::
+SetForceUESubtraction(bool force_ue_subtraction)
+{
+    _force_ue_subtraction = force_ue_subtraction;
+}
+
 void AliAnalysisTaskNTGJ::SetSkimClusterMinE(double min_e)
 {
     _skim_cluster_min_e = min_e;
@@ -2007,4 +2260,10 @@ void AliAnalysisTaskNTGJ::SetStoredTrackMinPt(double min_pt)
 void AliAnalysisTaskNTGJ::SetStoredJetMinPtRaw(double min_pt_raw)
 {
     _stored_jet_min_pt_raw = min_pt_raw;
+}
+
+void AliAnalysisTaskNTGJ::
+SetNRandomIsolation(unsigned int nrandom_isolation)
+{
+    _nrandom_isolation = nrandom_isolation;
 }
