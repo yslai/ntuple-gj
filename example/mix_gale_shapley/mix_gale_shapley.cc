@@ -356,32 +356,31 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 	    
 	    fprintf(stderr,"%s %lu %s %lu\n","Block",h,"of",nblock);
 	    
-//	    //foregoing this block structure as number of events to be mixed approaches nblocks	    
+	    // //foregoing this block structure as number of events to be mixed approaches nblocks	    
 
-// 	    if (h < width) {
-// 	      lmin = 0; 
-// 	      lmax = 2*width+1;
-// 	    }
+	    // if (h < width) {
+	    //   lmin = 0; 
+	    //   lmax = 2*width+1;
+	    // }
 
-// 	    else if (h+width > nblock) {
-// 	      lmin = nblock-2*width; 
-// 	      lmax = nblock+1;
-// 	      if(h+width > nblock){
-// 		lmin = 0;
-// 		lmax = 2*width+1;
-// 	      }
-// 	    }
+	    // else if (h+width > nblock_1) {
+	    //   lmin = nblock_1-2*width; 
+	    //   lmax = nblock_1+1;
+	    //   if(h+width > nblock_1){
+	    // 	lmin = 0;
+	    // 	lmax = 2*width+1;
+	    //   }
+	    // }
 
-// 	    else {
-// 	      lmin = h-width;  	 
-// 	      lmax = h+width+1;
-// 	    }
-// 	    for (size_t i = lmin+mix_start; i < lmin+mix_end+1; i++) {
+	    // else {
+	    //   lmin = h-width;  	 
+	    //   lmax = h+width+1;
+	    // }
+	    // for (size_t i = lmin+mix_start; i < lmin+mix_end+1; i++) {
 
 	    size_t imax = std::min(n_mix,nblock_1);
-	    for (size_t i = 0; i < imax; i++) {//offset should be here?
-	      //if (strncmpr(filename_0,filename_1)==0 && i==h) continue; 
-
+	    for (size_t i = h; i < h+n_mix+1; i++) {
+	      //if (std::strncmp(filename_0,filename_1,strlen(filename_0))==0 && i==h) continue;
 	    
 	      //for assymtric files:
 	      size_t event_start_1 = i * nevent_1 / (nblock_1+1);
@@ -458,7 +457,7 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 
 	  TFile *root_file = new TFile(filename_0,"update");
 	  TTree *hi_tree = dynamic_cast<TTree *>(root_file->Get(HI_TREE));
-	  TFile *newfile = new TFile("gs_mixed.root","recreate");	  
+	  TFile *newfile = new TFile("13def_c_noTrackSkim_mixed_.root","recreate");	  
 
 	  //TFiles are more closely associated with TTrees, need to clone, not append....
 	  TTree *newtree = hi_tree->CloneTree(0);
