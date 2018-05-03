@@ -319,8 +319,8 @@ std::vector<index_t> gale_shapley(std::vector<std::list<index_t> > &mp,
 void mix_gale_shapley(const char *filename_0, const char *filename_1, const char *mixing_start, const char *mixing_end,
 					  const int nfeature, const int nduplicate)
 {
-        int mix_start = atoi(mixing_start);
-	int mix_end = atoi(mixing_end);
+        size_t mix_start = atoi(mixing_start);
+	size_t mix_end = atoi(mixing_end);
 
 	const size_t nevent_0 = nevent(filename_0);
 	const size_t nevent_1 = nevent(filename_1);
@@ -336,16 +336,14 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 
 	//size_t lmin,lmax; 
 
-	//1/2 number of mixed events -> 1/2 number of blocks
-	size_t width = 150; //if changed, also must change when writing to Tree
-	const size_t n_mix = 300;
-	//while(nblock < 2*width) nblock++;
+	size_t width = 100; //if changed, also must change when writing to Tree
+	const size_t n_mix = 200;
+
 
 	std::vector<std::vector<Long64_t> > Matches;
 	fprintf(stderr,"\n%s\n","Using Assymetric File block distribution, LARGER FILE: SECEND ARG"); 
-	//loop through blocks
-	for(size_t h = 0; h < nblock+1; h++){ //h= offset read from argument
-	  //for(size_t h = nblock; h < nblock+1; h++){
+
+	for(size_t h = 0; h < nblock+1; h++){
 	  const size_t event_start_0 = h * nevent_0 / (nblock + 1);
 	  const size_t event_end_0 = (h + 1) * nevent_0 / (nblock + 1);
 	  const size_t nevents_0 = event_end_0 - event_start_0;	  
@@ -378,13 +376,16 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 	    // }
 	    // for (size_t i = lmin+mix_start; i < lmin+mix_end+1; i++) {
 
-	    size_t imax = std::min(n_mix,nblock_1);
-	    for (size_t i = h; i < h+n_mix+1; i++) {
+	    //size_t imax = std::min(n_mix,nblock_1);
+	    //for (size_t i = h; i < h+n_mix+1; i++) {
+	    //for (size_t i = 0; i < n_mix; i++) {
+	    
+	    for (size_t i = mix_start; i < mix_end+1; i++) {
 	      //if (std::strncmp(filename_0,filename_1,strlen(filename_0))==0 && i==h) continue;
 	    
 	      //for assymtric files:
 	      size_t event_start_1 = i * nevent_1 / (nblock_1+1);
-	      size_t event_end_1 = event_start_1 + (event_end_0 - event_start_0); //ensure block sizes are equal
+	      size_t event_end_1 = event_start_1 + (event_end_0 - event_start_0);
 	      const size_t nevents_1 = event_end_1 - event_start_1; //might fail if remainder is < 2000....
 	      if (event_end_1 > nevent_1) {
 		fprintf(stderr,"%s:%d: event_end out of bounds",__FILE__, __LINE__);
@@ -392,7 +393,7 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 		  }
 
 	      fprintf(stderr,"%s:%d:%s %lu %s %lu: %s %zu %s %lu, Event in larger NTuple: %zu \n\n",
-		      __FILE__, __LINE__,"Block",h,"of",nblock, "Mixed Event",i+1, "of",imax, event_start_1);
+		      __FILE__, __LINE__,"Block",h,"of",nblock, "Mixed Event",i-h+1, "of",imax, event_start_1);
 
 	      //if(nevents_1<nevents_0) event_end_1 += (nevents_0-nevents_1);
 	      //FIXME:small # events mix with themselves once. need conditional using last block
@@ -457,7 +458,7 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 
 	  TFile *root_file = new TFile(filename_0,"update");
 	  TTree *hi_tree = dynamic_cast<TTree *>(root_file->Get(HI_TREE));
-	  TFile *newfile = new TFile("13def_c_noTrackSkim_mixed_.root","recreate");	  
+	  TFile *newfile = new TFile("13def_c_4GeVTrackSkim_mixed_root","recreate");	  
 
 	  //TFiles are more closely associated with TTrees, need to clone, not append....
 	  TTree *newtree = hi_tree->CloneTree(0);
@@ -468,13 +469,13 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 
 	  fprintf(stderr, "%llu\n",nentries);
 	  
-	  TBranch *MixE = newtree->Branch("Mix_Events", Mix_Events, "&Mix_Events[300]/L");
+	  TBranch *MixE = newtree->Branch("Mix_Events", Mix_Events, "&Mix_Events[200]/L");
 	  
 	  for (ULong64_t t = 0; t<nentries;t++){
 	    hi_tree->GetEntry(t);
 	    
 	    if(t < Matches.size()){
-	      for (size_t s=1; s<(Matches[t]).size();s++){
+	      for (size_t s=0; s<(Matches[t]).size();s++){ //s=1 for same event start. s=0 when taken out
 		Mix_Events[s-1]=Matches[t][s]; 
 		fprintf(stderr, "%llu:%lld\n", t,Mix_Events[s-1]);
 	      }
@@ -482,7 +483,8 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 	    
 	    else if (t >= Matches.size()){
 	      for(size_t u = 0; u<n_mix_events; u++){
-		Mix_Events[u] = t; //Fill with own event number. Skip During correlation function
+		//Mix_Events[u] = t; //Fill with own event number. Skip During correlation function
+		Mix_Events[u] = 999999999;
 		fprintf(stderr, "%llu:%lld\n",t,Mix_Events[u]);
 	      }
 	    }
