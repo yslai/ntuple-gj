@@ -1466,6 +1466,11 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             cluster_sequence_ue_estimation_its,
             particle_reco_area_its);
 
+    _branch_ue_estimate_tpc_const =
+        evaluate_ue_constant(ue_estimate_tpc);
+    _branch_ue_estimate_its_const =
+        evaluate_ue_constant(ue_estimate_its);
+
     std::fill(_branch_cell_cluster_index,
               _branch_cell_cluster_index + EMCAL_NCELL, USHRT_MAX);
     _branch_ncluster = 0;

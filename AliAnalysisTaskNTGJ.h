@@ -217,6 +217,9 @@ private:
     BRANCH_ARRAY(debug_jet_ue_estimation_area_raw,                  \
                  debug_njet_ue_estimation, F)                       \
     /* */                                                           \
+    BRANCH(ue_estimate_tpc_const, F)                                \
+    BRANCH(ue_estimate_its_const, F)                                \
+    /* */                                                           \
     BRANCH(njet_ak04tpc, i)                                         \
     BRANCH_ARRAY(debug_jet_ak04tpc_tag_dr_square, njet_ak04tpc, F)  \
     BRANCH_ARRAY(jet_ak04tpc_e_raw, njet_ak04tpc, F)                \

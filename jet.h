@@ -515,6 +515,19 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
         return std::max(0.0, p * a / ue_estimate.second[0]);
     }
 
+    double evaluate_ue_constant(std::pair<std::vector<double>,
+                                std::vector<double> > ue_estimate)
+    {
+        if (ue_estimate.first.empty() ||
+            ue_estimate.second.empty()) {
+            return 0;
+        }
+
+        const double p = ue_estimate.first[0];
+
+        return std::max(0.0, p);
+    }
+
     // fastjet::PseudoJet user indices -2 and -3 are used to tag the
     // EM particles/EMCAL clusters and muons. The index -1 is already
     // taken, being the fastjet::PseudoJet default initializer. After
