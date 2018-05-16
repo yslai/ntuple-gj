@@ -4,7 +4,13 @@
 *.png
 *.pyc
 *.so
+*.txt
+*.sh
+<<<<<<< HEAD
 *root
+=======
+*.root
+>>>>>>> eed1d90c226e1a6035acb9dcd3626dbdc670d08d
 *~
 000*.xml
 AutoDict_*_.cxx
