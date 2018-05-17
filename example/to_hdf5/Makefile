@@ -17,8 +17,12 @@ LDFLAGS =	$(shell root-config --ldflags)
 LDLIBS =	$(shell root-config --libs)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 #HDF5_ROOT =	/opt/local/
 HDF5_ROOT = 	/usr/common/usg/software/hdf5/1.8.13/
+=======
+HDF5_ROOT =	/opt/local/
+>>>>>>> eed1d90c226e1a6035acb9dcd3626dbdc670d08d
 =======
 HDF5_ROOT =	/opt/local/
 >>>>>>> eed1d90c226e1a6035acb9dcd3626dbdc670d08d
@@ -31,7 +35,11 @@ CXXFLAGS +=	-I$(BOOST_ROOT)/include
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 TARGET =	
+=======
+TARGET =	to_hdf5
+>>>>>>> eed1d90c226e1a6035acb9dcd3626dbdc670d08d
 =======
 TARGET =	to_hdf5
 >>>>>>> eed1d90c226e1a6035acb9dcd3626dbdc670d08d

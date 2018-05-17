@@ -4,10 +4,14 @@
 *.png
 *.pyc
 *.so
+<<<<<<< HEAD
 *.txt
 *.sh
 <<<<<<< HEAD
 *root
+=======
+*.root
+>>>>>>> eed1d90c226e1a6035acb9dcd3626dbdc670d08d
 =======
 *.root
 >>>>>>> eed1d90c226e1a6035acb9dcd3626dbdc670d08d

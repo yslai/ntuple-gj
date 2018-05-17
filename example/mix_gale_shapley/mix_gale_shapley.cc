@@ -325,7 +325,11 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 	const size_t nevent_0 = nevent(filename_0);
 	const size_t nevent_1 = nevent(filename_1);
 
+<<<<<<< HEAD
 	const size_t block_size_max = 1000; //FIXME: May need reducing,
+=======
+	const size_t block_size_max = 2000; //FIXME: May need reducing,
+>>>>>>> eed1d90c226e1a6035acb9dcd3626dbdc670d08d
 	const size_t nblocks = std::min(nevent_0, nevent_1 * nduplicate) /
 		block_size_max + 1;
 
@@ -393,7 +397,11 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 		  }
 
 	      fprintf(stderr,"%s:%d:%s %lu %s %lu: %s %zu %s %lu, Event in larger NTuple: %zu \n\n",
+<<<<<<< HEAD
 		      __FILE__, __LINE__,"Block",h,"of",nblock, "Mixed Event",i-mix_start, "of",mix_end-mix_start, event_start_1);
+=======
+		      __FILE__, __LINE__,"Block",h,"of",nblock, "Mixed Event",i-h+1, "of",imax, event_start_1);
+>>>>>>> eed1d90c226e1a6035acb9dcd3626dbdc670d08d
 
 	      //if(nevents_1<nevents_0) event_end_1 += (nevents_0-nevents_1);
 	      //FIXME:small # events mix with themselves once. need conditional using last block
@@ -433,7 +441,11 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 	  } //i
 	  for (size_t j = 0; j < k[0].size(); j++){
 	    std::vector <Long64_t> P;
+<<<<<<< HEAD
 	    P.push_back(event_start_0+j); //taken out for now such that merging does not constantly contain same event.
+=======
+	    //    P.push_back(event_start_0+j); //taken out for now such that merging does not constantly contain same event.
+>>>>>>> eed1d90c226e1a6035acb9dcd3626dbdc670d08d
 	    for (size_t l = 0; l < k.size(); l++){
 	      P.push_back(k[l][j]);
 	    }
@@ -443,6 +455,7 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 	}//h
 
 	  //    write to txt
+<<<<<<< HEAD
 	FILE * txtfile = fopen (Form("v2_6GeVpairs%lu_%lu.txt",mix_start,mix_end),"w");
 	  for (size_t t=0; t<Matches.size();t++){
 	    for (size_t s=0; s<Matches[t].size();s++){
@@ -451,6 +464,16 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 	    fprintf(txtfile, "%s\n","");
 	  }
 	 fclose (txtfile);
+=======
+// 	  FILE * txtfile = fopen ("pairs.txt","w");
+// 	  for (size_t t=0; t<Matches.size();t++){
+// 	    for (size_t s=1; s<Matches[t].size();s++){
+// 	      fprintf(txtfile, "%lld ", Matches[t][s]);
+// 	    }
+// 	    fprintf(txtfile, "%s\n","");
+// 	  }
+// 	  fclose (txtfile);
+>>>>>>> eed1d90c226e1a6035acb9dcd3626dbdc670d08d
 	  
 
 	// write to TTree
@@ -458,7 +481,11 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 
 	  TFile *root_file = new TFile(filename_0,"update");
 	  TTree *hi_tree = dynamic_cast<TTree *>(root_file->Get(HI_TREE));
+<<<<<<< HEAD
 	  TFile *newfile = new TFile(Form("13defv1_c_%lu_%lu_6GeV_TrackSkim_mixed.root",mix_start,mix_end),"recreate");	  
+=======
+	  TFile *newfile = new TFile("13def_c_4GeVTrackSkim_mixed_root","recreate");	  
+>>>>>>> eed1d90c226e1a6035acb9dcd3626dbdc670d08d
 
 	  //TFiles are more closely associated with TTrees, need to clone, not append....
 	  TTree *newtree = hi_tree->CloneTree(0);
@@ -475,7 +502,11 @@ void mix_gale_shapley(const char *filename_0, const char *filename_1, const char
 	    hi_tree->GetEntry(t);
 	    
 	    if(t < Matches.size()){
+<<<<<<< HEAD
 	      for (size_t s=1; s<(Matches[t]).size();s++){ //s=1 for same event start. s=0 when taken out
+=======
+	      for (size_t s=0; s<(Matches[t]).size();s++){ //s=1 for same event start. s=0 when taken out
+>>>>>>> eed1d90c226e1a6035acb9dcd3626dbdc670d08d
 		Mix_Events[s-1]=Matches[t][s]; 
 		fprintf(stderr, "%llu:%lld\n", t,Mix_Events[s-1]);
 	      }
