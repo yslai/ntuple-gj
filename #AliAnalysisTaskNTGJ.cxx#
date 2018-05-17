@@ -635,15 +635,14 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
         TArrayF eg_primary_vertex(3);
 
-        mc_truth_header->PrimaryVertex(eg_primary_vertex);
+        //mc_truth_header->PrimaryVertex(eg_primary_vertex);
+	mc_truth_pythia_header = dynamic_cast<AliGenPythiaEventHeader*>(mc_truth_event->GenEventHeader());
 
         for (Int_t i = 0; i < 3; i++) {
             _branch_eg_primary_vertex[i] = eg_primary_vertex.At(i);
         }
-
-	mc_truth_pythia_header = 
-	  dynamic_cast<AliGenPythiaEventHeader*>(mc_truth_event->GenEventHeader());
-
+        mc_truth_pythia_header =
+            dynamic_cast<AliGenPythiaEventHeader *>(mc_truth_header);
         if (mc_truth_pythia_header != NULL) {
             _branch_eg_signal_process_id =
                 mc_truth_pythia_header->ProcessType();
@@ -795,7 +794,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     if (!_metadata_filled) {
         // Use gitattributes ident mechanism to track the blob object
         // name
-        strncpy(_branch_id_git, "$Id$", BUFSIZ);
+        strncpy(_branch_id_git, "$Id: e9a08e76bb1d1957d988285d153768784f481d3e $", BUFSIZ);
         _branch_id_git[BUFSIZ - 1] = '\0';
         strncpy(_branch_version_jec, jec.version(), BUFSIZ);
         _branch_version_jec[BUFSIZ - 1] = '\0';

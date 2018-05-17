@@ -1,0 +1,10 @@
+gridWorkingDir:		workingdir
+gridOutputDir:		outputdir_13c_6GeVTracks_pass4_v2_4run
+aliROOTVersion:		v5-09-27-1
+aliPhysicsVersion:	vAN-20180423-1
+gridDataDir:		/alice/data/2013/LHC13c
+dataPattern:		/pass4/*/AliESDs.root
+runPrefix:              000
+runNumber:		[195566, 195594, 195635, 195567, 195593]
+emcalCorrection:	emcal_correction.yaml
+skimTrackMinPt:		6.0
