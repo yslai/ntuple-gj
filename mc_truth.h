@@ -13,7 +13,7 @@ namespace {
             AliStack *s = mc_event->Stack();
 
             return index < s->GetNprimary() &&
-                !(s->Particle(index)->GetStatusCode() > 1);
+                s->Particle(index)->GetStatusCode() == 1;
         }
         else {
             return false;
