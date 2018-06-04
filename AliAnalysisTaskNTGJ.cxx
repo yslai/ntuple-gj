@@ -1508,15 +1508,23 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         _branch_cluster_lambda_square[_branch_ncluster][0] =
             half(c->GetM02());
         _branch_cluster_lambda_square[_branch_ncluster][1] =
-           half(c->GetM20());
+            half(c->GetM20());
 
-        _reco_util->SetShowerShapeCellLocationType(1);
-
+        std::fill(_branch_cluster_lambda_square_angle
+                  [_branch_ncluster],
+                  _branch_cluster_lambda_square_angle
+                  [_branch_ncluster][0] + 2, NAN);
         if (_emcal_geometry != NULL) {
-            Float_t l0   = 0., l1   = 0.;
-            Float_t dispp= 0., dEta = 0., dPhi    = 0.;
-            Float_t sEta = 0., sPhi = 0., sEtaPhi = 0.;
+            Float_t l0      = 0;
+            Float_t l1      = 0;
+            Float_t dispp   = 0;
+            Float_t dEta    = 0;
+            Float_t dPhi    = 0;
+            Float_t sEta    = 0;
+            Float_t sPhi    = 0;
+            Float_t sEtaPhi = 0;
 
+            _reco_util->SetShowerShapeCellLocationType(1);
             _reco_util->RecalculateClusterShowerShapeParameters(
                 _emcal_geometry, emcal_cell, c, l0, l1, dispp,
                 dEta, dPhi, sEta, sPhi, sEtaPhi);
