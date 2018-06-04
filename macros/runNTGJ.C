@@ -15,15 +15,57 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     gROOT->ProcessLine(".include $ALICE_ROOT/include");
     gROOT->ProcessLine(".include $ALICE_PHYSICS/include");
 
-    const char *package[] = {
-        "fastjet::v3.2.1_1.024-alice1-4",
+    FILE *fp;
+    char line[4096];
+
+    // Light-weight parsing of a YAML conform file, with what is
+    // available in ROOT/CINT, pass 1
+    fp = fopen(config_filename, "r");
+    // Default values
+    TList package_list;
+
+    while (fgets(line, 4096, fp) != NULL) {
+        // Skip comments
+        if (line[0] == '#') {
+            continue;
+        }
+
+        char key[4096];
+        char dummy[4096];
+        char value[4096];
+
+        key[0] = '\0';
+        value[0] = '\0';
+        // Key is arbitrarily many characters until ':', followed by
+        // arbitrarily many combinations of space/tabs (both assuming
+        // user will not actually enter >= 4096 of those), then at
+        // most 4096 caracters of value (which could be very long, for
+        // run lists). Tailing spaces for numerical values are
+        // generally passed on to CINT, which also does not become an
+        // issue.
+        sscanf(line, "%[^:]:%[ \t]%4096[^\n\r]", key, dummy, value);
+
+        if (strcmp(key, "package") == 0) {
+            package_list.Add((TObject *)(new TObjString(value)));
+        }
+    }
+    package_list.SetOwner();
+    fclose(fp);
+
+    if (package_list.GetSize() == 0) {
+        package_list.Add((TObject *)(new TObjString(
+            "fastjet::v3.2.1_1.024-alice1-4")));
         // Compiling against CGAL requires explicit include paths to
         // Boost, MPFR, and GMP
-        "cgal::v4.6.3-18",
-        "boost::v1.59.0-14",
-        "MPFR::v3.1.3-4",
-        "GMP::v6.0.0-2",
-        // The grid ROOT package tend to lack a GCC 4.9.x =
+        package_list.Add((TObject *)(new TObjString(
+            "cgal::v4.6.3-18")));
+        package_list.Add((TObject *)(new TObjString(
+            "boost::v1.59.0-14")));
+        package_list.Add((TObject *)(new TObjString(
+            "MPFR::v3.1.3-4")));
+        package_list.Add((TObject *)(new TObjString(
+            "GMP::v6.0.0-2")));
+        // The grid ROOT packages tend to lack a GCC 4.9.x =
         // CXXABI_1.3.8 dependency (see also
         // https://gcc.gnu.org/onlinedocs/libstdc++/manual/abi.html),
         // which causes jobs to fail at run time with the message:
@@ -31,15 +73,17 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         //   root: /usr/lib64/libstdc++.so.6: version `CXXABI_1.3.8'
         //   not found (required by root)
         //   Output file AnalysisResults.root not found. Job FAILED !
-        "GCC-Toolchain::v4.9.3-alice3-1",
-        NULL
-    };
+        package_list.Add((TObject *)(new TObjString(
+            "GCC-Toolchain::v4.9.3-alice3-1")));
+    }
 
-    for (const char **p = package; *p != NULL; p++) {
-        if (strncmp(*p, "GCC::", 5) != 0) {
-            TString ps(*p);
+    for (Int_t i = 0; i < package_list.GetSize(); i++) {
+        const TString &ps =
+            ((TObjString *)(package_list.At(i)))->String();
+
+        if (strncmp(ps.Data(), "GCC-Toolchain::", 15) != 0) {
             TString include = "$ALICE_ROOT/../../" +
-                ps.ReplaceAll("::", "/") + "/include";
+                ps.Copy().ReplaceAll("::", "/") + "/include";
 
             if (gSystem->AccessPathName(include.ReplaceAll(
                 "$ALICE_ROOT", gSystem->Getenv("ALICE_ROOT")))) {
@@ -87,26 +131,34 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
 
     AliAnalysisAlien *plugin = new AliAnalysisAlien("pluginNTGJ");
 
-    for (const char **p = package; *p != NULL; p++) {
-        plugin->AddExternalPackage(*p);
+    for (Int_t i = 0; i < package_list.GetSize(); i++) {
+        const TString &ps =
+            ((TObjString *)(package_list.At(i)))->String();
+
+        fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, ps.Data());
+        plugin->AddExternalPackage(ps.Data());
     }
 
     TString include_path("-I. -I$ALICE_ROOT/include "
                          "-I$ALICE_PHYSICS/include ");
 
-    for (const char **p = package; *p != NULL; p++) {
-        if (strncmp(*p, "GCC::", 5) != 0) {
+    for (Int_t i = 0; i < package_list.GetSize(); i++) {
+        const TString &ps =
+            ((TObjString *)(package_list.At(i)))->String();
+
+        if (strncmp(ps.Data(), "GCC-Toolchain::", 15) != 0) {
             include_path += "-I$ALICE_ROOT/../../" +
-                TString(*p).ReplaceAll("::", "/") + "/include ";
+                ps.Copy().ReplaceAll("::", "/") + "/include ";
         }
     }
+    package_list.Delete();
 
     plugin->AddIncludePath(include_path);
 
     // Light-weight parsing of a YAML conform file, with what is
-    // available in ROOT/CINT
-    FILE *fp = fopen(config_filename, "r");
-    char line[4096];
+    // available in ROOT/CINT, pass 2
+    fp = fopen(config_filename, "r");
+
     // Default values
     TString emcal_correction_filename = "emcal_correction.yaml";
     TString emcal_geometry_filename = "";
@@ -130,7 +182,6 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     TString nrandom_isolation = "0";
 
     while (fgets(line, 4096, fp) != NULL) {
-        // Skip comments
         if (line[0] == '#') {
             continue;
         }
@@ -141,13 +192,7 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
 
         key[0] = '\0';
         value[0] = '\0';
-        // Key is arbitrarily many characters until ':', followed by
-        // arbitrarily many combinations of space/tabs (both assuming
-        // user will not actually enter >= 4096 of those), then at
-        // most 4096 caracters of value (which could be very long, for
-        // run lists). Tailing spaces for numerical values are
-        // generally passed on to CINT, which also does not become an
-        // issue.
+        // See for pass 1 for explanation
         sscanf(line, "%[^:]:%[ \t]%4096[^\n\r]", key, dummy, value);
 
         // AliEn related options
@@ -223,6 +268,10 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
             plugin->SetTTL(atoi(value));
         }
 
+        else if (strcmp(key, "package") == 0) {
+            // Do nothing (see pass 1)
+        }
+
         // Task related options
 
         else if (strcmp(key, "emcalCorrection") == 0) {
@@ -235,7 +284,8 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
             physics_selection = strncmp(value, "true", 4) == 0;
         }
         else if (strcmp(key, "physicsSelectionMCAnalysis") == 0) {
-            physics_selection_mc_analysis = strncmp(value, "true", 4) == 0;
+            physics_selection_mc_analysis =
+                strncmp(value, "true", 4) == 0;
         }
         else if (strcmp(key, "physicsSelectionPileupCut") == 0) {
             physics_selection_pileup_cut =
