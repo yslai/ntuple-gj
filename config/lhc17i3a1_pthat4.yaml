@@ -1,0 +1,17 @@
+gridWorkingDir:         workingdir_4
+gridOutputDir:          outputdir_4
+aliROOTVersion:         v5-09-29-1
+aliPhysicsVersion:      v5-09-29-01-1
+package:                fastjet::v3.2.1_1.024-alice3-2
+package:                cgal::v4.6.3-25
+package:                boost::v1.59.0-19
+package:                MPFR::v3.1.3-4
+package:                GMP::v6.0.0-2
+package:                GCC-Toolchain::v4.9.3-alice3-1
+gridDataDir:            /alice/sim/2017/LHC17i3a1/4
+dataPattern:            */*/AliESDs.root
+runNumber:              [255539, 255540, 255542, 255543, 255577, 255582, 255583, 255591, 255614, 255615]
+runPrefix:
+emcalCorrection:	emcal_correction_notrkhist.yaml
+emcalGeometryFilename:	geometry_2015.root
+emcalLocal2MasterFilename: EMCALlocal2master.root
