@@ -402,6 +402,7 @@ private:
     double _skim_muon_track_min_pt;
     std::vector<double> _skim_jet_min_pt;
     int _skim_multiplicity_tracklet_min_n;
+    int _skim_sum_eg_ntrial;
     double _stored_track_min_pt;
     double _stored_jet_min_pt_raw;
     unsigned int _nrandom_isolation;

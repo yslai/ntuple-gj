@@ -170,6 +170,7 @@ ClassImp(AliAnalysisTaskNTGJ);
     _skim_muon_track_min_pt(-INFINITY),                     \
     _skim_jet_min_pt(std::vector<double>(3, -INFINITY)),    \
     _skim_multiplicity_tracklet_min_n(INT_MIN),             \
+    _skim_sum_eg_ntrial(0),                                 \
     _stored_track_min_pt(-INFINITY),                        \
     _stored_jet_min_pt_raw(-INFINITY),                      \
     _nrandom_isolation(0),                                  \
@@ -609,7 +610,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     _branch_eg_pt_hat = NAN;
     _branch_eg_cross_section = NAN;
     _branch_eg_weight = NAN;
-    _branch_eg_ntrial = -1;
+    // This should be default to zero to avoid counting mishap
+    _branch_eg_ntrial = 0;
 
     // Not stored by ALICE SW
 
@@ -646,7 +648,10 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 mc_truth_pythia_header->GetPtHard();
             _branch_eg_cross_section =
                 mc_truth_pythia_header->GetXsection();
-            _branch_eg_ntrial = mc_truth_pythia_header->Trials();
+            // Count ntrial, because the event might get skimmed away
+            // by the ntuplizer
+            _skim_sum_eg_ntrial +=
+                mc_truth_pythia_header->Trials();
         }
     }
 
@@ -1513,7 +1518,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         std::fill(_branch_cluster_lambda_square_angle
                   [_branch_ncluster],
                   _branch_cluster_lambda_square_angle
-                  [_branch_ncluster][0] + 2, NAN);
+                  [_branch_ncluster] + 2, NAN);
         if (_emcal_geometry != NULL) {
             Float_t l0      = 0;
             Float_t l1      = 0;
@@ -2164,6 +2169,11 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
         aod_event->GetMuonTracks(&muon_track);
     }
+
+    // Now that the event is accepted, copy over the total counted
+    // ntrials so far, and reset the ntrial counter
+    _branch_eg_ntrial = _skim_sum_eg_ntrial;
+    _skim_sum_eg_ntrial = 0;
 
     _tree_event->Fill();
 }
