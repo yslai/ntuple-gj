@@ -867,23 +867,30 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
     std::vector<size_t> stored_mc_truth_index;
     std::vector<Int_t> reverse_stored_mc_truth_index;
+    std::vector<size_t> stored_parton_index;
+    std::vector<Int_t> reverse_stored_parton_index;
 
     if (mc_truth_event != NULL) {
         stored_mc_truth_index.resize(
             mc_truth_event->GetNumberOfTracks(), ULONG_MAX);
 
         size_t nmc_truth = 0;
+        size_t nparton = 0;
 
         for (Int_t i = 0;
              i < mc_truth_event->GetNumberOfTracks(); i++) {
-            // Keep only primary final state particles
-            if (!final_state_primary(mc_truth_event, i)) {
-                continue;
+            // Bookkeeping for primary final state particles
+            if (final_state_primary(mc_truth_event, i)) {
+                stored_mc_truth_index[i] = nmc_truth;
+                reverse_stored_mc_truth_index.push_back(i);
+                nmc_truth++;
             }
-
-            stored_mc_truth_index[i] = nmc_truth;
-            reverse_stored_mc_truth_index.push_back(i);
-            nmc_truth++;
+            // Bookkeeping for partons
+            if (parton_cms_algorithmic(mc_truth_event, i)) {
+                stored_parton_index[i] = nparton;
+                reverse_stored_parton_index.push_back(i);
+                nparton++;
+            }
         }
 
         // Assign secondaries to the primaries

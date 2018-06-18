@@ -20,4 +20,53 @@ namespace {
         }
     }
 
+    bool pdg_is_parton(Int_t pdg_code)
+    {
+        const int pdg_code_particle_unexcited =
+            std::abs(static_cast<int>(pdg_code)) % 100000;
+
+        switch (pdg_code_particle_unexcited) {
+        case 1:
+        case 2:
+        case 3:
+        case 4:
+        case 5:
+        case 21:
+            return true;
+            break;
+        }
+
+        return false;
+    }
+
+    bool parton_cms_algorithmic(AliMCEvent *mc_event, Int_t index)
+    {
+        AliStack *s = mc_event->Stack();
+        const AliMCParticle *p =
+            dynamic_cast<AliMCParticle *>(mc_event->GetTrack(index));
+
+        if (!(s != NULL && p != NULL)) {
+            return false;
+        }
+
+        return pdg_is_parton(p->PdgCode()) &&
+            !(p->GetFirstDaughter() > 0 &&
+              p->GetFirstDaughter() < s->GetNprimary() &&
+              dynamic_cast<AliMCParticle *>(
+                mc_event->GetTrack(
+                    p->GetFirstDaughter())) != NULL &&
+              pdg_is_parton(dynamic_cast<AliMCParticle *>(
+                mc_event->GetTrack(
+                    p->GetFirstDaughter()))->PdgCode())) &&
+            !(p->GetLastDaughter() > 0 &&
+              p->GetLastDaughter() < s->GetNprimary() &&
+              dynamic_cast<AliMCParticle *>(
+                mc_event->GetTrack(
+                    p->GetLastDaughter())) != NULL &&
+              pdg_is_parton(dynamic_cast<AliMCParticle *>(
+                mc_event->GetTrack(
+                    p->GetLastDaughter()))->PdgCode())) &&
+            !(p->Px() == 0 && p->Py() == 0);
+    }
+
 }
