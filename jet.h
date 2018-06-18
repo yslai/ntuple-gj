@@ -534,9 +534,11 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
     // the removal of EM and muons, -1 then implicitly means hadronic
 
     enum {
-        USER_INDEX_DEFAULT_OR_TRACK = -1,
-        USER_INDEX_EM               = -2,
-        USER_INDEX_MUON             = -3
+        USER_INDEX_DEFAULT_OR_TRACK     = -1,
+        USER_INDEX_EM                   = -2,
+        USER_INDEX_MUON                 = -3,
+        USER_INDEX_PARTON_ALGORITHMIC_0 = -100,
+        USER_INDEX_PARTON_PHYSICS_0     = -200,
     };
 
     double jet_emf(const std::vector<fastjet::PseudoJet> constituent,
@@ -746,6 +748,32 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
         }                                                           \
     }
 
+#define TAG_PARTICLE_RECO_PARTON(particle_reco_tagged, t, tt)       \
+    if (mc_truth_event != NULL) {                                   \
+        for (std::vector<Int_t>::const_iterator                     \
+                 iterator_parton_index =                            \
+                 reverse_stored_parton_ ## t ## _index.begin();     \
+             iterator_parton_index !=                               \
+                 reverse_stored_parton_ ## t ## _index.end();       \
+             iterator_parton_index++) {                             \
+            const AliMCParticle *p =                                \
+                dynamic_cast<AliMCParticle *>(                      \
+                    mc_truth_event->GetTrack(                       \
+                        *iterator_parton_index));                   \
+                                                                    \
+            particle_reco_tagged.push_back(fastjet::PseudoJet(      \
+                p->Px() * scale_ghost, p->Py() * scale_ghost,       \
+                p->Pz() * scale_ghost, p->P() * scale_ghost));      \
+            /* With USER_INDEX_PARTON_ALGORITHMIC_0 = -100, the     \
+               user index range [-130, -70] are devoted to possible \
+               partons, and +/-30 is sufficient to identify         \
+               particles that are misclassified as partons */       \
+            particle_reco_tagged.back().set_user_index(             \
+                USER_INDEX_PARTON_ ## tt ## _0 +                    \
+                std::max(-30, std::min(30, p->PdgCode())));         \
+        }                                                           \
+    }
+
 #define FILL_BRANCH_JET(s, jet_reco, cluster_sequence_reco,         \
                         jet_reco_tagged,                            \
                         cluster_sequence_reco_tagged,               \
@@ -888,9 +916,42 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                                                                     \
         const size_t index_reco = iterator_jet - jet_reco.begin();  \
                                                                     \
+        std::fill(_branch_jet_ ## s ## _truth_index_z_truth         \
+                  [_branch_njet_ ## s],                             \
+                  _branch_jet_ ## s ## _truth_index_z_truth         \
+                  [_branch_njet_ ## s] + 2, -1);                    \
+        std::fill(_branch_jet_ ## s ## _truth_z_truth               \
+                  [_branch_njet_ ## s],                             \
+                  _branch_jet_ ## s ## _truth_z_truth               \
+                  [_branch_njet_ ## s] + 2, NAN);                   \
+        std::fill(_branch_jet_ ## s ## _truth_index_z_reco          \
+                  [_branch_njet_ ## s],                             \
+                  _branch_jet_ ## s ## _truth_index_z_reco          \
+                  [_branch_njet_ ## s] + 2, -1);                    \
+        std::fill(_branch_jet_ ## s ## _truth_z_reco                \
+                  [_branch_njet_ ## s],                             \
+                  _branch_jet_ ## s ## _truth_z_reco                \
+                  [_branch_njet_ ## s] + 2, NAN);                   \
+        std::fill(_branch_jet_ ## s ## _pdg_code_algorithmic        \
+                  [_branch_njet_ ## s],                             \
+                  _branch_jet_ ## s ## _pdg_code_algorithmic        \
+                  [_branch_njet_ ## s] + 2, 0);                     \
+        std::fill(_branch_jet_ ## s ## _pdg_code_algorithmic_z      \
+                  [_branch_njet_ ## s],                             \
+                  _branch_jet_ ## s ## _pdg_code_algorithmic_z      \
+                  [_branch_njet_ ## s] + 2, NAN);                   \
+                                                                    \
+        _branch_jet_ ## s ## _e_truth[_branch_njet_ ## s] = NAN;    \
+        _branch_jet_ ## s ## _pt_truth[_branch_njet_ ## s] = NAN;   \
+        _branch_jet_ ## s ## _eta_truth[_branch_njet_ ## s] = NAN;  \
+        _branch_jet_ ## s ## _phi_truth[_branch_njet_ ## s] = NAN;  \
+        _branch_jet_ ## s ## _area_truth[_branch_njet_ ## s] = NAN; \
+        _branch_jet_ ## s ## _emf_truth[_branch_njet_ ## s] = NAN;  \
+                                                                    \
         if (mc_truth_event != NULL &&                               \
             iterator_jet_tagged != jet_reco_tagged.end()) {         \
             std::map<int, double> z_ghost;                          \
+            std::map<int, double> z_ghost_parton_algorithmic;       \
                                                                     \
             for (std::vector<fastjet::PseudoJet>::const_iterator    \
                      iterator_constituent = constituent.begin();    \
@@ -898,6 +959,9 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                  iterator_constituent++) {                          \
                 const int index_jet_truth =                         \
                     iterator_constituent->user_index();             \
+                const int parton_pdg_code_algorithmic =             \
+                    iterator_constituent->user_index() -            \
+                    USER_INDEX_PARTON_ALGORITHMIC_0;                \
                                                                     \
                 if (index_jet_truth >= 0) {                         \
                     if (z_ghost.find(index_jet_truth) ==            \
@@ -908,6 +972,22 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                     }                                               \
                     else {                                          \
                         z_ghost[index_jet_truth] +=                 \
+                            iterator_constituent->perp() /          \
+                            scale_ghost;                            \
+                    }                                               \
+                }                                                   \
+                else if (std::abs(parton_pdg_code_algorithmic) <=   \
+                         21) {                                      \
+                    if (z_ghost_parton_algorithmic.                 \
+                        find(parton_pdg_code_algorithmic) ==        \
+                        z_ghost_parton_algorithmic.end()) {         \
+                        z_ghost[parton_pdg_code_algorithmic] =      \
+                            iterator_constituent->perp() /          \
+                            scale_ghost;                            \
+                    }                                               \
+                    else {                                          \
+                        z_ghost_parton_algorithmic[                 \
+                            parton_pdg_code_algorithmic] += \
                             iterator_constituent->perp() /          \
                             scale_ghost;                            \
                     }                                               \
@@ -937,14 +1017,6 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
              * not really useful, we only need to know how fuzzy    \
              * the mapping was */                                   \
                                                                     \
-            std::fill(_branch_jet_ ## s ## _truth_index_z_truth     \
-                      [_branch_njet_ ## s],                         \
-                      _branch_jet_ ## s ## _truth_index_z_truth     \
-                      [_branch_njet_ ## s] + 2, -1);                \
-            std::fill(_branch_jet_ ## s ## _truth_z_truth           \
-                      [_branch_njet_ ## s],                         \
-                      _branch_jet_ ## s ## _truth_z_truth           \
-                      [_branch_njet_ ## s] + 2, NAN);               \
             for (size_t j = 0;                                      \
                  j < std::min(2UL, z_truth.size()); j++) {          \
                 _branch_jet_ ## s ## _truth_z_truth                 \
@@ -984,16 +1056,8 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
             }                                                       \
             std::sort(z_reco.begin(), z_reco.end());                \
                                                                     \
-            /* Note that z_truth is now in *acending* order */      \
+            /* Note that z_reco is now in *acending* order */       \
                                                                     \
-            std::fill(_branch_jet_ ## s ## _truth_index_z_reco      \
-                      [_branch_njet_ ## s],                         \
-                      _branch_jet_ ## s ## _truth_index_z_reco      \
-                      [_branch_njet_ ## s] + 2, -1);                \
-            std::fill(_branch_jet_ ## s ## _truth_z_reco            \
-                      [_branch_njet_ ## s],                         \
-                      _branch_jet_ ## s ## _truth_z_reco            \
-                      [_branch_njet_ ## s] + 2, NAN);               \
             for (size_t j = 0;                                      \
                  j < std::min(2UL, z_reco.size()); j++) {           \
                 _branch_jet_ ## s ## _truth_z_reco                  \
@@ -1007,19 +1071,6 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
             /* A simplified z_reco matching, which is a more        \
              * rigorous version of the CMS delta R < D matching,    \
              * for jet energy correction derivation. */             \
-                                                                    \
-            _branch_jet_ ## s ## _e_truth[_branch_njet_ ## s] =     \
-                NAN;                                                \
-            _branch_jet_ ## s ## _pt_truth[_branch_njet_ ## s] =    \
-                NAN;                                                \
-            _branch_jet_ ## s ## _eta_truth[_branch_njet_ ## s] =   \
-                NAN;                                                \
-            _branch_jet_ ## s ## _phi_truth[_branch_njet_ ## s] =   \
-                NAN;                                                \
-            _branch_jet_ ## s ## _area_truth[_branch_njet_ ## s] =  \
-                NAN;                                                \
-            _branch_jet_ ## s ## _emf_truth[_branch_njet_ ## s] =   \
-                NAN;                                                \
                                                                     \
             if (!z_reco.empty() &&                                  \
                 z_reco.rbegin()[0].second >= 0 &&                   \
@@ -1057,6 +1108,59 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                     [_branch_njet_ ## s] =                          \
                     _branch_jet_truth_ ## t ## _ptd[k];             \
             }                                                       \
+                                                                    \
+            /* The flavor tagging is a variant of the z_reco        \
+               matching above */                                    \
+                                                                    \
+            double sum_z_ghost_parton_algorithmic = 0;              \
+                                                                    \
+            for (std::map<int, double>::const_iterator iterator =   \
+                     z_ghost_parton_algorithmic.begin();            \
+                 iterator != z_ghost_parton_algorithmic.end();      \
+                 iterator++) {                                      \
+                sum_z_ghost_parton_algorithmic += iterator->second; \
+            }                                                       \
+                                                                    \
+            std::vector<std::pair<double, int> >                    \
+                z_reco_parton_algorithmic;                          \
+                                                                    \
+            if (sum_z_ghost_parton_algorithmic > 0) {               \
+                for (std::map<int, double>::iterator iterator =     \
+                         z_ghost_parton_algorithmic.begin();        \
+                     iterator != z_ghost_parton_algorithmic.end();  \
+                     iterator++) {                                  \
+                    iterator->second /=                             \
+                        sum_z_ghost_parton_algorithmic;             \
+                }                                                   \
+                for (std::map<int, double>::const_iterator          \
+                         iterator =                                 \
+                         z_ghost_parton_algorithmic.begin();        \
+                     iterator != z_ghost_parton_algorithmic.end();  \
+                     iterator++) {                                  \
+                    z_reco_parton_algorithmic.                      \
+                        push_back(std::pair<double, int>(           \
+                            iterator->second, iterator->first));    \
+                }                                                   \
+            }                                                       \
+            std::sort(z_reco_parton_algorithmic.begin(),            \
+                      z_reco_parton_algorithmic.end());             \
+                                                                    \
+            /* Note that z_truth is now in *acending* order */      \
+                                                                    \
+            for (size_t j = 0;                                      \
+                 j <                                                \
+                 std::min(2UL, z_reco_parton_algorithmic.size());   \
+                 j++) {                                             \
+                _branch_jet_ ## s ## _pdg_code_algorithmic_z        \
+                    [_branch_njet_ ## s][j] =                       \
+                    half(z_reco_parton_algorithmic.                 \
+                         rbegin()[j].first);                        \
+                _branch_jet_ ## s ## _pdg_code_algorithmic          \
+                    [_branch_njet_ ## s][j] =                       \
+                    z_reco_parton_algorithmic.                      \
+                    rbegin()[j].second;                             \
+            }                                                       \
+                                                                    \
         }                                                           \
         _branch_njet_ ## s++;                                       \
         if (_branch_njet_ ## s >= NJET_MAX) {                       \

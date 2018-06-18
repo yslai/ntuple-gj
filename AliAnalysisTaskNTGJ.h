@@ -249,6 +249,10 @@ private:
     BRANCH_ARRAY2(jet_ak04tpc_truth_index_z_reco, njet_ak04tpc,     \
                   2, I)                                             \
     BRANCH_ARRAY2(jet_ak04tpc_truth_z_reco, njet_ak04tpc, 2, F)     \
+    BRANCH_ARRAY2(jet_ak04tpc_pdg_code_algorithmic, njet_ak04tpc,   \
+                  2, I)                                             \
+    BRANCH_ARRAY2(jet_ak04tpc_pdg_code_algorithmic_z, njet_ak04tpc, \
+                  2, F)                                             \
     BRANCH_ARRAY(jet_ak04tpc_e_truth, njet_ak04tpc, F)              \
     BRANCH_ARRAY(jet_ak04tpc_pt_truth, njet_ak04tpc, F)             \
     BRANCH_ARRAY(jet_ak04tpc_eta_truth, njet_ak04tpc, F)            \
@@ -288,6 +292,10 @@ private:
     BRANCH_ARRAY2(jet_ak04its_truth_index_z_reco, njet_ak04its,     \
                   2, I)                                             \
     BRANCH_ARRAY2(jet_ak04its_truth_z_reco, njet_ak04its, 2, F)     \
+    BRANCH_ARRAY2(jet_ak04its_pdg_code_algorithmic, njet_ak04its,   \
+                  2, I)                                             \
+    BRANCH_ARRAY2(jet_ak04its_pdg_code_algorithmic_z, njet_ak04its, \
+                  2, F)                                             \
     BRANCH_ARRAY(jet_ak04its_e_truth, njet_ak04its, F)              \
     BRANCH_ARRAY(jet_ak04its_pt_truth, njet_ak04its, F)             \
     BRANCH_ARRAY(jet_ak04its_eta_truth, njet_ak04its, F)            \

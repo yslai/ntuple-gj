@@ -867,15 +867,13 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
     std::vector<size_t> stored_mc_truth_index;
     std::vector<Int_t> reverse_stored_mc_truth_index;
-    std::vector<size_t> stored_parton_index;
-    std::vector<Int_t> reverse_stored_parton_index;
+    std::vector<Int_t> reverse_stored_parton_algorithmic_index;
 
     if (mc_truth_event != NULL) {
         stored_mc_truth_index.resize(
             mc_truth_event->GetNumberOfTracks(), ULONG_MAX);
 
         size_t nmc_truth = 0;
-        size_t nparton = 0;
 
         for (Int_t i = 0;
              i < mc_truth_event->GetNumberOfTracks(); i++) {
@@ -887,9 +885,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             }
             // Bookkeeping for partons
             if (parton_cms_algorithmic(mc_truth_event, i)) {
-                stored_parton_index[i] = nparton;
-                reverse_stored_parton_index.push_back(i);
-                nparton++;
+                reverse_stored_parton_algorithmic_index.push_back(i);
             }
         }
 
@@ -1251,10 +1247,12 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                     switch (abs_pdg_code) {
                     case PDG_CODE_ELECTRON_MINUS:
                     case PDG_CODE_PHOTON:
-                        particle_truth.back().set_user_index(-2);
+                        particle_truth.back().
+                            set_user_index(USER_INDEX_EM);
                         break;
                     case PDG_CODE_MUON_MINUS:
-                        particle_truth.back().set_user_index(-3);
+                        particle_truth.back().
+                            set_user_index(USER_INDEX_MUON);
                         break;
                     }
                     kahan_sum(_branch_met_truth[0],
@@ -1377,8 +1375,12 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     FILL_BRANCH_JET_TRUTH(ak04, jet_truth_ak04);
     TAG_PARTICLE_RECO_JET_TRUTH(particle_reco_tagged_ak04tpc,
                                 jet_truth_ak04);
+    TAG_PARTICLE_RECO_PARTON(particle_reco_tagged_ak04tpc,
+                             algorithmic, ALGORITHMIC);
     TAG_PARTICLE_RECO_JET_TRUTH(particle_reco_tagged_ak04its,
                                 jet_truth_ak04);
+    TAG_PARTICLE_RECO_PARTON(particle_reco_tagged_ak04its,
+                             algorithmic, ALGORITHMIC);
 
     if (cluster_sequence_truth != NULL) {
         delete cluster_sequence_truth;
