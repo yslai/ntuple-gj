@@ -39,6 +39,11 @@ namespace {
         return false;
     }
 
+    // Port of the CMS b-tagging group's "algorithmic definition" of
+    // partons (at the end of showering) for PYTHIA 8. See
+    // https://github.com/cms-sw/cmssw/blob/master/PhysicsTools/
+    // JetMCAlgos/src/Pythia8PartonSelector.cc
+
     bool parton_cms_algorithmic(AliMCEvent *mc_event, Int_t index)
     {
         AliStack *s = mc_event->Stack();

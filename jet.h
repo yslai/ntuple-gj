@@ -981,7 +981,8 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                     if (z_ghost_parton_algorithmic.                 \
                         find(parton_pdg_code_algorithmic) ==        \
                         z_ghost_parton_algorithmic.end()) {         \
-                        z_ghost[parton_pdg_code_algorithmic] =      \
+                        z_ghost_parton_algorithmic[                 \
+                            parton_pdg_code_algorithmic] =          \
                             iterator_constituent->perp() /          \
                             scale_ghost;                            \
                     }                                               \
