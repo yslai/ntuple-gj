@@ -1471,12 +1471,12 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     }
 
     std::pair<std::vector<double>, std::vector<double> >
-        ue_estimate_tpc = ue_estimation_truncated_mean(
+        ue_estimate_tpc = ue_estimation_median(
             cluster_sequence_ue_estimation_tpc,
             particle_reco_area_tpc);
 
     std::pair<std::vector<double>, std::vector<double> >
-        ue_estimate_its = ue_estimation_truncated_mean(
+        ue_estimate_its = ue_estimation_median(
             cluster_sequence_ue_estimation_its,
             particle_reco_area_its);
 

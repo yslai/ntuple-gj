@@ -8,6 +8,7 @@
 #include <map>
 #include <algorithm>
 
+#include <Math/SpecFuncMathCore.h>
 #include <TDecompSVD.h>
 #include <TPolyLine.h>
 
@@ -185,6 +186,100 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
         }
     }
 
+    double voronoi_area(const fastjet::PseudoJet jet,
+                        const fastjet::ClusterSequenceArea
+                        cluster_sequence,
+                        const std::vector<double> particle_area)
+    {
+        std::vector<fastjet::PseudoJet> constituent =
+            cluster_sequence.constituents(jet);
+        double sum_area = 0;
+        double sum_area_kahan_error = 0;
+
+        for (std::vector<fastjet::PseudoJet>::const_iterator
+                 iterator_constituent = constituent.begin();
+             iterator_constituent != constituent.end();
+             iterator_constituent++) {
+            const int index = iterator_constituent->user_index();
+
+            if (index >= 0 && static_cast<size_t>(index) <
+                particle_area.size() &&
+                std::isfinite(particle_area[index])) {
+                kahan_sum(sum_area, sum_area_kahan_error,
+                          particle_area[index]);
+            }
+        }
+
+        return sum_area;
+    }
+
+    std::vector<double> rho_order_statistics(
+        fastjet::ClusterSequenceArea cluster_sequence,
+        std::vector<double> particle_area)
+    {
+        const std::vector<fastjet::PseudoJet> jet =
+            cluster_sequence.inclusive_jets(0);
+        std::vector<double> rho;
+
+        for (std::vector<fastjet::PseudoJet>::const_iterator
+                 iterator = jet.begin();
+             iterator != jet.end(); iterator++) {
+            const double area =
+                voronoi_area(*iterator, cluster_sequence,
+                             particle_area);
+
+            rho.push_back(iterator->perp() / area);
+        }
+        std::sort(rho.begin(), rho.end());
+
+        return rho;
+    }
+
+    double quantile_harrell_davis(const std::vector<double> x,
+                                 double p)
+    {
+        // See F. E. Harrell, C. E. Davis, Biometrika 69(3), 635--640,
+        // https://doi.org/10.1093/biomet/69.3.635 , p. 646, eq. (2)
+        // and (3)
+        double (*incbeta)(double, double, double) =
+            &ROOT::Math::inc_beta;
+        const double n = static_cast<double>(x.size());
+        const double p_n_plus_1 = p * (n + 1);
+        const double not_p_n_plus_1 = (1 - p) * (n + 1);
+        double sum = 0;
+        double sum_kahan_error = 0;
+
+        for (size_t i = 0; i < x.size(); i++) {
+            const double w =
+                incbeta(static_cast<double>(i + 1) / n,
+                        p_n_plus_1, not_p_n_plus_1) -
+                incbeta(static_cast<double>(i) / n,
+                        p_n_plus_1, not_p_n_plus_1);
+            kahan_sum(sum, sum_kahan_error, w * x[i]);
+        }
+
+        return sum;
+    }
+
+    std::pair<std::vector<double>, std::vector<double> >
+    ue_estimation_median(fastjet::ClusterSequenceArea
+                         cluster_sequence,
+                         std::vector<double> particle_area)
+    {
+        const std::vector<double> rho_order_statistics_ =
+            rho_order_statistics(cluster_sequence,
+                                 particle_area);
+        const double rho_median =
+            quantile_harrell_davis(rho_order_statistics_, 0.5);
+        const std::vector<double>
+            pseudorapidity_dependence(1, rho_median);
+        const std::vector<double> azimuth_dependence(1, 1);
+
+        return std::pair<
+            std::vector<double>, std::vector<double> >(
+                pseudorapidity_dependence, azimuth_dependence);
+    }
+
     void
     append_quantile(std::vector<fastjet::PseudoJet> &
                     constituent_truncated,
@@ -276,10 +371,14 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                 if (fabs(angular_range_reduce(
                         iterator->phi_std() - azimuth_window_center)) <
                     azimuth_window_width) {
+                    const double area =
+                        voronoi_area(*iterator, cluster_sequence,
+                                     particle_area);
+
                     rho_vs_jet.push_back(
                         std::pair<double, std::vector<
                         fastjet::PseudoJet>::const_iterator>(
-                            iterator->perp() / iterator->area(),
+                            iterator->perp() / area,
                             iterator));
                 }
             }
