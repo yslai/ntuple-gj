@@ -486,7 +486,7 @@ int main(int argc, char *argv[])
             }
             if (i % 1000 == 0) {
                 fprintf(stderr, "%s:%d: %lld / %lld "
-                        "(cluster count = %lu)\n",
+                        "(cluster count = %lld)\n",
                         __FILE__, __LINE__, i,
                         _tree_event->GetEntries(), offset[0]);
             }
