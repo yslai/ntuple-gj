@@ -17,6 +17,11 @@ LDLIBS =	$(shell root-config --libs)
 
 CXXFLAGS +=	-I$(BOOST_ROOT)/include
 
+ifneq (,$(HDF5_DIR))
+    CXXFLAGS += -DHAVE_HDF5 -I$(HDF5_DIR)/include \
+		-L$(HDF5_DIR)/lib64 -L$(HDF5_DIR)/lib
+endif
+
 CXXFLAGS +=	-I../..
 
 TARGET =	photon_ml

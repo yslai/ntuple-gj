@@ -1,3 +1,5 @@
+#include <numeric>
+
 #include <TFile.h>
 #include <TTree.h>
 #include <TLorentzVector.h>
@@ -302,10 +304,12 @@ int main(int argc, char *argv[])
         _tree_event->SetBranchAddress("mc_truth_first_parent_pdg_code",
                                       mc_truth_first_parent_pdg_code);
 
+        size_t cluster_count = 0;
+
         for (Long64_t i = 0; i < _tree_event->GetEntries(); i++) {
             _tree_event->GetEntry(i);
             for (UInt_t j = 0; j < ncluster; j++) {
-                if (cluster_e[j] >= 0.0F &&
+                if (cluster_e[j] >= 8.0F &&
                     cluster_ncell[j] >= 2 &&
                     cluster_e_cross[j] > 0.05 * cluster_e_max[j]) {
                     unsigned int c55j[25];
@@ -316,9 +320,14 @@ int main(int argc, char *argv[])
                     bool prompt = false;
 
                     for (size_t k = 0; k < cluster_nmc_truth[j]; k++) {
-                        if (mc_truth_e[cluster_mc_truth_index[j][k]] > mc_truth_e_max) {
-                            prompt = std::abs(mc_truth_first_parent_pdg_code[cluster_mc_truth_index[j][k]]) < 100;
-                            mc_truth_e_max = mc_truth_e[cluster_mc_truth_index[j][k]];
+                        if (mc_truth_e[cluster_mc_truth_index[j][k]] >
+                            mc_truth_e_max) {
+                            prompt = std::abs(
+                                mc_truth_first_parent_pdg_code
+                                [cluster_mc_truth_index[j][k]])
+                                < 100;
+                            mc_truth_e_max = mc_truth_e
+                                  [cluster_mc_truth_index[j][k]];
                         }
                     }
 
@@ -344,13 +353,15 @@ int main(int argc, char *argv[])
                             multiplicity_v0,
                             multiplicity_v0 + 64, 0));
                         y->push_back(prompt ? 1 : 0);
+                        cluster_count++;
                     }
                 }
             }
             if (i % 1000 == 0) {
-                fprintf(stderr, "%s:%d: %lld / %lld\n",
+                fprintf(stderr, "%s:%d: %lld / %lld "
+                        "(cluster_count = %lu)\n",
                         __FILE__, __LINE__, i,
-                        _tree_event->GetEntries());
+                        _tree_event->GetEntries(), cluster_count);
             }
         }
         _tree_event->Delete();
