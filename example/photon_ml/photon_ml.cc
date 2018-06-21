@@ -478,15 +478,17 @@ int main(int argc, char *argv[])
                                              NATIVE_UINT,
                                              memory_space,
                                              file_space);
+
+                            offset[0]++;
                         }
                     }
                 }
             }
             if (i % 1000 == 0) {
                 fprintf(stderr, "%s:%d: %lld / %lld "
-                        "(cluster_count = %lu)\n",
+                        "(cluster count = %lu)\n",
                         __FILE__, __LINE__, i,
-                        _tree_event->GetEntries(), cluster_count);
+                        _tree_event->GetEntries(), offset[0]);
             }
         }
         _tree_event->Delete();
