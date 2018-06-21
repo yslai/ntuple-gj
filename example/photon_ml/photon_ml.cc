@@ -478,9 +478,8 @@ int main(int argc, char *argv[])
                                              NATIVE_UINT,
                                              memory_space,
                                              file_space);
-
-                            offset[0]++;
                         }
+                        offset[0]++;
                     }
                 }
             }
