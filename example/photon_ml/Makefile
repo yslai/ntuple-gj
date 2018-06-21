@@ -18,8 +18,9 @@ LDLIBS =	$(shell root-config --libs)
 CXXFLAGS +=	-I$(BOOST_ROOT)/include
 
 ifneq (,$(HDF5_DIR))
-    CXXFLAGS += -DHAVE_HDF5 -I$(HDF5_DIR)/include \
-		-L$(HDF5_DIR)/lib64 -L$(HDF5_DIR)/lib
+    CXXFLAGS +=	-I$(HDF5_DIR)/include
+    LDFLAGS +=	-L$(HDF5_DIR)/lib64 -L$(HDF5_DIR)/lib
+    LDLIBS +=	-lhdf5_cpp -lhdf5
 endif
 
 CXXFLAGS +=	-I../..

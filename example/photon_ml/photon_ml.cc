@@ -11,6 +11,20 @@
 #include <TH2D.h>
 #include <TProfile.h>
 
+#include <H5Cpp.h>
+
+// This is chosen to be the CPU L2 cache size, which should exceed 512
+// kB for many years now
+#ifndef HDF5_DEFAULT_CACHE
+#define HDF5_DEFAULT_CACHE (512 * 1024)
+#endif // HDF5_DEFAULT_CACHE
+
+#ifndef HDF5_USE_DEFLATE
+#define HDF5_USE_DEFLATE
+#endif // HDF5_USE_DEFLATE
+
+#define RANK 2
+
 #include <special_function.h>
 
 namespace {
@@ -190,29 +204,101 @@ namespace {
 
 int main(int argc, char *argv[])
 {
-    if (argc < 2) {
+    if (argc < 3) {
         exit(EXIT_FAILURE);
     }
+
+    // Access mode H5F_ACC_TRUNC truncates any existing file, while
+    // not throwing any exception (unlike H5F_ACC_RDWR)
+    fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, argv[argc - 1]);
+    H5::H5File hdf5_file(argv[argc - 1], H5F_ACC_TRUNC);
+    // How many properties per photon is written
+    static const size_t row_size_X = 5 * 5 + 4;
+    static const size_t row_size_y = 1;
+    // The tensor dimension increment for each new event
+    hsize_t dim_extend_X[RANK] = { 1, row_size_X };
+    hsize_t dim_extend_y[RANK] = { 1, row_size_y };
+    // The maximum tensor dimension, for unlimited number of events
+    hsize_t dim_max_X[RANK] = { H5S_UNLIMITED, row_size_X };
+    hsize_t dim_max_y[RANK] = { H5S_UNLIMITED, row_size_y };
+    // The extensible HDF5 data space
+	H5::DataSpace data_space_X(RANK, dim_extend_X, dim_max_X);
+	H5::DataSpace data_space_y(RANK, dim_extend_y, dim_max_y);
+
+    // To enable zlib compression (there will be many NANs) and
+    // efficient chunking (splitting of the tensor into contingous
+    // hyperslabs), a HDF5 property list is needed
+    H5::DSetCreatPropList property_X = H5::DSetCreatPropList();
+    H5::DSetCreatPropList property_y = H5::DSetCreatPropList();
+
+#ifdef HDF5_USE_DEFLATE
+    // Check for zlib (deflate) availability and enable only if
+    // present
+    if (!H5Zfilter_avail(H5Z_FILTER_DEFLATE)) {
+        fprintf(stderr, "%s:%d: warning: deflate filter not "
+                "available\n", __FILE__, __LINE__);
+    }
+    else {
+        unsigned int filter_info;
+
+        H5Zget_filter_info(H5Z_FILTER_DEFLATE, &filter_info);
+        if (!(filter_info & H5Z_FILTER_CONFIG_ENCODE_ENABLED)) {
+            fprintf(stderr, "%s:%d: warning: deflate filter not "
+                    "available for encoding\n", __FILE__, __LINE__);
+        }
+        else {
+            property_X.setDeflate(1);
+            property_y.setDeflate(1);
+        }
+    }
+#endif // HDF5_USE_DEFLATE
+
+    // Activate chunking, while observing the HDF5_DEFAULT_CACHE being
+    // the CPU L2 cache size
+    hsize_t dim_chunk_X[RANK] = {
+        std::max(static_cast<unsigned long long>(1),
+                 HDF5_DEFAULT_CACHE /
+                 std::max(static_cast<unsigned long long>(1),
+                          dim_extend_X[1] * sizeof(float))),
+        dim_extend_X[1]
+    };
+    hsize_t dim_chunk_y[RANK] = {
+        std::max(static_cast<unsigned long long>(1),
+                 HDF5_DEFAULT_CACHE /
+                 std::max(static_cast<unsigned long long>(1),
+                          dim_extend_y[1] * sizeof(float))),
+        dim_extend_y[1]
+    };
+
+    property_X.setChunk(RANK, dim_chunk_X);
+    property_y.setChunk(RANK, dim_chunk_y);
+
+    // Create the data set, which will have space for the first event
+    H5::DataSet data_set_X =
+        hdf5_file.createDataSet("X", H5::PredType::NATIVE_FLOAT,
+                                data_space_X, property_X);
+    H5::DataSet data_set_y =
+        hdf5_file.createDataSet("y", H5::PredType::NATIVE_FLOAT,
+                                data_space_y, property_y);
+    hsize_t offset[RANK] = {0, 0};
 
     int dummyc = 1;
     char **dummyv = new char *[1];
 
     dummyv[0] = strdup("main");
 
-    std::vector<float> X_train;
-    std::vector<unsigned int> y_train;
-    std::vector<float> X_test;
-    std::vector<unsigned int> y_test;
+    std::vector<float> X;
+    std::vector<unsigned int> y;
 
-    for (int iarg = 1; iarg < argc; iarg++) {
-        TFile *file = TFile::Open(argv[iarg]);
+    for (int iarg = 1; iarg < argc - 1; iarg++) {
+        TFile *root_file = TFile::Open(argv[iarg]);
 
-        if (file == NULL) {
+        if (root_file == NULL) {
             continue;
         }
 
         TDirectoryFile *df = dynamic_cast<TDirectoryFile *>
-            (file->Get("AliAnalysisTaskNTGJ"));
+            (root_file->Get("AliAnalysisTaskNTGJ"));
 
         if (df == NULL) {
             continue;
@@ -226,7 +312,7 @@ int main(int argc, char *argv[])
         }
 
         fprintf(stderr, "%s:%d: %s (%d / %d)\n", __FILE__, __LINE__,
-                argv[iarg], iarg - 1, argc - 1);
+                argv[iarg], iarg - 1, argc - 2);
 
         Float_t multiplicity_v0[64];
 
@@ -333,27 +419,66 @@ int main(int argc, char *argv[])
 
                     if (inside_edge(cluster_cell_id_max[j], 2) &&
                         mc_truth_e_max >= 0) {
-                        std::vector<float> *X =
-                            X_train.size() < X_test.size() ?
-                            &X_train : &X_test;
-                        std::vector<unsigned int> *y =
-                            y_train.size() < y_test.size() ?
-                            &y_train : &y_test;
-
                         for (size_t k = 0; k < 25; k++) {
-                            X->push_back(
+                            X.push_back(
                                 std::isfinite(cell_e[c55j[k]]) ?
                                 cell_e[c55j[k]] / cluster_e[j] : 0);
                         }
-                        X->push_back(1.0F / sqrtf(cluster_e[j]));
-                        X->push_back(cluster_eta[j]);
-                        X->push_back(min_sm_dazimuth(
+                        X.push_back(1.0F / sqrtf(cluster_e[j]));
+                        X.push_back(cluster_eta[j]);
+                        X.push_back(min_sm_dazimuth(
                              cluster_eta[j], cluster_phi[j]));
-                        X->push_back(std::accumulate(
+                        X.push_back(std::accumulate(
                             multiplicity_v0,
                             multiplicity_v0 + 64, 0));
-                        y->push_back(prompt ? 1 : 0);
-                        cluster_count++;
+                        y.push_back(prompt ? 1 : 0);
+
+                        if (offset[0] == 0) {
+                            data_set_X.write(&X[0], H5::PredType::
+                                             NATIVE_FLOAT);
+                            data_set_y.write(&y[0], H5::PredType::
+                                             NATIVE_UINT);
+                        }
+                        else {
+                            const hsize_t dim_extended_X[RANK] = {
+                                offset[0] + dim_extend_X[0],
+                                dim_extend_X[1]
+                            };
+                            const hsize_t dim_extended_y[RANK] = {
+                                offset[0] + dim_extend_y[0],
+                                dim_extend_y[1]
+                            };
+
+                            data_set_X.extend(dim_extended_X);
+                            data_set_y.extend(dim_extended_y);
+
+                            H5::DataSpace file_space;
+                            H5::DataSpace memory_space;
+
+                            file_space = data_set_X.getSpace();
+                            file_space.selectHyperslab(
+                                H5S_SELECT_SET, dim_extend_X,
+                                offset);
+                            memory_space =
+                                H5::DataSpace(RANK, dim_extend_X,
+                                              NULL);
+                            data_set_X.write(&X[0], H5::PredType::
+                                             NATIVE_FLOAT,
+                                             memory_space,
+                                             file_space);
+
+                            file_space = data_set_y.getSpace();
+                            file_space.selectHyperslab(
+                                H5S_SELECT_SET, dim_extend_y,
+                                offset);
+                            memory_space =
+                                H5::DataSpace(RANK, dim_extend_y,
+                                              NULL);
+                            data_set_y.write(&y[0], H5::PredType::
+                                             NATIVE_UINT,
+                                             memory_space,
+                                             file_space);
+                        }
                     }
                 }
             }
@@ -368,11 +493,14 @@ int main(int argc, char *argv[])
 
         delete df;
 
-        file->Close();
+        root_file->Close();
 
-        delete file;
+        delete root_file;
     }
 
+    hdf5_file.close();
+
+#if 0
     FILE *fp = fopen("ml_out.py", "w");
 
     fprintf(fp, "# n = %lu\n", X_train.size() + X_test.size());
@@ -405,6 +533,7 @@ int main(int argc, char *argv[])
     fprintf(fp, "])\n");
 
     fclose(fp);
+#endif
 
     return EXIT_SUCCESS;
 }
