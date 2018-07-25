@@ -23,13 +23,16 @@ ifneq (,$(HDF5_DIR))
     LDLIBS +=	-lhdf5_cpp -lhdf5
 endif
 
-CXXFLAGS +=	-I../..
+CXXFLAGS +=	-I../.. -I.
 
-TARGET =	photon_ml
+TARGET =	convert_sample inference
 
 all:		$(TARGET)
 
 clean:
 		/usr/bin/rm -f *~ *.o $(TARGET) ml_out.py
 
-%.cc:		../../special_function.h
+%.cc:		../../emcal.h ../../special_function.h \
+		AliVCaloCells.h AliVCluster.h AliVVZERO.h
+
+inference:	inference.cc ../../keras_model.cc

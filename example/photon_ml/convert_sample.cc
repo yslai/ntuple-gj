@@ -136,6 +136,37 @@ namespace {
         n_5_5[4 * ld + 4] = n + 2 * nphi + 4;
     }
 
+    void cell_neighbor(unsigned int n_m_m[], const unsigned int n,
+                       const unsigned int m = 5, unsigned int ld = 0)
+    {
+        if (ld == 0) {
+            ld = m;
+        }
+
+        const unsigned int sm = n < 11520 ? n / 1152 :
+            n < 12288 ? 10 + (n - 11520) / 384 :
+            n < 16896 ? 12 + (n - 12288) / 768 :
+            18 + (n - 16896) / 384;
+        const unsigned int nphi =
+            sm < 10 ? 24 : sm < 12 ? 8 : sm < 18 ? 24 : 8;
+
+        for (unsigned int i = 0; i < m; i++) {
+            const unsigned int i_centered = i - (m - 1) / 2;
+            const unsigned int offset_i = (i_centered & 1) == 0 ?
+                i_centered * nphi :
+                (n & 1) == 0 ?
+                ((i_centered + 2) & ~1) * nphi + 1 :
+                (i_centered & ~1) * nphi - 1;
+            for (unsigned int j = 0; j < m; j++) {
+                const unsigned int j_times_2_centered =
+                    2 * j - (m - 1);
+
+                n_m_m[i * ld + j] =
+                    n + offset_i + j_times_2_centered;
+            }
+        }
+    }
+
     float unit_step(float x)
     {
         return std::isfinite(x) ? x >= 0.0F ? 1.0F : 0.0F : x;
@@ -204,6 +235,41 @@ namespace {
 
 int main(int argc, char *argv[])
 {
+    unsigned int id[48][24];
+
+#if 1
+    for (unsigned int n = 0; ; n++) {
+        unsigned int sm;
+        unsigned int ieta;
+        unsigned int iphi;
+
+        to_sm_ieta_iphi(sm, ieta, iphi, n);
+
+        if (sm >= 1) {
+            break;
+        }
+        id[ieta][iphi] = n;
+    }
+    for (size_t i = 0; i < 10; i++) {
+        for (size_t j = 6; j < 9 + 6; j++) {
+            fprintf(stderr, "%3u ", id[i][j]);
+        }
+        fprintf(stderr, "\n");
+    }
+
+    for (unsigned int n = 117; n >= 116; n--) {
+        unsigned int n_9_9[7 * 7];
+
+        cell_neighbor(n_9_9, n, 7);
+        for (size_t i = 0; i < 7; i++) {
+            for (size_t j = 0; j < 7; j++) {
+                fprintf(stderr, "%3u ", n_9_9[i * 7 + j]);
+            }
+            fprintf(stderr, "< %3u\n", n);
+        }
+    }
+#endif
+
     if (argc < 3) {
         exit(EXIT_FAILURE);
     }
@@ -213,7 +279,8 @@ int main(int argc, char *argv[])
     fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, argv[argc - 1]);
     H5::H5File hdf5_file(argv[argc - 1], H5F_ACC_TRUNC);
     // How many properties per photon is written
-    static const size_t row_size_X = 5 * 5 + 4;
+#define NCELL 5
+    static const size_t row_size_X = NCELL * NCELL + 4;
     static const size_t row_size_y = 1;
     // The tensor dimension increment for each new event
     hsize_t dim_extend_X[RANK] = { 1, row_size_X };
@@ -282,13 +349,8 @@ int main(int argc, char *argv[])
                                 data_space_y, property_y);
     hsize_t offset[RANK] = {0, 0};
 
-    int dummyc = 1;
-    char **dummyv = new char *[1];
-
-    dummyv[0] = strdup("main");
-
-    std::vector<float> X;
-    std::vector<unsigned int> y;
+    size_t count_prompt = 0;
+    size_t count_nonprompt = 0;
 
     for (int iarg = 1; iarg < argc - 1; iarg++) {
         TFile *root_file = TFile::Open(argv[iarg]);
@@ -396,18 +458,43 @@ int main(int argc, char *argv[])
             _tree_event->GetEntry(i);
             for (UInt_t j = 0; j < ncluster; j++) {
                 if (cluster_e[j] >= 8.0F &&
+                    inside_edge(cluster_cell_id_max[j],
+                                (NCELL - 1) / 2) &&
+                    // EMCAL noise suppression cut (with no particular
+                    // name by the ALICE experiment)
                     cluster_ncell[j] >= 2 &&
+                    // EMCAL noise suppression cut, which the ALICE
+                    // collaboration calls the "exoticity cut"
                     cluster_e_cross[j] > 0.05 * cluster_e_max[j]) {
-                    unsigned int c55j[25];
+                    unsigned int neighbor[NCELL * NCELL];
 
-                    cell_5_5(c55j, cluster_cell_id_max[j]);
+                    cell_neighbor(neighbor, cluster_cell_id_max[j],
+                                  NCELL);
 
+                    // Loop over all MC (ground) truth particles and
+                    // decide if the particle is prompt by the highest
+                    // energy one hitting the cluster
                     float mc_truth_e_max = -INFINITY;
                     bool prompt = false;
 
                     for (size_t k = 0; k < cluster_nmc_truth[j]; k++) {
                         if (mc_truth_e[cluster_mc_truth_index[j][k]] >
                             mc_truth_e_max) {
+#if 0
+                            fprintf(stderr, "%s:%d: %d\n",
+                                    __FILE__, __LINE__,
+                                    mc_truth_first_parent_pdg_code
+                                    [cluster_mc_truth_index[j][k]]);
+#endif
+                            // Prompt clusters are from partons, gauge
+                            // bosons and leptons (electrons). The PDG
+                            // numbering scheme of Monte Carlo
+                            // generator particles
+                            // (http://pdg.lbl.gov/mc_particle_id_contents.html)
+                            // designates partons, gauge bosons, and
+                            // leptons to have absolute values < 100
+                            // and mesons to have absolute values >=
+                            // 100
                             prompt = std::abs(
                                 mc_truth_first_parent_pdg_code
                                 [cluster_mc_truth_index[j][k]])
@@ -417,12 +504,16 @@ int main(int argc, char *argv[])
                         }
                     }
 
-                    if (inside_edge(cluster_cell_id_max[j], 2) &&
-                        mc_truth_e_max >= 0) {
-                        for (size_t k = 0; k < 25; k++) {
+                    // Guard against clusters with empty MC (ground)
+                    // truth particle association
+                    if (mc_truth_e_max >= 0) {
+                        std::vector<float> X;
+                        std::vector<unsigned int> y;
+
+                        for (size_t k = 0; k < NCELL * NCELL; k++) {
                             X.push_back(
-                                std::isfinite(cell_e[c55j[k]]) ?
-                                cell_e[c55j[k]] / cluster_e[j] : 0);
+                                std::isfinite(cell_e[neighbor[k]]) ?
+                                cell_e[neighbor[k]] / cluster_e[j] : 0);
                         }
                         X.push_back(1.0F / sqrtf(cluster_e[j]));
                         X.push_back(cluster_eta[j]);
@@ -480,15 +571,29 @@ int main(int argc, char *argv[])
                                              file_space);
                         }
                         offset[0]++;
+                        if (prompt) {
+                            count_prompt++;
+                        }
+                        else {
+                            count_nonprompt++;
+                        }
                     }
                 }
             }
             if (i % 1000 == 0) {
                 fprintf(stderr, "%s:%d: %lld / %lld "
-                        "(cluster count = %lld)\n",
+                        "(total cluster count = %lld, "
+                        "prompt = %lu, nonprompt = %lu)\n",
                         __FILE__, __LINE__, i,
-                        _tree_event->GetEntries(), offset[0]);
+                        _tree_event->GetEntries(), offset[0],
+                        count_prompt, count_nonprompt);
             }
+#if 0
+            // Abort after certain number of events
+            if (i == 10000) {
+                break;
+            }
+#endif
         }
         _tree_event->Delete();
 
@@ -500,41 +605,6 @@ int main(int argc, char *argv[])
     }
 
     hdf5_file.close();
-
-#if 0
-    FILE *fp = fopen("ml_out.py", "w");
-
-    fprintf(fp, "# n = %lu\n", X_train.size() + X_test.size());
-    fprintf(fp, "import numpy\n");
-    fprintf(fp, "X_train = numpy.array([[");
-    for (size_t i = 0; i < X_train.size(); i++) {
-        fprintf(fp, "%.8e%s", X_train[i],
-                i == X_train.size() - 1 ? "" :
-                i % (25 + 4) == 25 + 4 - 1 ? "], [" : ", ");
-    }
-    fprintf(fp, "]])\n");
-    fprintf(fp, "y_train = numpy.array([");
-    for (size_t i = 0; i < y_train.size(); i++) {
-        fprintf(fp, "%u%s", y_train[i],
-                i == y_train.size() - 1 ? "" : ", ");
-    }
-    fprintf(fp, "])\n");
-    fprintf(fp, "X_test = numpy.array([[");
-    for (size_t i = 0; i < X_test.size(); i++) {
-        fprintf(fp, "%.8e%s", X_test[i],
-                i == X_test.size() - 1 ? "" :
-                i % (25 + 4) == 25 + 4 - 1 ? "], [" : ", ");
-    }
-    fprintf(fp, "]])\n");
-    fprintf(fp, "y_test = numpy.array([");
-    for (size_t i = 0; i < y_test.size(); i++) {
-        fprintf(fp, "%u%s", y_test[i],
-                i == y_test.size() - 1 ? "" : ", ");
-    }
-    fprintf(fp, "])\n");
-
-    fclose(fp);
-#endif
 
     return EXIT_SUCCESS;
 }
