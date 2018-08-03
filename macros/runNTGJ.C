@@ -175,6 +175,7 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     TString skim_jet_min_pt_1 = "-1e+309";
     TString skim_jet_min_pt_2 = "-1e+309";
     TString skim_jet_min_pt_3 = "-1e+309";
+    TString skim_jet_average_pt = "-1e+309";
     // -2147483648 = INT_MIN
     TString skim_multiplicity_tracklet_min_n = "-2147483648";
     TString stored_track_min_pt = "-1e+309";
@@ -318,6 +319,9 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         else if (strcmp(key, "skimJetMinPt3") == 0) {
             skim_jet_min_pt_3 = value;
         }
+        else if (strcmp(key, "skimJetAveragePt") == 0) {
+            skim_jet_average_pt = value;
+        }
         else if (strcmp(key, "skimMultiplicityTrackletMinN") == 0) {
             skim_multiplicity_tracklet_min_n = value;
         }
@@ -406,6 +410,7 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         skim_muon_track_min_pt + "," +
         skim_jet_min_pt_1 + "," + skim_jet_min_pt_2 + "," +
         skim_jet_min_pt_3 + "," +
+        skim_jet_average_pt + "," +
         skim_multiplicity_tracklet_min_n + "," +
         stored_track_min_pt + "," +
         stored_jet_min_pt_raw + "," +

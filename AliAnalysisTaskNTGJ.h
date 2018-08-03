@@ -219,7 +219,9 @@ private:
                  debug_njet_ue_estimation, F)                       \
     /* */                                                           \
     BRANCH(ue_estimate_tpc_const, F)                                \
+    BRANCH(ue_estimate_tpc_const_se, F)                             \
     BRANCH(ue_estimate_its_const, F)                                \
+    BRANCH(ue_estimate_its_const_se, F)                             \
     /* */                                                           \
     BRANCH(njet_ak04tpc, i)                                         \
     BRANCH_ARRAY(debug_jet_ak04tpc_tag_dr_square, njet_ak04tpc, F)  \
@@ -409,6 +411,7 @@ private:
     double _skim_track_min_pt;
     double _skim_muon_track_min_pt;
     std::vector<double> _skim_jet_min_pt;
+    double _skim_jet_average_pt;
     int _skim_multiplicity_tracklet_min_n;
     int _skim_sum_eg_ntrial;
     double _stored_track_min_pt;
@@ -454,6 +457,7 @@ public:
     void SetSkimJetMinPt(double min_pt_1 = -INFINITY,
                          double min_pt_2 = -INFINITY,
                          double min_pt_3 = -INFINITY);
+    void SetSkimJetAveragePt(double average_pt = -INFINITY);
     void SetSkimMultiplicityTrackletMinN(int min_n = INT_MIN);
     //
     void SetStoredTrackMinPt(double min_pt = -INFINITY);

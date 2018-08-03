@@ -169,6 +169,7 @@ ClassImp(AliAnalysisTaskNTGJ);
     _skim_track_min_pt(-INFINITY),                          \
     _skim_muon_track_min_pt(-INFINITY),                     \
     _skim_jet_min_pt(std::vector<double>(3, -INFINITY)),    \
+    _skim_jet_average_pt(-INFINITY),                        \
     _skim_multiplicity_tracklet_min_n(INT_MIN),             \
     _skim_sum_eg_ntrial(0),                                 \
     _stored_track_min_pt(-INFINITY),                        \
@@ -202,6 +203,7 @@ AliAnalysisTaskNTGJ::AliAnalysisTaskNTGJ(
     _skim_track_min_pt = x._skim_track_min_pt;
     _skim_muon_track_min_pt = x._skim_muon_track_min_pt;
     _skim_jet_min_pt = x._skim_jet_min_pt;
+    _skim_jet_average_pt = x._skim_jet_average_pt;
     _skim_multiplicity_tracklet_min_n =
         x._skim_multiplicity_tracklet_min_n;
     _stored_track_min_pt = x._stored_track_min_pt;
@@ -243,6 +245,7 @@ AliAnalysisTaskNTGJ &AliAnalysisTaskNTGJ::operator=(
     _skim_track_min_pt = x._skim_track_min_pt;
     _skim_muon_track_min_pt = x._skim_muon_track_min_pt;
     _skim_jet_min_pt = x._skim_jet_min_pt;
+    _skim_jet_average_pt = x._skim_jet_average_pt;
     _skim_multiplicity_tracklet_min_n =
         x._skim_multiplicity_tracklet_min_n;
     _stored_track_min_pt = x._stored_track_min_pt;
@@ -524,17 +527,18 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         // Relaxed version of the union of
         // AliESDtrackCuts::GetStandardITSPureSATrackCuts2009() and
         // AliESDtrackCuts::GetStandardITSPureSATrackCuts2010() in
-        // AliRoot/ANALYSIS/ANALYSISalice/AliESDtrackCuts.cxx
+        // AliRoot/ANALYSIS/ANALYSISalice/AliESDtrackCuts.cxx for ITS
+        // + SDD tracks
 
         _track_cut.push_back(AliESDtrackCuts("AliESDtrackCuts"));
 
-        // _track_cut.back().SetRequireITSStandAlone(kFALSE);
         _track_cut.back().SetRequireITSPureStandAlone(kTRUE);
-        // _track_cut.back().SetRequireITSRefit(kTRUE); 
-        // _track_cut.back().SetMinNClustersITS(4);
-        // _track_cut.back().SetClusterRequirementITS(
-        //  AliESDtrackCuts::kSPD, AliESDtrackCuts::kAny);
-        // esdTrackCuts->SetMaxChi2PerClusterITS(2.5);
+        _track_cut.back().SetPtRange(0.15, 1e+15);
+        _track_cut.back().SetMinNClustersITS(5);
+        _track_cut.back().SetMaxDCAToVertexXY(2.4);
+        _track_cut.back().SetMaxDCAToVertexZ(3.2);
+        _track_cut.back().SetDCAToVertex2D(kTRUE);
+        _track_cut.back().SetMaxChi2PerClusterITS(36);
     }
 
     AliVVZERO *v0 = event->GetVZEROData();
@@ -1470,20 +1474,22 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         _branch_debug_njet_ue_estimation++;
     }
 
-    std::pair<std::vector<double>, std::vector<double> >
-        ue_estimate_tpc = ue_estimation_median(
-            cluster_sequence_ue_estimation_tpc,
-            particle_reco_area_tpc);
+    std::pair<std::pair<std::vector<double>, std::vector<double> >,
+              double> ue_estimate_tpc =
+        ue_estimation_median(cluster_sequence_ue_estimation_tpc,
+                             particle_reco_area_tpc);
 
-    std::pair<std::vector<double>, std::vector<double> >
-        ue_estimate_its = ue_estimation_median(
-            cluster_sequence_ue_estimation_its,
-            particle_reco_area_its);
+    std::pair<std::pair<std::vector<double>, std::vector<double> >,
+              double> ue_estimate_its =
+        ue_estimation_median(cluster_sequence_ue_estimation_its,
+                             particle_reco_area_its);
 
     _branch_ue_estimate_tpc_const =
-        evaluate_ue_constant(ue_estimate_tpc);
+        evaluate_ue_constant(ue_estimate_tpc.first);
+    _branch_ue_estimate_tpc_const_se = ue_estimate_tpc.second;
     _branch_ue_estimate_its_const =
-        evaluate_ue_constant(ue_estimate_its);
+        evaluate_ue_constant(ue_estimate_its.first);
+    _branch_ue_estimate_its_const_se = ue_estimate_its.second;
 
     std::fill(_branch_cell_cluster_index,
               _branch_cell_cluster_index + EMCAL_NCELL, USHRT_MAX);
@@ -1688,7 +1694,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                         dr_2 < 0.4 * 0.4 ?
                         track_reco_index_tpc.find(j) !=
                         track_reco_index_tpc.end() ?
-                        evaluate_ue(ue_estimate_tpc, t->Eta(),
+                        evaluate_ue(ue_estimate_tpc.first, t->Eta(),
                                     t->Phi()) *
                         particle_reco_area_tpc
                         [track_reco_index_tpc[j]] :
@@ -1735,7 +1741,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                         dr_2 < 0.4 * 0.4 ?
                         track_reco_index_its.find(j) !=
                         track_reco_index_its.end() ?
-                        evaluate_ue(ue_estimate_its, t->Eta(),
+                        evaluate_ue(ue_estimate_its.first, t->Eta(),
                                     t->Phi()) *
                         particle_reco_area_its
                         [track_reco_index_its[j]] :
@@ -2058,11 +2064,53 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         std::vector<float>
             pt(_branch_jet_ak04tpc_pt_raw,
                _branch_jet_ak04tpc_pt_raw + _branch_njet_ak04tpc);
-        std::partial_sort(pt.begin(), pt.begin() + 3, pt.end(),
-                          std::greater<float>());
-        if (!(pt[0] >= _skim_jet_min_pt[0] &&
+        if (pt.size() >= 3) {
+            std::partial_sort(pt.begin(), pt.begin() + 3, pt.end(),
+                              std::greater<float>());
+        }
+        else {
+            std::sort(pt.begin(), pt.end(), std::greater<float>());
+        }
+        if (pt.size() >= 3 &&
+            !(pt[0] >= _skim_jet_min_pt[0] &&
               pt[1] >= _skim_jet_min_pt[1] &&
               pt[2] >= _skim_jet_min_pt[2])) {
+            // Discard this event
+            return;
+        }
+        else if (pt.size() >= 2 &&
+                 !(_skim_jet_min_pt[2] > -INFINITY) &&
+                 !(pt[0] >= _skim_jet_min_pt[0] &&
+                   pt[1] >= _skim_jet_min_pt[1])) {
+            // Discard this event
+            return;
+        }
+        else if (pt.size() >= 1 &&
+                 !(_skim_jet_min_pt[1] > -INFINITY ||
+                   _skim_jet_min_pt[2] > -INFINITY) &&
+                 !(pt[0] >= _skim_jet_min_pt[0])) {
+            // Discard this event
+            return;
+        }
+    }
+
+    if (_skim_jet_average_pt > -INFINITY) {
+        // FIXME: JEC?
+        std::vector<float>
+            pt(_branch_jet_ak04tpc_pt_raw,
+               _branch_jet_ak04tpc_pt_raw + _branch_njet_ak04tpc);
+        if (pt.size() >= 2) {
+            std::partial_sort(pt.begin(), pt.begin() + 2, pt.end(),
+                              std::greater<float>());
+        }
+        else {
+            std::sort(pt.begin(), pt.end(), std::greater<float>());
+        }
+        if (pt.size() >= 2) {
+            fprintf(stdout, "%s:%d: %f %f\n", __FILE__, __LINE__, 0.5 * (pt[0] + pt[1]), _skim_jet_average_pt);
+        }
+        if (!(pt.size() >= 2 &&
+              0.5 * (pt[0] + pt[1]) >= _skim_jet_average_pt)) {
             // Discard this event
             return;
         }
@@ -2264,6 +2312,11 @@ void AliAnalysisTaskNTGJ::SetSkimJetMinPt(double min_pt_1,
             }
         }
     }
+}
+
+void AliAnalysisTaskNTGJ::SetSkimJetAveragePt(double average_pt)
+{
+    _skim_jet_average_pt = average_pt;
 }
 
 void AliAnalysisTaskNTGJ::SetSkimMultiplicityTrackletMinN(int min_n)

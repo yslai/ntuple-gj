@@ -14,6 +14,7 @@ AddAliAnalysisTaskNTGJ(TString name,
                        double skim_jet_min_pt_1,
                        double skim_jet_min_pt_2,
                        double skim_jet_min_pt_3,
+                       double skim_jet_average_pt,
                        int skim_multiplicity_tracklet_min_n,
                        double stored_track_min_pt,
                        double stored_jet_min_pt_raw,
@@ -66,6 +67,7 @@ AddAliAnalysisTaskNTGJ(TString name,
     task->SetSkimMuonTrackMinPt(skim_muon_track_min_pt);
     task->SetSkimJetMinPt(skim_jet_min_pt_1, skim_jet_min_pt_2,
                           skim_jet_min_pt_3);
+    task->SetSkimJetAveragePt(skim_jet_average_pt);
     task->SetSkimMultiplicityTrackletMinN(
         skim_multiplicity_tracklet_min_n);
     task->SetStoredTrackMinPt(stored_track_min_pt);

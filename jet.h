@@ -235,33 +235,90 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
         return rho;
     }
 
-    double quantile_harrell_davis(const std::vector<double> x,
-                                 double p)
+    void quantile_harrell_davis(double &q, double &q_se,
+                                const std::vector<double> x,
+                                double p)
     {
         // See F. E. Harrell, C. E. Davis, Biometrika 69(3), 635--640,
         // https://doi.org/10.1093/biomet/69.3.635 , p. 646, eq. (2)
-        // and (3)
+        // and (3); and Harrell's implementation for R at
+        // https://github.com/harrelfe/Hmisc/blob/master/R/Misc.s
+
+        // CEPHES' incbet(), wrapped by ROOT, is already the
+        // regularized form, or beta distribution, denoted I_x(a, b)
+        // in NBS AMS 55 6.6.2 and NIST DLMF 8.17.2
+        // https://dlmf.nist.gov/8.17#E2
         double (*incbeta)(double, double, double) =
             &ROOT::Math::inc_beta;
-        const double n = static_cast<double>(x.size());
-        const double p_n_plus_1 = p * (n + 1);
-        const double not_p_n_plus_1 = (1 - p) * (n + 1);
-        double sum = 0;
-        double sum_kahan_error = 0;
+        const double n = x.size();
+        const double m = n + 1; // Following Harrell's Misc.s
+        const double p_m = p * m;
+        const double not_p_m = (1 - p) * m;
+
+        q = 0;
+
+        double q_kahan_error = 0;
+        double b0 = 0;
 
         for (size_t i = 0; i < x.size(); i++) {
-            const double w =
-                incbeta(static_cast<double>(i + 1) / n,
-                        p_n_plus_1, not_p_n_plus_1) -
-                incbeta(static_cast<double>(i) / n,
-                        p_n_plus_1, not_p_n_plus_1);
-            kahan_sum(sum, sum_kahan_error, w * x[i]);
+            const double b1 =
+                incbeta((static_cast<double>(i) + 1) / n,
+                        p_m, not_p_m);
+            const double w = b1 - b0;
+
+            kahan_sum(q, q_kahan_error, w * x[i]);
+            b0 = b1;
         }
 
-        return sum;
+        // Jackknifed standard error
+
+        // Calculate the jackknifed weights
+        const double l = n - 1; // Following Harrell's Misc.s
+        std::vector<double> w;
+
+        b0 = 0;
+        for (size_t i = 1; i < x.size(); i++) {
+            const double b1 =
+                incbeta((static_cast<double>(i)) / l,
+                        p_m, not_p_m);
+
+            w.push_back(b1 - b0);
+            b0 = b1;
+        }
+
+        // Calculate the jackknifed L-statistic and its mean
+        std::vector<double> s;
+        double s_mean = 0;
+        double s_mean_kahan_error = 0;
+
+        for (size_t i = 0; i < x.size(); i++) {
+            s.push_back(0);
+
+            double s_kahan_error = 0;
+
+            for (size_t j = 1; j < x.size(); j++) {
+                kahan_sum(s.back(), s_kahan_error,
+                          w[j - 1] * (j < i ? x[j - 1] : x[j]));
+            }
+            kahan_sum(s_mean, s_mean_kahan_error, s.back());
+        }
+        s_mean /= n;
+
+        // Calculate the variance
+        double u2 = 0;
+        double u2_kahan_error = 0;
+
+        for (std::vector<double>::const_iterator iterator =
+                 s.begin();
+             iterator != s.end(); iterator++) {
+            kahan_sum(u2, u2_kahan_error,
+                      std::pow(*iterator - s_mean, 2));
+        }
+        q_se = sqrt(l * u2) / n;
     }
 
-    std::pair<std::vector<double>, std::vector<double> >
+    std::pair<std::pair<std::vector<double>, std::vector<double> >,
+              double>
     ue_estimation_median(fastjet::ClusterSequenceArea
                          cluster_sequence,
                          std::vector<double> particle_area)
@@ -269,15 +326,21 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
         const std::vector<double> rho_order_statistics_ =
             rho_order_statistics(cluster_sequence,
                                  particle_area);
-        const double rho_median =
-            quantile_harrell_davis(rho_order_statistics_, 0.5);
+        double rho_median;
+        double rho_median_standard_error;
+
+        quantile_harrell_davis(rho_median, rho_median_standard_error,
+                               rho_order_statistics_, 0.5);
+
         const std::vector<double>
             pseudorapidity_dependence(1, rho_median);
         const std::vector<double> azimuth_dependence(1, 1);
 
-        return std::pair<
-            std::vector<double>, std::vector<double> >(
-                pseudorapidity_dependence, azimuth_dependence);
+        return std::pair<std::pair<std::vector<double>,
+                                   std::vector<double> >, double>(
+            std::pair<std::vector<double>, std::vector<double> >(
+                pseudorapidity_dependence, azimuth_dependence),
+            rho_median_standard_error);
     }
 
     void
@@ -929,7 +992,7 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                 particle_reco_area.size()) {                        \
                 area += particle_reco_area[index];                  \
                 pt_raw_ue += evaluate_ue(                           \
-                    ue_estimate,                                    \
+                    ue_estimate.first,                              \
                     iterator_constituent->pseudorapidity(),         \
                     iterator_constituent->phi_std()) *              \
                     particle_reco_area[index];                      \
