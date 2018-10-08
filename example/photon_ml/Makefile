@@ -25,7 +25,7 @@ endif
 
 CXXFLAGS +=	-I../.. -I.
 
-TARGET =	convert_sample inference
+TARGET =	convert_sample convert_sample_full inference update_ntuple eta_data
 
 all:		$(TARGET)
 
@@ -36,3 +36,7 @@ clean:
 		AliVCaloCells.h AliVCluster.h AliVVZERO.h
 
 inference:	inference.cc ../../keras_model.cc
+
+eta_data:	eta_data.cc ../../keras_model.cc
+
+update_ntuple:	update_ntuple.cc ../../keras_model.cc
