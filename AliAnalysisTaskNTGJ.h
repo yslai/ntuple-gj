@@ -25,6 +25,12 @@
 #define NMC_TRUTH_MAX       (1U << 17)
 #define NJET_MAX            (1U << 17)
 
+#ifdef WITH_EFP7
+#define IF_EFP7(x) x
+#else // WITH_EFP7
+#define IF_EFP7(x)
+#endif // WITH_EFP7
+
 #define CLUSTER_NMC_TRUTH_MAX 32
 
 class AliAnalysisTaskNTGJ : public AliAnalysisTaskSE {
@@ -85,9 +91,6 @@ private:
     BRANCH_ARRAY(eg_pdf_x, 2, F)                                    \
     BRANCH_ARRAY(eg_pdf_x_pdf, 2, F)                                \
     /* */                                                           \
-    BRANCH(debug_libmklml_gnu_loaded, O)                            \
-    BRANCH_STR(debug_libmklml_gnu_error)                            \
-    /* */                                                           \
     BRANCH(ncluster, i)                                             \
     BRANCH_ARRAY(cluster_e, ncluster, F)                            \
     BRANCH_ARRAY(cluster_pt, ncluster, F)                           \
@@ -120,6 +123,10 @@ private:
     BRANCH_ARRAY(cluster_iso_its_03_ue, ncluster, F)                \
     BRANCH_ARRAY(cluster_iso_its_04, ncluster, F)                   \
     BRANCH_ARRAY(cluster_iso_its_04_ue, ncluster, F)                \
+    BRANCH_ARRAY(cluster_iso_cluster_01, ncluster, F)               \
+    BRANCH_ARRAY(cluster_iso_cluster_02, ncluster, F)               \
+    BRANCH_ARRAY(cluster_iso_cluster_03, ncluster, F)               \
+    BRANCH_ARRAY(cluster_iso_cluster_04, ncluster, F)               \
     BRANCH_ARRAY(cluster_frixione_tpc_04_02, ncluster, F)           \
     BRANCH_ARRAY(cluster_frixione_tpc_04_05, ncluster, F)           \
     BRANCH_ARRAY(cluster_frixione_tpc_04_10, ncluster, F)           \
@@ -245,6 +252,8 @@ private:
     BRANCH_ARRAY2(jet_ak04tpc_width_sigma, njet_ak04tpc, 2, F)      \
     BRANCH_ARRAY(jet_ak04tpc_ptd_raw, njet_ak04tpc, F)              \
     BRANCH_ARRAY(jet_ak04tpc_ptd, njet_ak04tpc, F)                  \
+    BRANCH_STR(debug_blas_version)                                  \
+    IF_EFP7(BRANCH_ARRAY2(jet_ak04tpc_efp, njet_ak04tpc, 489, F))   \
     BRANCH_ARRAY2(jet_ak04tpc_truth_index_z_truth, njet_ak04tpc,    \
                   2, I)                                             \
     BRANCH_ARRAY2(jet_ak04tpc_truth_z_truth, njet_ak04tpc, 2, F)    \
@@ -423,10 +432,6 @@ private:
     void *_emcal_cell_position; //!
     std::vector<double> _emcal_cell_area; //!
     std::vector<std::set<size_t> > _emcal_cell_incident; //!
-
-    bool _load_intel_mklml; //!
-    void *_libiomp5; //!
-    void *_libmklml_gnu; //!
 
     void *_keras_model_photon_discrimination; //!
 

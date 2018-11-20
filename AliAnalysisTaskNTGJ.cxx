@@ -60,6 +60,12 @@
 #include "mc_truth.h"
 #include "emcal.h"
 #include "jet.h"
+#ifdef WITH_EFP7
+#include "einstein_sum.h"
+#include "efp7.cc"
+#else // WITH_EFP7
+#define FILL_EFP7 {}
+#endif // WITH_EFP7
 #include "isolation.h"
 #endif // __CINT__
 
@@ -179,8 +185,6 @@ ClassImp(AliAnalysisTaskNTGJ);
     _emcal_cell_position(NULL),                             \
     _emcal_cell_area(std::vector<double>()),                \
     _emcal_cell_incident(std::vector<std::set<size_t> >()), \
-    _load_intel_mklml(false),                               \
-    _libiomp5(NULL), _libmklml_gnu(NULL),                   \
     _keras_model_photon_discrimination(NULL),               \
     _alien_plugin(NULL),                                    \
     _metadata_filled(false)
@@ -353,27 +357,6 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                     sm);
              }
              _branch_has_misalignment_matrix = true;
-        }
-    }
-
-    if (_load_intel_mklml) {
-        if (_libiomp5 == NULL) {
-            _libiomp5 = dlopen("libiomp5_so", RTLD_NOW |
-                               RTLD_GLOBAL | RTLD_NODELETE);
-        }
-        _branch_debug_libmklml_gnu_error[0] = '\0';
-        if (_libmklml_gnu == NULL) {
-            _libmklml_gnu = dlopen("libmklml_gnu_so",
-                                   RTLD_NOW | RTLD_NODELETE);
-            if (_libmklml_gnu == NULL) {
-                snprintf(_branch_debug_libmklml_gnu_error, BUFSIZ,
-                         "%s:%d: %s\n", __FILE__, __LINE__,
-                         dlerror());
-                _branch_debug_libmklml_gnu_loaded = false;
-            }
-            else {
-                _branch_debug_libmklml_gnu_loaded = true;
-            }
         }
     }
 
@@ -847,6 +830,13 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             }
         }
 
+#ifdef WITH_EFP7
+        strncpy(_branch_debug_blas_version,
+                cblas.version_str().c_str(), BUFSIZ);
+#else // WITH_EFP7
+        _branch_debug_blas_version[0] = '\0';
+#endif // WITH_EFP7
+
         _metadata_filled = true;
     }
     else {
@@ -867,6 +857,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             _branch_cell_phi[cell_id] = NAN;
             _branch_cell_voronoi_area[cell_id] = NAN;
         }
+        _branch_debug_blas_version[0] = '\0';
     }
 
     std::vector<size_t> stored_mc_truth_index;
@@ -1665,6 +1656,11 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             double cluster_iso_its_03_ue = 0;
             double cluster_iso_its_04_ue = 0;
 
+            double cluster_iso_cluster_01 = 0;
+            double cluster_iso_cluster_02 = 0;
+            double cluster_iso_cluster_03 = 0;
+            double cluster_iso_cluster_04 = 0;
+
             std::vector<std::pair<double, double> > delta_vs_iso_tpc;
             std::vector<std::pair<double, double> > delta_vs_iso_its;
             std::vector<std::pair<double, double> >
@@ -1777,6 +1773,39 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                     }
                 }
             }
+
+            for (Int_t j = 0; j < calo_cluster.GetEntriesFast(); j++) {
+                AliVCluster *c =
+                    static_cast<AliVCluster *>(calo_cluster.At(i));
+                TLorentzVector p1;
+
+                const double dpseudorapidity = p1.Eta() - p.Eta();
+                const double dazimuth = angular_range_reduce(
+                    angular_range_reduce(p1.Phi()) -
+                    angular_range_reduce(p.Phi()));
+                const double dr_2 =
+                    std::pow(dpseudorapidity, 2) +
+                    std::pow(dazimuth, 2);
+
+                if (dr_2 < 0.1 * 0.1) {
+                    cluster_iso_its_01 += p1.Pt();
+                }
+                if (dr_2 < 0.2 * 0.2) {
+                    cluster_iso_its_02 += p1.Pt();
+                }
+                if (dr_2 < 0.3 * 0.3) {
+                    cluster_iso_its_03 += p1.Pt();
+                }
+                if (dr_2 < 0.4 * 0.4) {
+                    cluster_iso_its_04 += p1.Pt();
+                }
+            }
+
+            cluster_iso_its_01 -= p.Pt();
+            cluster_iso_its_02 -= p.Pt();
+            cluster_iso_its_03 -= p.Pt();
+            cluster_iso_its_04 -= p.Pt();
+
             _branch_cluster_iso_tpc_01[_branch_ncluster] =
                 half(cluster_iso_tpc_01);
             _branch_cluster_iso_tpc_02[_branch_ncluster] =
@@ -1810,6 +1839,15 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 half(cluster_iso_its_03_ue);
             _branch_cluster_iso_its_04_ue[_branch_ncluster] =
                 half(cluster_iso_its_04_ue);
+
+            _branch_cluster_iso_cluster_01[_branch_ncluster] =
+                half(cluster_iso_cluster_01);
+            _branch_cluster_iso_cluster_02[_branch_ncluster] =
+                half(cluster_iso_cluster_02);
+            _branch_cluster_iso_cluster_03[_branch_ncluster] =
+                half(cluster_iso_cluster_03);
+            _branch_cluster_iso_cluster_04[_branch_ncluster] =
+                half(cluster_iso_cluster_04);
 
             _branch_cluster_frixione_tpc_04_02[_branch_ncluster] =
                 half(frixione_iso_max_x_e_eps(delta_vs_iso_tpc,
@@ -2071,24 +2109,24 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         else {
             std::sort(pt.begin(), pt.end(), std::greater<float>());
         }
-        if (pt.size() >= 3 &&
-            !(pt[0] >= _skim_jet_min_pt[0] &&
-              pt[1] >= _skim_jet_min_pt[1] &&
-              pt[2] >= _skim_jet_min_pt[2])) {
+        if (_skim_jet_min_pt.size() >= 3 &&
+            (pt.size() < 3 ||
+             !(pt[0] >= _skim_jet_min_pt[0] &&
+               pt[1] >= _skim_jet_min_pt[1] &&
+               pt[2] >= _skim_jet_min_pt[2]))) {
             // Discard this event
             return;
         }
-        else if (pt.size() >= 2 &&
-                 !(_skim_jet_min_pt[2] > -INFINITY) &&
-                 !(pt[0] >= _skim_jet_min_pt[0] &&
-                   pt[1] >= _skim_jet_min_pt[1])) {
+        else if (_skim_jet_min_pt.size() >= 2 &&
+                 (pt.size() < 2 ||
+                  !(pt[0] >= _skim_jet_min_pt[0] &&
+                    pt[1] >= _skim_jet_min_pt[1]))) {
             // Discard this event
             return;
         }
-        else if (pt.size() >= 1 &&
-                 !(_skim_jet_min_pt[1] > -INFINITY ||
-                   _skim_jet_min_pt[2] > -INFINITY) &&
-                 !(pt[0] >= _skim_jet_min_pt[0])) {
+        else if (_skim_jet_min_pt.size() >= 1 &&
+                 (pt.size() < 1 ||
+                  !(pt[0] >= _skim_jet_min_pt[0]))) {
             // Discard this event
             return;
         }
@@ -2106,15 +2144,16 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         else {
             std::sort(pt.begin(), pt.end(), std::greater<float>());
         }
-        if (pt.size() >= 2) {
-            fprintf(stdout, "%s:%d: %f %f\n", __FILE__, __LINE__, 0.5 * (pt[0] + pt[1]), _skim_jet_average_pt);
-        }
         if (!(pt.size() >= 2 &&
               0.5 * (pt[0] + pt[1]) >= _skim_jet_average_pt)) {
             // Discard this event
             return;
         }
     }
+
+#ifdef WITH_EFP7
+#include <fill_efp7.cc>
+#endif // WITH_EFP7
 
     std::fill(_branch_cell_e, _branch_cell_e + EMCAL_NCELL, NAN);
     std::fill(_branch_cell_tof, _branch_cell_tof + EMCAL_NCELL, NAN);

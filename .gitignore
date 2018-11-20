@@ -4,7 +4,11 @@
 *.png
 *.pyc
 *.so
+lib*_so
+\#*
+.\#*
 *~
+.*.swp
 000*.xml
 AnalysisResults.root
 AutoDict_*_.cxx

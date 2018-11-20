@@ -15,10 +15,11 @@ CXXFLAGS +=	$(shell root-config --cflags)
 LDFLAGS =	$(shell root-config --ldflags)
 LDLIBS =	$(shell root-config --libs)
 
-HDF5_ROOT =	/usr/local/hdf5
-CXXFLAGS +=	-I$(HDF5_ROOT)/include
-LDFLAGS +=	-L$(HDF5_ROOT)/lib64 -L$(HDF5_ROOT)/lib
-LDLIBS +=	-lhdf5_cpp -lhdf5
+ifneq (,$(HDF5_DIR))
+    CXXFLAGS +=	-I$(HDF5_DIR)/include
+    LDFLAGS +=	-L$(HDF5_DIR)/lib64 -L$(HDF5_DIR)/lib
+    LDLIBS +=	-lhdf5_cpp -lhdf5
+endif
 
 TARGET =	to_hdf5
 

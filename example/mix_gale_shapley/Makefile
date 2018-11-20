@@ -16,6 +16,9 @@ CXXFLAGS +=	$(shell root-config --cflags)
 LDFLAGS =	$(shell root-config --ldflags)
 LDLIBS =	$(shell root-config --libs)
 
+LDFLAGS +=	-Wl,-rpath,$(patsubst -L%,%,$(filter \
+			-L%,$(shell root-config --libs)))
+
 TARGET =	mix_gale_shapley
 
 all:		$(TARGET)

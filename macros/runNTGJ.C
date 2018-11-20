@@ -337,14 +337,13 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     }
     fclose(fp);
 
-    // This is preparing for possible neural network inference with
-    // Intel MKLML
+    // Intel MKL
 
-    TString mklml_filename = "";
+    TString mkl_filename = "";
     TString oadb_filename = "";
 
-    if (!gSystem->AccessPathName("libmklml_gnu_so")) {
-        mklml_filename = "libiomp5_so libmklml_gnu_so";
+    if (!gSystem->AccessPathName("libmkl_core_so")) {
+        mkl_filename = "libiomp5_so libmkl_avx2_so libmkl_avx_so libmkl_core_so libmkl_intel_lp64_so libmkl_intel_thread_so";
     }
     if (strchr(emcal_geometry_filename.Data(), '/') == NULL) {
         oadb_filename += emcal_geometry_filename;
@@ -362,6 +361,7 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         "eLut.cpp eLut.h half.cpp halfExport.h halfFunction.h "
         "half.h halfLimits.h toFloat.h "
         "keras_model.h keras_model.cc "
+        "blasdrv.h efp7.cc einstein_sum.h "
         "photon_discr.model "
         // Not sure if this helps against the missing pyqpar_ when
         // dlopen() "libAliPythia6.so"
@@ -369,7 +369,7 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         "libCGAL.so libfastjet.so libsiscone.so "
         "libsiscone_spherical.so libfastjetplugins.so "
         "libfastjetcontribfragile.so " +
-        mklml_filename + " " +
+        mkl_filename + " " +
         emcal_correction_filename + " " +
         oadb_filename);
     plugin->SetAnalysisSource("AliAnalysisTaskNTGJ.cxx");

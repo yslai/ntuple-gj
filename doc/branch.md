@@ -182,6 +182,8 @@ const bool pass_cut = muon_track_p_dca[i] < sigma_p_dca_resolution_effect
 
 ## Jets
 
+The `jet_` prefix is generic, and in reality there are multiple algorithms, e.g. it is replaced with `jet_ak04tpc_` for anti-_k<sub>t</sub>_ _D_&nbsp;=&nbsp;0.4 with TPC tracks.
+
 | Name                      | Type                   | Description                                                         |
 | --------------------------| ---------------------- | ------------------------------------------------------------------- |
 | `njet`                    | `unsigned long`        | Number of reconstructed jets                                        |
@@ -205,6 +207,7 @@ const bool pass_cut = muon_track_p_dca[i] < sigma_p_dca_resolution_effect
 | `jet_width_sigma`         | `__fp16[njet][2]`      | Calibrated, normalized major (`[0]`) and minor (`[1]`) axes of the 2-dimensional &#10216;_j_<sub>T</sub>&#10217; |
 | `jet_ptd_raw`             | `__fp16[njet]`         | Raw (observed) jet _p_<sub>T</sub>_D_                               |
 | `jet_ptd`                 | `__fp16[njet]`         | Calibrated jet _p_<sub>T</sub>_D_                                   |
+| `jet_efp`                 | `__fp16[njet][489]`    | Scaled raw (observed) jet energy flow polynomials with _n_&nbsp;&le;&nbsp;7, see below. |
 | `jet_e_truth`             | `__fp16[njet]`         | Alias for `jet_truth_e[jet_truth_index_z_reco[i][0]]`               |
 | `jet_pt_truth`            | `__fp16[njet]`         | Alias for `jet_truth_pt[jet_truth_index_z_reco[i][0]]`              |
 | `jet_eta_truth`           | `__fp16[njet]`         | Alias for `jet_truth_eta[jet_truth_index_z_reco[i][0]]`             |
@@ -231,3 +234,7 @@ const bool pass_cut = muon_track_p_dca[i] < sigma_p_dca_resolution_effect
 | `jet_truth_ptd`           | `__fp16[njet]`         | MC truth jet _p_<sub>T</sub>_D_                                     |
 | `met_tpc`                 | `double[2]`            | The _x_ and _y_ components of the TPC _&#582;_<sub>T</sub> (GeV)    |
 | `met_truth`               | `double[2]`            | The _x_ and _y_ components of the MC truth _&#582;_<sub>T</sub> (GeV) |
+
+### Notes on energy flow polynomials
+
+To avoid denormalized half precision numbers, the values are scaled by 2<sup>15</sup>, such that an EFP of 1 is stored as 32768. The &chi;&nbsp;=&nbsp;4 entries corresponding those requiring a rank-4 tensor trace are only filled if there are less than 200 particles inside the jet.
