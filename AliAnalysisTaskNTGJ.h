@@ -26,9 +26,9 @@
 #define NJET_MAX            (1U << 17)
 
 #ifdef WITH_EFP7
-#define IF_EFP7(x) x
+#define IF_EFP7(...) __VA_ARGS__
 #else // WITH_EFP7
-#define IF_EFP7(x)
+#define IF_EFP7(...)
 #endif // WITH_EFP7
 
 #define CLUSTER_NMC_TRUTH_MAX 32

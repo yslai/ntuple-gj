@@ -207,7 +207,7 @@ The `jet_` prefix is generic, and in reality there are multiple algorithms, e.g.
 | `jet_width_sigma`         | `__fp16[njet][2]`      | Calibrated, normalized major (`[0]`) and minor (`[1]`) axes of the 2-dimensional &#10216;_j_<sub>T</sub>&#10217; |
 | `jet_ptd_raw`             | `__fp16[njet]`         | Raw (observed) jet _p_<sub>T</sub>_D_                               |
 | `jet_ptd`                 | `__fp16[njet]`         | Calibrated jet _p_<sub>T</sub>_D_                                   |
-| `jet_efp`                 | `__fp16[njet][489]`    | Scaled raw (observed) jet energy flow polynomials with _n_&nbsp;&le;&nbsp;7, see below. |
+| `jet_efp`                 | `__fp16[njet][489]`    | Scaled raw (observed) jet energy flow polynomials with order _n_&nbsp;&le;&nbsp;7, see below. |
 | `jet_e_truth`             | `__fp16[njet]`         | Alias for `jet_truth_e[jet_truth_index_z_reco[i][0]]`               |
 | `jet_pt_truth`            | `__fp16[njet]`         | Alias for `jet_truth_pt[jet_truth_index_z_reco[i][0]]`              |
 | `jet_eta_truth`           | `__fp16[njet]`         | Alias for `jet_truth_eta[jet_truth_index_z_reco[i][0]]`             |
@@ -237,4 +237,11 @@ The `jet_` prefix is generic, and in reality there are multiple algorithms, e.g.
 
 ### Notes on energy flow polynomials
 
-To avoid denormalized half precision numbers, the values are scaled by 2<sup>15</sup>, such that an EFP of 1 is stored as 32768. The &chi;&nbsp;=&nbsp;4 entries corresponding those requiring a rank-4 tensor trace are only filled if there are less than 200 particles inside the jet.
+The 489 values per jet are filled according to the order of the `EnergyFlow` package (https://pypi.org/project/EnergyFlow/). To list the form of the Einstein sum and opening angle exponents, install the package and run:
+
+```Python
+import energyflow
+for e in energyflow.EFPSet('d<=7').efpelems: print(e.einstr, e.weights)
+```
+
+To avoid denormalized half precision numbers, the values are scaled by 2<sup>15</sup>&nbsp;=&nbsp;32768, such that an actual EFP value of 1 is stored as 32768. The _&chi;_&nbsp;=&nbsp;4 entries (array indices 105, 106, 235, 239) corresponding those requiring a rank-4 tensor trace are only filled if there are less than 200 particles inside the jet.
