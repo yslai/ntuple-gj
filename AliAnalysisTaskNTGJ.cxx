@@ -923,6 +923,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
     std::vector<fastjet::PseudoJet> particle_reco_tpc;
     std::vector<fastjet::PseudoJet> particle_reco_its;
+    std::vector<fastjet::PseudoJet> particle_reco_cluster;
 
     std::fill(_branch_met_tpc, _branch_met_tpc + 2, 0);
     std::fill(_branch_met_its, _branch_met_its + 2, 0);
@@ -1114,6 +1115,58 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                        iterator->phi_std()));
     }
 
+    AliVCaloCells *emcal_cell = event->GetEMCALCells();
+    std::map<size_t, size_t> cluster_reco_index;
+    std::vector<size_t> reco_stored_cluster_index;
+
+    for (Int_t i = 0; i < calo_cluster.GetEntriesFast(); i++) {
+        AliVCluster *c =
+            static_cast<AliVCluster *>(calo_cluster.At(i));
+
+        Int_t cell_id_max = -1;
+        Double_t cell_energy_max = -INFINITY;
+        Double_t cell_cross = NAN;
+
+        cell_max_cross(cell_id_max, cell_energy_max, cell_cross,
+                       c, emcal_cell);
+        if (c->GetNCells() > 1 &&
+            1 - cell_energy_max / cell_cross < 0.95 &&
+            !cell_masked(c, _emcal_mask)) {
+            TLorentzVector p;
+
+            c->GetMomentum(p, _branch_primary_vertex);
+
+            const fastjet::PseudoJet
+                pj(p.Px(), p.Py(), p.Pz(), p.P());
+
+            // FIXME: This needs to be moved somewhere in emcal.h
+            static const double pseudorapidity_limit = 0.661;
+            static const double azimuth_limit_0 = 1.415;
+            static const double azimuth_limit_1 = 3.123;
+
+            // Fill only when inside the EMCAL (not DCAL)
+            if (fabs(pj.pseudorapidity()) < pseudorapidity_limit &&
+                pj.phi_std() >= azimuth_limit_0 &&
+                pj.phi_std() < azimuth_limit_1) {
+                cluster_reco_index[i] = particle_reco_cluster.size();
+                // Note that all clusters are stored, at the moment,
+                // so this stored index is identical to i.
+                reco_stored_cluster_index.push_back(i);
+                particle_reco_cluster.push_back(pj);
+            }
+        }
+    }
+
+    std::vector<point_2d_t> particle_reco_area_estimation_cluster;
+
+    for (std::vector<fastjet::PseudoJet>::const_iterator iterator =
+             particle_reco_cluster.begin();
+         iterator != particle_reco_cluster.end(); iterator++) {
+        particle_reco_area_estimation_cluster.push_back(
+            point_2d_t(iterator->pseudorapidity(),
+                       iterator->phi_std()));
+    }
+
     std::vector<double> particle_reco_area_tpc;
     std::vector<std::set<size_t> > particle_reco_incident_tpc;
 
@@ -1145,6 +1198,14 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 half(particle_reco_area_its[i]);
         }
     }
+
+    std::vector<double> particle_reco_area_cluster;
+    std::vector<std::set<size_t> > particle_reco_incident_cluster;
+
+    voronoi_area_incident(particle_reco_area_cluster,
+                          particle_reco_incident_cluster,
+                          particle_reco_area_estimation_cluster,
+                          true);
 
     // Shared by the isolation and jet code
 
@@ -1336,8 +1397,6 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     // ATLAS global sequential (GS) correction (the tracking in ALICE
     // being the larger acceptance detector).
 
-    AliVCaloCells *emcal_cell = event->GetEMCALCells();
-
     for (Int_t i = 0; i < calo_cluster.GetEntriesFast(); i++) {
         AliVCluster *c =
             static_cast<AliVCluster *>(calo_cluster.At(i));
@@ -1442,6 +1501,14 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             fastjet::VoronoiAreaSpec());
     const std::vector<fastjet::PseudoJet> jet_ue_estimation_its =
         cluster_sequence_ue_estimation_its.inclusive_jets(0);
+    const fastjet::ClusterSequenceArea
+        cluster_sequence_ue_estimation_cluster(
+            particle_reco_cluster,
+            fastjet::JetDefinition(fastjet::JetDefinition(
+                fastjet::kt_algorithm, jet_kt_d_ue_estimation)),
+            fastjet::VoronoiAreaSpec());
+    const std::vector<fastjet::PseudoJet> jet_ue_estimation_cluster =
+        cluster_sequence_ue_estimation_cluster.inclusive_jets(0);
 
     // FIXME: Maybe also store ITS UE?
 
@@ -1469,11 +1536,14 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
               double> ue_estimate_tpc =
         ue_estimation_median(cluster_sequence_ue_estimation_tpc,
                              particle_reco_area_tpc);
-
     std::pair<std::pair<std::vector<double>, std::vector<double> >,
               double> ue_estimate_its =
         ue_estimation_median(cluster_sequence_ue_estimation_its,
                              particle_reco_area_its);
+    std::pair<std::pair<std::vector<double>, std::vector<double> >,
+              double> ue_estimate_cluster =
+        ue_estimation_median(cluster_sequence_ue_estimation_cluster,
+                             particle_reco_area_cluster);
 
     _branch_ue_estimate_tpc_const =
         evaluate_ue_constant(ue_estimate_tpc.first);
@@ -1660,6 +1730,10 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             double cluster_iso_cluster_02 = 0;
             double cluster_iso_cluster_03 = 0;
             double cluster_iso_cluster_04 = 0;
+            double cluster_iso_cluster_01_ue = 0;
+            double cluster_iso_cluster_02_ue = 0;
+            double cluster_iso_cluster_03_ue = 0;
+            double cluster_iso_cluster_04_ue = 0;
 
             std::vector<std::pair<double, double> > delta_vs_iso_tpc;
             std::vector<std::pair<double, double> > delta_vs_iso_its;
@@ -1786,18 +1860,37 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 const double dr_2 =
                     std::pow(dpseudorapidity, 2) +
                     std::pow(dazimuth, 2);
+                const double ue =
+                    dr_2 < 0.4 * 0.4 ?
+                    cluster_reco_index.find(j) !=
+                    cluster_reco_index.end() ?
+                    evaluate_ue(ue_estimate_cluster.first, p1.Eta(),
+                                p1.Phi()) *
+                    particle_reco_area_cluster
+                    [cluster_reco_index[j]] :
+                    0 : NAN;
+                const double cluster_pt_minus_ue =
+                    dr_2 < 0.4 * 0.4 ?
+                    cluster_reco_index.find(j) !=
+                    cluster_reco_index.end() ?
+                    p1.Pt() - ue :
+                    0 : NAN;
 
                 if (dr_2 < 0.1 * 0.1) {
-                    cluster_iso_its_01 += p1.Pt();
+                    cluster_iso_its_01 += cluster_pt_minus_ue;
+                    cluster_iso_its_01_ue += ue;
                 }
                 if (dr_2 < 0.2 * 0.2) {
-                    cluster_iso_its_02 += p1.Pt();
+                    cluster_iso_its_02 += cluster_pt_minus_ue;
+                    cluster_iso_its_02_ue += ue;
                 }
                 if (dr_2 < 0.3 * 0.3) {
-                    cluster_iso_its_03 += p1.Pt();
+                    cluster_iso_its_03 += cluster_pt_minus_ue;
+                    cluster_iso_its_03_ue += ue;
                 }
                 if (dr_2 < 0.4 * 0.4) {
-                    cluster_iso_its_04 += p1.Pt();
+                    cluster_iso_its_04 += cluster_pt_minus_ue;
+                    cluster_iso_its_04_ue += ue;
                 }
             }
 
@@ -1848,6 +1941,14 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 half(cluster_iso_cluster_03);
             _branch_cluster_iso_cluster_04[_branch_ncluster] =
                 half(cluster_iso_cluster_04);
+            _branch_cluster_iso_cluster_01_ue[_branch_ncluster] =
+                half(cluster_iso_cluster_01_ue);
+            _branch_cluster_iso_cluster_02_ue[_branch_ncluster] =
+                half(cluster_iso_cluster_02_ue);
+            _branch_cluster_iso_cluster_03_ue[_branch_ncluster] =
+                half(cluster_iso_cluster_03_ue);
+            _branch_cluster_iso_cluster_04_ue[_branch_ncluster] =
+                half(cluster_iso_cluster_04_ue);
 
             _branch_cluster_frixione_tpc_04_02[_branch_ncluster] =
                 half(frixione_iso_max_x_e_eps(delta_vs_iso_tpc,

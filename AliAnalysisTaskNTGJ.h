@@ -124,9 +124,13 @@ private:
     BRANCH_ARRAY(cluster_iso_its_04, ncluster, F)                   \
     BRANCH_ARRAY(cluster_iso_its_04_ue, ncluster, F)                \
     BRANCH_ARRAY(cluster_iso_cluster_01, ncluster, F)               \
+    BRANCH_ARRAY(cluster_iso_cluster_01_ue, ncluster, F)            \
     BRANCH_ARRAY(cluster_iso_cluster_02, ncluster, F)               \
+    BRANCH_ARRAY(cluster_iso_cluster_02_ue, ncluster, F)            \
     BRANCH_ARRAY(cluster_iso_cluster_03, ncluster, F)               \
+    BRANCH_ARRAY(cluster_iso_cluster_03_ue, ncluster, F)            \
     BRANCH_ARRAY(cluster_iso_cluster_04, ncluster, F)               \
+    BRANCH_ARRAY(cluster_iso_cluster_04_ue, ncluster, F)            \
     BRANCH_ARRAY(cluster_frixione_tpc_04_02, ncluster, F)           \
     BRANCH_ARRAY(cluster_frixione_tpc_04_05, ncluster, F)           \
     BRANCH_ARRAY(cluster_frixione_tpc_04_10, ncluster, F)           \

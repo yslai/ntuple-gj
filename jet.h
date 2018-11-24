@@ -48,6 +48,8 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
         std::map<voronoi_diagram_t::Face_handle, size_t> &face_index,
         const std::vector<point_2d_t> particle_pseudorapidity_azimuth)
     {
+        static const double pseudorapidity_limit = 0.9;
+
         for (std::vector<point_2d_t>::const_iterator iterator =
                  particle_pseudorapidity_azimuth.begin();
              iterator != particle_pseudorapidity_azimuth.end();
@@ -61,8 +63,49 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                 // boundary condition
                 for (int k = -1; k <= 1; k++) {
                     const point_2d_t
-                        p(iterator->x() * (1 - 2 * (j & 1)) + j * (2 * 0.9),
+                        p(iterator->x() * (1 - 2 * (j & 1)) +
+                          j * (2 * pseudorapidity_limit),
                           iterator->y() + k * (2 * M_PI));
+                    const voronoi_diagram_t::Face_handle
+                        handle = diagram.insert(p);
+
+                    face_index[handle] = iterator -
+                        particle_pseudorapidity_azimuth.begin();
+                }
+            }
+        }
+    }
+
+    void voronoi_insert_alice_emcal(
+        voronoi_diagram_t &diagram,
+        std::map<voronoi_diagram_t::Face_handle, size_t> &face_index,
+        const std::vector<point_2d_t> particle_pseudorapidity_azimuth)
+    {
+        // FIXME: This needs to be moved somewhere in emcal.h
+        static const double pseudorapidity_limit = 0.661;
+        static const double azimuth_limit_0 = 1.415;
+        static const double azimuth_limit_1 = 3.123;
+
+        static const double y_mid =
+            0.5F * (azimuth_limit_0 + azimuth_limit_1);
+
+        for (std::vector<point_2d_t>::const_iterator iterator =
+                 particle_pseudorapidity_azimuth.begin();
+             iterator != particle_pseudorapidity_azimuth.end();
+             iterator++) {
+            for (int j = -1; j <= 1; j++) {
+                // Make two additional replicas with mirror reflection
+                // around the EMCAL (not DCAL) edges
+                for (int k = -1; k <= 1; k++) {
+                    // Translated with the EMCAL phi center set to 0
+                    const double y_translate =
+                        angular_range_reduce(iterator->y() - y_mid);
+
+                    const point_2d_t
+                        p(iterator->x() * (1 - 2 * (j & 1)) +
+                          j * (2 * 0.9),
+                          y_mid + y_translate * (1 - 2 * (k & 1)) +
+                          k * (azimuth_limit_1 - azimuth_limit_0));
                     const voronoi_diagram_t::Face_handle
                         handle = diagram.insert(p);
 
@@ -76,13 +119,22 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
     void voronoi_area_incident(
         std::vector<double> &particle_area,
         std::vector<std::set<size_t> > &particle_incident,
-        const std::vector<point_2d_t> particle_pseudorapidity_azimuth)
+        const std::vector<point_2d_t> particle_pseudorapidity_azimuth,
+        bool insert_emcal = false)
     {
         voronoi_diagram_t diagram;
         std::map<voronoi_diagram_t::Face_handle, size_t> face_index;
 
-        voronoi_insert_alice_tpc(diagram, face_index,
-                                 particle_pseudorapidity_azimuth);
+        if (insert_emcal) {
+            voronoi_insert_alice_emcal(
+                diagram, face_index,
+                particle_pseudorapidity_azimuth);
+        }
+        else {
+            voronoi_insert_alice_tpc(
+                diagram, face_index,
+                particle_pseudorapidity_azimuth);
+        }
 
         particle_area.clear();
         particle_incident = std::vector<std::set<size_t> >(
