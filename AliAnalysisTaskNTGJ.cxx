@@ -1877,27 +1877,27 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                     0 : NAN;
 
                 if (dr_2 < 0.1 * 0.1) {
-                    cluster_iso_its_01 += cluster_pt_minus_ue;
-                    cluster_iso_its_01_ue += ue;
+                    cluster_iso_cluster_01 += cluster_pt_minus_ue;
+                    cluster_iso_cluster_01_ue += ue;
                 }
                 if (dr_2 < 0.2 * 0.2) {
-                    cluster_iso_its_02 += cluster_pt_minus_ue;
-                    cluster_iso_its_02_ue += ue;
+                    cluster_iso_cluster_02 += cluster_pt_minus_ue;
+                    cluster_iso_cluster_02_ue += ue;
                 }
                 if (dr_2 < 0.3 * 0.3) {
-                    cluster_iso_its_03 += cluster_pt_minus_ue;
-                    cluster_iso_its_03_ue += ue;
+                    cluster_iso_cluster_03 += cluster_pt_minus_ue;
+                    cluster_iso_cluster_03_ue += ue;
                 }
                 if (dr_2 < 0.4 * 0.4) {
-                    cluster_iso_its_04 += cluster_pt_minus_ue;
-                    cluster_iso_its_04_ue += ue;
+                    cluster_iso_cluster_04 += cluster_pt_minus_ue;
+                    cluster_iso_cluster_04_ue += ue;
                 }
             }
 
-            cluster_iso_its_01 -= p.Pt();
-            cluster_iso_its_02 -= p.Pt();
-            cluster_iso_its_03 -= p.Pt();
-            cluster_iso_its_04 -= p.Pt();
+            cluster_iso_cluster_01 -= p.Pt();
+            cluster_iso_cluster_02 -= p.Pt();
+            cluster_iso_cluster_03 -= p.Pt();
+            cluster_iso_cluster_04 -= p.Pt();
 
             _branch_cluster_iso_tpc_01[_branch_ncluster] =
                 half(cluster_iso_tpc_01);
