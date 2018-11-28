@@ -1853,6 +1853,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                     static_cast<AliVCluster *>(calo_cluster.At(i));
                 TLorentzVector p1;
 
+                c->GetMomentum(p1, _branch_primary_vertex);
+
                 const double dpseudorapidity = p1.Eta() - p.Eta();
                 const double dazimuth = angular_range_reduce(
                     angular_range_reduce(p1.Phi()) -
