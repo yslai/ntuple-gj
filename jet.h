@@ -280,7 +280,9 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                 voronoi_area(*iterator, cluster_sequence,
                              particle_area);
 
-            rho.push_back(iterator->perp() / area);
+            if (area > 0) {
+                rho.push_back(iterator->perp() / area);
+            }
         }
         std::sort(rho.begin(), rho.end());
 
