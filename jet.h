@@ -378,11 +378,14 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
         const std::vector<double> rho_order_statistics_ =
             rho_order_statistics(cluster_sequence,
                                  particle_area);
-        double rho_median;
-        double rho_median_standard_error;
+        double rho_median = 0;
+        double rho_median_standard_error = 0;
 
-        quantile_harrell_davis(rho_median, rho_median_standard_error,
-                               rho_order_statistics_, 0.5);
+        if (!rho_order_statistics_.empty()) {
+            quantile_harrell_davis(rho_median,
+                                   rho_median_standard_error,
+                                   rho_order_statistics_, 0.5);
+        }
 
         const std::vector<double>
             pseudorapidity_dependence(1, rho_median);

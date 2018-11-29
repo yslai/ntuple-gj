@@ -1118,6 +1118,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     AliVCaloCells *emcal_cell = event->GetEMCALCells();
     std::map<size_t, size_t> cluster_reco_index;
     std::vector<size_t> reco_stored_cluster_index;
+    std::vector<bool>
+        cell_pass_basic_quality(calo_cluster.GetEntriesFast(),
+                                false);
 
     for (Int_t i = 0; i < calo_cluster.GetEntriesFast(); i++) {
         AliVCluster *c =
@@ -1130,8 +1133,10 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         cell_max_cross(cell_id_max, cell_energy_max, cell_cross,
                        c, emcal_cell);
         if (c->GetNCells() > 1 &&
-            1 - cell_energy_max / cell_cross < 0.95 &&
+            cell_cross / cell_energy_max > 0.05 &&
             !cell_masked(c, _emcal_mask)) {
+            cell_pass_basic_quality[i] = true;
+
             TLorentzVector p;
 
             c->GetMomentum(p, _branch_primary_vertex);
@@ -1401,15 +1406,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         AliVCluster *c =
             static_cast<AliVCluster *>(calo_cluster.At(i));
 
-        Int_t cell_id_max = -1;
-        Double_t cell_energy_max = -INFINITY;
-        Double_t cell_cross = NAN;
-
-        cell_max_cross(cell_id_max, cell_energy_max, cell_cross,
-                       c, emcal_cell);
-        if (c->GetNCells() > 1 &&
-            1 - cell_energy_max / cell_cross < 0.95 &&
-            !cell_masked(c, _emcal_mask)) {
+        if (cell_pass_basic_quality[i]) {
             TLorentzVector p;
 
             c->GetMomentum(p, _branch_primary_vertex);
@@ -1849,6 +1846,10 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             }
 
             for (Int_t j = 0; j < calo_cluster.GetEntriesFast(); j++) {
+                if (!cell_pass_basic_quality[j]) {
+                    continue;
+                }
+
                 AliVCluster *c =
                     static_cast<AliVCluster *>(calo_cluster.At(i));
                 TLorentzVector p1;
