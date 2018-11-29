@@ -233,6 +233,8 @@ private:
     BRANCH(ue_estimate_tpc_const_se, F)                             \
     BRANCH(ue_estimate_its_const, F)                                \
     BRANCH(ue_estimate_its_const_se, F)                             \
+    BRANCH(ue_estimate_cluster_const, F)                            \
+    BRANCH(ue_estimate_cluster_const_se, F)                         \
     /* */                                                           \
     BRANCH(njet_ak04tpc, i)                                         \
     BRANCH_ARRAY(debug_jet_ak04tpc_tag_dr_square, njet_ak04tpc, F)  \

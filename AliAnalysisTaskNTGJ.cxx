@@ -1481,6 +1481,10 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     const std::vector<fastjet::PseudoJet> jet_reco_tagged_ak04its =
         cluster_sequence_reco_tagged_ak04its.inclusive_jets(0);
 
+    for (size_t i = 0; i < particle_reco_cluster.size(); i++) {
+        particle_reco_cluster[i].set_user_index(static_cast<int>(i));
+    }
+
     static const double jet_kt_d_ue_estimation = 0.3;
     const fastjet::ClusterSequenceArea
         cluster_sequence_ue_estimation_tpc(
@@ -1548,6 +1552,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     _branch_ue_estimate_its_const =
         evaluate_ue_constant(ue_estimate_its.first);
     _branch_ue_estimate_its_const_se = ue_estimate_its.second;
+    _branch_ue_estimate_cluster_const =
+        evaluate_ue_constant(ue_estimate_cluster.first);
+    _branch_ue_estimate_cluster_const_se = ue_estimate_cluster.second;
 
     std::fill(_branch_cell_cluster_index,
               _branch_cell_cluster_index + EMCAL_NCELL, USHRT_MAX);
