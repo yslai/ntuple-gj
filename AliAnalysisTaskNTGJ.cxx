@@ -183,8 +183,6 @@ ClassImp(AliAnalysisTaskNTGJ);
     _nrandom_isolation(0),                                  \
     _emcal_mask(std::vector<bool>()),                       \
     _emcal_cell_position(NULL),                             \
-    _emcal_cell_area(std::vector<double>()),                \
-    _emcal_cell_incident(std::vector<std::set<size_t> >()), \
     _keras_model_photon_discrimination(NULL),               \
     _alien_plugin(NULL),                                    \
     _metadata_filled(false)
@@ -786,50 +784,6 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                       _branch_beam_particle + 2, 0);
         }
 
-        std::fill(_branch_cell_eta, _branch_cell_eta + EMCAL_NCELL,
-                  NAN);
-        std::fill(_branch_cell_phi, _branch_cell_phi + EMCAL_NCELL,
-                  NAN);
-        if (_emcal_geometry != NULL) {
-            _emcal_cell_position = new std::vector<point_2d_t>();
-            for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
-                TVector3 v;
-
-                _emcal_geometry->GetGlobal(cell_id, v);
-                _branch_cell_eta[cell_id] = v.Eta();
-                _branch_cell_phi[cell_id] = v.Phi();
-                reinterpret_cast<std::vector<point_2d_t> *>
-                    (_emcal_cell_position)->push_back(
-                        point_2d_t(v.Eta(), v.Phi()));
-            }
-
-            voronoi_area_incident(
-                _emcal_cell_area, _emcal_cell_incident,
-                *reinterpret_cast<std::vector<point_2d_t> *>
-                (_emcal_cell_position));
-
-            double sum_area_inside = 0;
-            size_t count_inside = 0;
-
-            for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
-                if (inside_edge(cell_id, 1)) {
-                    sum_area_inside += _emcal_cell_area[cell_id];
-                    count_inside++;
-                }
-            }
-
-            const double mean_area_inside =
-                sum_area_inside / count_inside;
-
-            for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
-                if (!inside_edge(cell_id, 1)) {
-                    _emcal_cell_area[cell_id] = mean_area_inside;
-                }
-                _branch_cell_voronoi_area[cell_id] =
-                    _emcal_cell_area[cell_id];
-            }
-        }
-
 #ifdef WITH_EFP7
         strncpy(_branch_debug_blas_version,
                 cblas.version_str().c_str(), BUFSIZ);
@@ -852,12 +806,55 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                   _branch_beam_particle + 2, 0);
         _branch_trigger_class.clear();
 
-        for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
-            _branch_cell_eta[cell_id] = NAN;
-            _branch_cell_phi[cell_id] = NAN;
-            _branch_cell_voronoi_area[cell_id] = NAN;
-        }
         _branch_debug_blas_version[0] = '\0';
+    }
+
+    std::fill(_branch_cell_eta, _branch_cell_eta + EMCAL_NCELL, NAN);
+    std::fill(_branch_cell_phi, _branch_cell_phi + EMCAL_NCELL, NAN);
+    std::fill(_branch_cell_voronoi_area,
+              _branch_cell_voronoi_area + EMCAL_NCELL, NAN);
+    if (_emcal_geometry != NULL) {
+        _emcal_cell_position = new std::vector<point_2d_t>();
+        for (unsigned int cell_id = 0; cell_id < EMCAL_NCELL;
+             cell_id++) {
+            TVector3 v;
+
+            _emcal_geometry->GetGlobal(cell_id, v);
+            v -= TVector3(_branch_primary_vertex);
+
+            _branch_cell_eta[cell_id] = v.Eta();
+            _branch_cell_phi[cell_id] = v.Phi();
+            reinterpret_cast<std::vector<point_2d_t> *>
+                (_emcal_cell_position)->push_back(
+                    point_2d_t(v.Eta(), v.Phi()));
+        }
+
+        std::vector<double> emcal_cell_area;
+        std::vector<std::set<size_t> > emcal_cell_incident;
+
+        voronoi_area_incident(
+            emcal_cell_area, emcal_cell_incident,
+            *reinterpret_cast<std::vector<point_2d_t> *>
+            (_emcal_cell_position));
+
+        double sum_area_inside = 0;
+        size_t count_inside = 0;
+
+        for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
+            if (inside_edge(cell_id, 1)) {
+                sum_area_inside += emcal_cell_area[cell_id];
+                count_inside++;
+            }
+        }
+
+        const double mean_area_inside =
+            sum_area_inside / count_inside;
+
+        for (int cell_id = 0; cell_id < EMCAL_NCELL; cell_id++) {
+            _branch_cell_voronoi_area[cell_id] =
+                inside_edge(cell_id, 1) ?
+                emcal_cell_area[cell_id] : mean_area_inside;
+        }
     }
 
     std::vector<size_t> stored_mc_truth_index;
@@ -1210,7 +1207,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     voronoi_area_incident(particle_reco_area_cluster,
                           particle_reco_incident_cluster,
                           particle_reco_area_estimation_cluster,
-                          true);
+                          *reinterpret_cast<std::vector<point_2d_t> *>
+                          (_emcal_cell_position));
 
     // Shared by the isolation and jet code
 

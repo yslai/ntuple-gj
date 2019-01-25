@@ -113,6 +113,16 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     gSystem->Load("libEMCALUtils");
     gSystem->Load("libPWGPPEMCAL");
 
+    if (gSystem->AccessPathName("libgmp.so") &&
+        !gSystem->AccessPathName("/usr/lib64/libgmp.so")) {
+        gSystem->Symlink("/usr/lib64/libgmp.so", "libgmp.so");
+    }
+    gSystem->Load("libgmp");
+    if (gSystem->AccessPathName("libmpfr.so") &&
+        !gSystem->AccessPathName("/usr/lib64/libmpfr.so")) {
+        gSystem->Symlink("/usr/lib64/libmpfr.so", "libmpfr.so");
+    }
+    gSystem->Load("libmpfr");
     gSystem->Load("libCGAL");
     gSystem->Load("libfastjet");
     gSystem->Load("libsiscone");
@@ -356,7 +366,8 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     plugin->SetAdditionalLibs(
         "AliAnalysisTaskNTGJ.h "
         "AliAnalysisTaskNTGJ.cxx "
-        "special_function.h mc_truth.h emcal.h isolation.h jet.h "
+        "special_function.h mc_truth.h "
+        "emcal_cell.h emcal.h isolation.h jet.h "
         "bad_channel.h "
         "eLut.cpp eLut.h half.cpp halfExport.h halfFunction.h "
         "half.h halfLimits.h toFloat.h "
@@ -366,6 +377,7 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         // Not sure if this helps against the missing pyqpar_ when
         // dlopen() "libAliPythia6.so"
         "libpythia6.so libAliPythia6.so "
+        "libgmp.so libmpfr.so "
         "libCGAL.so libfastjet.so libsiscone.so "
         "libsiscone_spherical.so libfastjetplugins.so "
         "libfastjetcontribfragile.so " +

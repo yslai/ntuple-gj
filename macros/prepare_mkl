@@ -1,15 +1,15 @@
 #!/bin/bash
 
-get() {
+get_yum() {
     r="${1}"
     shift
     # Extract package URLs from the repository
     x="$(wget -q -O - ${r}/repodata/primary.xml.gz | \
 gzip -dc | sed "/<location/!d;s/.*href=\"//;s/\".*//")"
     for p in "$@"; do
-	# Use the last entry (most recent version), and prevent
-	# expansion with -32bit and -l in the package name
-	u="$(echo "${x}" | sed -n "/${p}-[^3l]/h;\$!b;g;p")"
+	# Use the last entry (most recent version), and avoid suffixes
+	# such as -32bit and -l in the package name
+	u="$(echo "${x}" | sed -n "/${p}-[0-9\\.]\\{4\\}/h;\$!b;g;p")"
 	[[ -f "$(basename "${u}")" ]] || wget -N "${r}/${u}"
     done
 }
@@ -35,7 +35,8 @@ cleanup() {
 
 # Download using Intel's YUM repository (https://software.intel.com/
 # en-us/articles/installing-intel-free-libs-and-python-yum-repo)
-get https://yum.repos.intel.com/mkl intel-mkl-core-rt intel-openmp
+get_yum https://yum.repos.intel.com/mkl \
+    intel-mkl-core-rt intel-openmp
 
 # cat <<EOF | sha256sum -c
 # 5f3b81920838ff2b12c7b9c66edf6393d57b4ef8a42b3a042cfeba68413350a4  \

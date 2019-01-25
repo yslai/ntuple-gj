@@ -63,9 +63,6 @@ private:
     BRANCH_ARRAY(event_plane_psi_v0, 3, F)                          \
     BRANCH_ARRAY2(event_plane_q_v0, 3, 2, D)                        \
     BRANCH(has_misalignment_matrix, O)                              \
-    BRANCH_ARRAY(cell_eta, 17664, F)                                \
-    BRANCH_ARRAY(cell_phi, 17664, F)                                \
-    BRANCH_ARRAY(cell_voronoi_area, 17664, F)                       \
     BRANCH_ARRAY(primary_vertex, 3, D)                              \
     BRANCH_ARRAY(primary_vertex_sigma, 3, D)                        \
     BRANCH(primary_vertex_ncontributor, I)                          \
@@ -162,9 +159,12 @@ private:
     BRANCH_ARRAY2(cluster_s_nphoton, ncluster, 4, F)                \
     BRANCH_ARRAY2(cluster_s_ncharged_hadron, ncluster, 4, F)        \
     BRANCH_ARRAY(cell_e, 17664, F)                                  \
+    BRANCH_ARRAY(cell_eta, 17664, F)                                \
+    BRANCH_ARRAY(cell_phi, 17664, F)                                \
     BRANCH_ARRAY(cell_tof, 17664, F)                                \
     BRANCH_ARRAY(cell_cluster_index, 17664, s)                      \
     BRANCH_ARRAY(cell_mc_truth_index, 17664, s)                     \
+    BRANCH_ARRAY(cell_voronoi_area, 17664, F)                       \
     /* */                                                           \
     BRANCH(ntrack, i)                                               \
     BRANCH_ARRAY(track_e, ntrack, F)                                \
@@ -436,8 +436,6 @@ private:
     std::vector<bool> _emcal_mask; //!
 
     void *_emcal_cell_position; //!
-    std::vector<double> _emcal_cell_area; //!
-    std::vector<std::set<size_t> > _emcal_cell_incident; //!
 
     void *_keras_model_photon_discrimination; //!
 

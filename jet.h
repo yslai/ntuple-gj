@@ -14,39 +14,47 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Weffc++"
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
 #include <CGAL/Delaunay_triangulation_2.h>
 #include <CGAL/Voronoi_diagram_2.h>
 #include <CGAL/Delaunay_triangulation_adaptation_traits_2.h>
 #include <CGAL/Delaunay_triangulation_adaptation_policies_2.h>
 #include <CGAL/Polygon_2.h>
+#include <CGAL/Boolean_set_operations_2.h>
 
 #include <fastjet/PseudoJet.hh>
 #pragma GCC diagnostic pop
 
 #include <special_function.h>
+#include <emcal_cell.h>
 
 namespace {
 
+    static const double emcal_voronoi_azimuth_0 = 0.5;
+
     typedef CGAL::Delaunay_triangulation_2<
-        CGAL::Exact_predicates_inexact_constructions_kernel>
+        CGAL::Exact_predicates_exact_constructions_kernel>
     delaunay_triangulation_t;
     typedef delaunay_triangulation_t::Point point_2d_t;
     typedef CGAL::Voronoi_diagram_2<
         delaunay_triangulation_t,
         CGAL::Delaunay_triangulation_adaptation_traits_2<
             delaunay_triangulation_t>,
-        CGAL::
-Delaunay_triangulation_caching_degeneracy_removal_policy_2<
+        CGAL::Delaunay_triangulation_caching_degeneracy_removal_policy_2<
             delaunay_triangulation_t> > voronoi_diagram_t;
     typedef CGAL::Polygon_2<
-        CGAL::Exact_predicates_inexact_constructions_kernel>
+        CGAL::Exact_predicates_exact_constructions_kernel>
         polygon_t;
+    typedef polygon_t::Point_2 point_2d_epeck_t;
+    typedef CGAL::Polygon_with_holes_2<
+        CGAL::Exact_predicates_exact_constructions_kernel>
+        polygon_hole_t;
 
     void voronoi_insert_alice_tpc(
         voronoi_diagram_t &diagram,
         std::map<voronoi_diagram_t::Face_handle, size_t> &face_index,
-        const std::vector<point_2d_t> particle_pseudorapidity_azimuth)
+        const std::vector<point_2d_t>
+        particle_pseudorapidity_azimuth)
     {
         static const double pseudorapidity_limit = 0.9;
 
@@ -65,7 +73,10 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                     const point_2d_t
                         p(iterator->x() * (1 - 2 * (j & 1)) +
                           j * (2 * pseudorapidity_limit),
-                          iterator->y() + k * (2 * M_PI));
+                          angular_range_reduce(
+                              CGAL::to_double(iterator->y()) -
+                              emcal_voronoi_azimuth_0) +
+                          k * (2 * M_PI));
                     const voronoi_diagram_t::Face_handle
                         handle = diagram.insert(p);
 
@@ -76,70 +87,97 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
         }
     }
 
-    void voronoi_insert_alice_emcal(
-        voronoi_diagram_t &diagram,
-        std::map<voronoi_diagram_t::Face_handle, size_t> &face_index,
-        const std::vector<point_2d_t> particle_pseudorapidity_azimuth)
+
+    void create_boundary(
+        polygon_t &boundary_emcal,
+        polygon_t &boundary_emcal_neg,
+        polygon_t &boundary_dcal,
+        const std::vector<point_2d_t> cell_emcal_dcal =
+        std::vector<point_2d_t>())
     {
-        // FIXME: This needs to be moved somewhere in emcal.h
-        static const double pseudorapidity_limit = 0.661;
-        static const double azimuth_limit_0 = 1.415;
-        static const double azimuth_limit_1 = 3.123;
-
-        static const double y_mid =
-            0.5F * (azimuth_limit_0 + azimuth_limit_1);
-
-        for (std::vector<point_2d_t>::const_iterator iterator =
-                 particle_pseudorapidity_azimuth.begin();
-             iterator != particle_pseudorapidity_azimuth.end();
-             iterator++) {
-            for (int j = -1; j <= 1; j++) {
-                // Make two additional replicas with mirror reflection
-                // around the EMCAL (not DCAL) edges
-                for (int k = -1; k <= 1; k++) {
-                    // Translated with the EMCAL phi center set to 0
-                    const double y_translate =
-                        angular_range_reduce(iterator->y() - y_mid);
-
-                    const point_2d_t
-                        p(iterator->x() * (1 - 2 * (j & 1)) +
-                          j * (2 * 0.9),
-                          y_mid + y_translate * (1 - 2 * (k & 1)) +
-                          k * (azimuth_limit_1 - azimuth_limit_0));
-                    const voronoi_diagram_t::Face_handle
-                        handle = diagram.insert(p);
-
-                    face_index[handle] = iterator -
-                        particle_pseudorapidity_azimuth.begin();
-                }
+        if (!cell_emcal_dcal.empty()) {
+            for (unsigned short i = 0; i < nboundary_emcal; i++) {
+                boundary_emcal.push_back(point_2d_epeck_t(
+                    cell_emcal_dcal[boundary_emcal_cell_id[i]].x(),
+                    angular_range_reduce(
+                        CGAL::to_double(
+                            cell_emcal_dcal[boundary_emcal_cell_id
+                                            [i]].y()) -
+                        emcal_voronoi_azimuth_0)));
+                // Note the -2 pi is outside the angular range
+                // reduction
+                boundary_emcal_neg.push_back(point_2d_epeck_t(
+                    cell_emcal_dcal[boundary_emcal_cell_id[i]].x(),
+                    angular_range_reduce(
+                        CGAL::to_double(
+                            cell_emcal_dcal[boundary_emcal_cell_id
+                                            [i]].y()) -
+                        emcal_voronoi_azimuth_0) -
+                    2 * M_PI));
+            }
+            for (unsigned short i = 0; i < nboundary_dcal; i++) {
+                boundary_dcal.push_back(point_2d_epeck_t(
+                    cell_emcal_dcal[boundary_dcal_cell_id[i]].x(),
+                    angular_range_reduce(
+                        CGAL::to_double(
+                            cell_emcal_dcal[boundary_dcal_cell_id
+                                            [i]].y()) -
+                        emcal_voronoi_azimuth_0)));
             }
         }
+    }
+
+    double eval_polygon_area(const std::list<polygon_hole_t> p)
+    {
+        double area = 0;
+
+        // For each resulting polygon, add the outer boundary area,
+        // and subtract all hole areas
+        for (std::list<polygon_hole_t>::const_iterator iterator =
+                 p.begin();
+             iterator != p.end(); iterator++) {
+            area +=
+                CGAL::to_double(iterator->outer_boundary().area());
+            for (polygon_hole_t::Hole_const_iterator
+                     iterator_hole = iterator->holes_begin();
+                 iterator_hole != iterator->holes_end();
+                 iterator_hole++) {
+                area -= CGAL::to_double(iterator_hole->area());
+            }
+        }
+
+        return area;
     }
 
     void voronoi_area_incident(
         std::vector<double> &particle_area,
         std::vector<std::set<size_t> > &particle_incident,
         const std::vector<point_2d_t> particle_pseudorapidity_azimuth,
-        bool insert_emcal = false)
+        const std::vector<point_2d_t> cell_emcal_dcal =
+        std::vector<point_2d_t>())
     {
         voronoi_diagram_t diagram;
         std::map<voronoi_diagram_t::Face_handle, size_t> face_index;
 
-        if (insert_emcal) {
-            voronoi_insert_alice_emcal(
-                diagram, face_index,
-                particle_pseudorapidity_azimuth);
-        }
-        else {
-            voronoi_insert_alice_tpc(
-                diagram, face_index,
-                particle_pseudorapidity_azimuth);
-        }
+        // For the moment, insert EMCAL/DCAL clusters like TPC tracks,
+        // to avoid open polygons with rays (the polygons will be cut
+        // on the exact cell boundary later)
+        voronoi_insert_alice_tpc(diagram, face_index,
+                                 particle_pseudorapidity_azimuth);
 
         particle_area.clear();
         particle_incident = std::vector<std::set<size_t> >(
             particle_pseudorapidity_azimuth.size(),
             std::set<size_t>());
+
+        // Initialize the (event-by-event) EMCAL and DCAL boundary
+        // polygons
+        polygon_t boundary_emcal;
+        polygon_t boundary_emcal_neg;
+        polygon_t boundary_dcal;
+
+        create_boundary(boundary_emcal, boundary_emcal_neg,
+                        boundary_dcal, cell_emcal_dcal);
 
         // Extract the Voronoi cells as polygon and calculate the
         // area associated with individual particles
@@ -148,8 +186,11 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                  particle_pseudorapidity_azimuth.begin();
              iterator != particle_pseudorapidity_azimuth.end();
              iterator++) {
+            const point_2d_t
+                p(iterator->x(),
+                  iterator->y() - emcal_voronoi_azimuth_0);
             const voronoi_diagram_t::Locate_result result =
-                diagram.locate(*iterator);
+                diagram.locate(p);
             const voronoi_diagram_t::Face_handle *face =
                 boost::get<voronoi_diagram_t::Face_handle>(&result);
             double polygon_area;
@@ -167,8 +208,9 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                 // vertices
                 do {
                     if (circulator->has_target()) {
-                        polygon.push_back(
-                            circulator->target()->point());
+                        polygon.push_back(point_2d_epeck_t(
+                            circulator->target()->point().x(),
+                            circulator->target()->point().y()));
                         particle_incident[face_index[*face]].insert(
                             face_index[circulator->twin()->face()]);
                     }
@@ -178,8 +220,32 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                     }
                 }
                 while (++circulator != circulator_start);
-                polygon_area = unbounded ?
-                    INFINITY : polygon.area();
+                if (!cell_emcal_dcal.empty()) {
+                    const bool is_emcal =
+                        angular_range_reduce(
+                            CGAL::to_double(iterator->y()) -
+                            emcal_voronoi_azimuth_0) >= 0;
+                    std::list<polygon_hole_t> polygon_boundary;
+
+                    // Cut to the detector boundary. Decide by the
+                    // sign of the particle phi ("y()") if the
+                    // boundary is that of the EMCAL or DCAL.
+                    CGAL::intersection(
+                        polygon,
+                        is_emcal ? boundary_emcal : boundary_dcal,
+                        std::back_inserter(polygon_boundary));
+                    if (is_emcal) {
+                        CGAL::intersection(
+                            polygon, boundary_emcal_neg,
+                            std::back_inserter(polygon_boundary));
+                    }
+                    polygon_area =
+                        eval_polygon_area(polygon_boundary);
+                }
+                else {
+                    polygon_area = unbounded ?
+                        INFINITY : CGAL::to_double(polygon.area());
+                }
             }
             else {
                 polygon_area = NAN;
@@ -188,10 +254,58 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
         }
     }
 
+    std::pair<CGAL::Bbox_2, CGAL::Bbox_2>
+    disjoined_dcal_bbox(const polygon_t b)
+    {
+        // Cut at eta = -0.7 (which lies between -0.7180 of SM 16, 17,
+        // and -0.6781 of the SM 18, 19)
+        polygon_t cut;
+
+        cut.push_back(point_2d_epeck_t( 0.9, -1.8));
+        cut.push_back(point_2d_epeck_t( 0.9, -0.7));
+        cut.push_back(point_2d_epeck_t(-0.9, -0.7));
+        cut.push_back(point_2d_epeck_t(-0.9, -1.8));
+
+        std::list<polygon_hole_t> dcal_cut;
+
+        CGAL::intersection(b, cut, std::back_inserter(dcal_cut));
+
+        if (dcal_cut.size() == 2) {
+            return std::pair<CGAL::Bbox_2, CGAL::Bbox_2>(
+                dcal_cut.front().bbox(), dcal_cut.back().bbox());
+        }
+        else {
+            polygon_t far_away;
+
+            far_away.push_back(point_2d_epeck_t(6, 0));
+            far_away.push_back(point_2d_epeck_t(6, 1));
+            far_away.push_back(point_2d_epeck_t(5, 1));
+            far_away.push_back(point_2d_epeck_t(5, 0));
+
+            return std::pair<CGAL::Bbox_2, CGAL::Bbox_2>(
+                far_away.bbox(), far_away.bbox());
+        }
+    }
+
+    bool fully_contained(const CGAL::Bbox_2 t, const CGAL::Bbox_2 b)
+    {
+        // Safe distance to the edge, being at least the size of one
+        // cell (0.0143) plus non-projectiveness in pseudorapidity
+        // (0.0072)
+        static const double border = 0.022;
+
+        return (t.xmin() > b.xmin() + border &&
+                t.xmax() < b.xmax() - border &&
+                t.ymin() > b.ymin() + border &&
+                t.ymax() < b.ymax() - border);
+    }
+
     void voronoi_polygon(
         std::vector<TPolyLine> &polyline,
         const std::vector<point_2d_t> &
-        particle_pseudorapidity_azimuth)
+        particle_pseudorapidity_azimuth,
+        const std::vector<point_2d_t> cell_emcal_dcal =
+        std::vector<point_2d_t>())
     {
         voronoi_diagram_t diagram;
         std::map<voronoi_diagram_t::Face_handle, size_t> face_index;
@@ -199,23 +313,32 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
         voronoi_insert_alice_tpc(diagram, face_index,
                                  particle_pseudorapidity_azimuth);
 
-        // Extract the Voronoi cells as polygon and calculate the
-        // area associated with individual particles
+        polygon_t boundary_emcal;
+        polygon_t boundary_emcal_neg;
+        polygon_t boundary_dcal;
+
+        create_boundary(boundary_emcal, boundary_emcal_neg,
+                        boundary_dcal, cell_emcal_dcal);
+
+        std::pair<CGAL::Bbox_2, CGAL::Bbox_2> dcal_bbox =
+            disjoined_dcal_bbox(boundary_dcal);
 
         for (std::vector<point_2d_t>::const_iterator iterator =
                  particle_pseudorapidity_azimuth.begin();
              iterator != particle_pseudorapidity_azimuth.end();
              iterator++) {
+            const point_2d_t
+                p(iterator->x(),
+                  iterator->y() - emcal_voronoi_azimuth_0);
             const voronoi_diagram_t::Locate_result result =
-                diagram.locate(*iterator);
+                diagram.locate(p);
             const voronoi_diagram_t::Face_handle *face =
                 boost::get<voronoi_diagram_t::Face_handle>(&result);
-            std::vector<double> x;
-            std::vector<double> y;
 
             if (face != NULL) {
                 voronoi_diagram_t::Ccb_halfedge_circulator
                     circulator_start = (*face)->outer_ccb();
+                polygon_t polygon;
 
                 voronoi_diagram_t::Ccb_halfedge_circulator
                     circulator = circulator_start;
@@ -224,17 +347,100 @@ Delaunay_triangulation_caching_degeneracy_removal_policy_2<
                 // vertices
                 do {
                     if (circulator->has_target()) {
-                        x.push_back(circulator->target()->point().x());
-                        y.push_back(circulator->target()->point().y());
+                        polygon.push_back(point_2d_epeck_t(
+                            circulator->target()->point().x(),
+                            circulator->target()->point().y()));
                     }
                 }
                 while (++circulator != circulator_start);
+                if (!cell_emcal_dcal.empty()) {
+                    const bool is_emcal =
+                        angular_range_reduce(
+                            CGAL::to_double(iterator->y()) -
+                            emcal_voronoi_azimuth_0) >= 0;
+                    std::list<polygon_hole_t> polygon_boundary;
+
+                    const polygon_t &boundary = is_emcal ?
+                        boundary_emcal : boundary_dcal;
+
+                    if (is_emcal &&
+                        fully_contained(polygon.bbox(),
+                                        boundary_emcal.bbox())) {
+                        polygon_boundary.push_back(
+                            polygon_hole_t(polygon));
+                    }
+                    else if (!is_emcal &&
+                             (fully_contained(polygon.bbox(),
+                                              dcal_bbox.first) ||
+                              fully_contained(polygon.bbox(),
+                                              dcal_bbox.second))) {
+                        polygon_boundary.push_back(
+                            polygon_hole_t(polygon));
+                    }
+                    else if (CGAL::do_overlap(polygon.bbox(),
+                                              boundary.bbox())) {
+                        CGAL::intersection(
+                            polygon, boundary,
+                            std::back_inserter(polygon_boundary));
+                    }
+                    if (is_emcal &&
+                        CGAL::do_overlap(polygon.bbox(),
+                                         boundary_emcal_neg.bbox())) {
+                        CGAL::intersection(
+                            polygon, boundary_emcal_neg,
+                            std::back_inserter(polygon_boundary));
+                    }
+
+                    for (std::list<polygon_hole_t>::const_iterator
+                             iterator_polygon =
+                             polygon_boundary.begin();
+                         iterator_polygon != polygon_boundary.end();
+                         iterator_polygon++) {
+                        const polygon_t outer =
+                            iterator_polygon->outer_boundary();
+                        std::vector<double> x;
+                        std::vector<double> y;
+
+                        for (polygon_t::Vertex_const_iterator
+                                 iterator_vertex = outer.vertices_begin();
+                             iterator_vertex != outer.vertices_end();
+                             iterator_vertex++) {
+                            x.push_back(
+                                CGAL::to_double(iterator_vertex->x()));
+                            y.push_back(
+                                CGAL::to_double(iterator_vertex->y()) +
+                                emcal_voronoi_azimuth_0);
+                        }
+                        if (!x.empty()) {
+                            x.push_back(x.front());
+                            y.push_back(y.front());
+                        }
+                        polyline.push_back(TPolyLine(
+                            x.size(), &x[0], &y[0]));
+                    }
+                }
+                else {
+                    std::vector<double> x;
+                    std::vector<double> y;
+
+                    for (polygon_t::Vertex_const_iterator
+                             iterator_vertex = polygon.vertices_begin();
+                         iterator_vertex != polygon.vertices_end();
+                         iterator_vertex++) {
+                        x.push_back(
+                            CGAL::to_double(iterator_vertex->x()));
+                        y.push_back(
+                            CGAL::to_double(iterator_vertex->y()) +
+                            emcal_voronoi_azimuth_0);
+                    }
+                    if (!x.empty()) {
+                        x.push_back(x.front());
+                        y.push_back(y.front());
+                    }
+                    polyline.push_back(TPolyLine(
+                        x.size(), &x[0], &y[0]));
+                }
             }
-            if (!x.empty()) {
-                x.push_back(x.front());
-                y.push_back(y.front());
-            }
-            polyline.push_back(TPolyLine(x.size(), &x[0], &y[0]));
         }
     }
 

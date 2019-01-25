@@ -282,21 +282,26 @@ int main(int argc, char *argv[])
 #define NCELL 5
     static const size_t row_size_X = NCELL * NCELL + 4;
     static const size_t row_size_y = 1;
+    static const size_t row_size_lam = 1;
     // The tensor dimension increment for each new event
     hsize_t dim_extend_X[RANK] = { 1, row_size_X };
     hsize_t dim_extend_y[RANK] = { 1, row_size_y };
+    hsize_t dim_extend_lam[RANK] = { 1, row_size_lam };
     // The maximum tensor dimension, for unlimited number of events
     hsize_t dim_max_X[RANK] = { H5S_UNLIMITED, row_size_X };
     hsize_t dim_max_y[RANK] = { H5S_UNLIMITED, row_size_y };
+    hsize_t dim_max_lam[RANK] = { H5S_UNLIMITED, row_size_lam };
     // The extensible HDF5 data space
 	H5::DataSpace data_space_X(RANK, dim_extend_X, dim_max_X);
 	H5::DataSpace data_space_y(RANK, dim_extend_y, dim_max_y);
+	H5::DataSpace data_space_lam(RANK, dim_extend_lam, dim_max_lam);
 
     // To enable zlib compression (there will be many NANs) and
     // efficient chunking (splitting of the tensor into contingous
     // hyperslabs), a HDF5 property list is needed
     H5::DSetCreatPropList property_X = H5::DSetCreatPropList();
     H5::DSetCreatPropList property_y = H5::DSetCreatPropList();
+    H5::DSetCreatPropList property_lam = H5::DSetCreatPropList();
 
 #ifdef HDF5_USE_DEFLATE
     // Check for zlib (deflate) availability and enable only if
@@ -316,6 +321,7 @@ int main(int argc, char *argv[])
         else {
             property_X.setDeflate(1);
             property_y.setDeflate(1);
+            property_lam.setDeflate(1);
         }
     }
 #endif // HDF5_USE_DEFLATE
@@ -336,9 +342,17 @@ int main(int argc, char *argv[])
                           dim_extend_y[1] * sizeof(float))),
         dim_extend_y[1]
     };
+    hsize_t dim_chunk_lam[RANK] = {
+        std::max(static_cast<unsigned long long>(1),
+                 HDF5_DEFAULT_CACHE /
+                 std::max(static_cast<unsigned long long>(1),
+                          dim_extend_lam[1] * sizeof(float))),
+        dim_extend_lam[1]
+    };
 
     property_X.setChunk(RANK, dim_chunk_X);
     property_y.setChunk(RANK, dim_chunk_y);
+    property_lam.setChunk(RANK, dim_chunk_lam);
 
     // Create the data set, which will have space for the first event
     H5::DataSet data_set_X =
@@ -347,6 +361,9 @@ int main(int argc, char *argv[])
     H5::DataSet data_set_y =
         hdf5_file.createDataSet("y", H5::PredType::NATIVE_FLOAT,
                                 data_space_y, property_y);
+    H5::DataSet data_set_lam =
+        hdf5_file.createDataSet("lam", H5::PredType::NATIVE_FLOAT,
+                                data_space_lam, property_lam);
     hsize_t offset[RANK] = {0, 0};
 
     size_t count_prompt = 0;
@@ -524,11 +541,15 @@ int main(int argc, char *argv[])
                             multiplicity_v0 + 64, 0));
                         y.push_back(prompt ? 1 : 0);
 
+                        std::vector<float> lam(1, cluster_lambda_square[j][0]);
+
                         if (offset[0] == 0) {
                             data_set_X.write(&X[0], H5::PredType::
                                              NATIVE_FLOAT);
                             data_set_y.write(&y[0], H5::PredType::
                                              NATIVE_UINT);
+                            data_set_lam.write(&lam[0], H5::PredType::
+                                               NATIVE_FLOAT);
                         }
                         else {
                             const hsize_t dim_extended_X[RANK] = {
@@ -539,9 +560,14 @@ int main(int argc, char *argv[])
                                 offset[0] + dim_extend_y[0],
                                 dim_extend_y[1]
                             };
+                            const hsize_t dim_extended_lam[RANK] = {
+                                offset[0] + dim_extend_lam[0],
+                                dim_extend_lam[1]
+                            };
 
                             data_set_X.extend(dim_extended_X);
                             data_set_y.extend(dim_extended_y);
+                            data_set_lam.extend(dim_extended_lam);
 
                             H5::DataSpace file_space;
                             H5::DataSpace memory_space;
@@ -569,6 +595,18 @@ int main(int argc, char *argv[])
                                              NATIVE_UINT,
                                              memory_space,
                                              file_space);
+
+                            file_space = data_set_lam.getSpace();
+                            file_space.selectHyperslab(
+                                H5S_SELECT_SET, dim_extend_lam,
+                                offset);
+                            memory_space =
+                                H5::DataSpace(RANK, dim_extend_lam,
+                                              NULL);
+                            data_set_lam.write(&lam[0], H5::PredType::
+                                               NATIVE_UINT,
+                                               memory_space,
+                                               file_space);
                         }
                         offset[0]++;
                         if (prompt) {
