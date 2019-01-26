@@ -19,6 +19,18 @@ namespace {
         s = t;
     }
 
+    double fast2sum(double &z, const double x, const double y)
+    {
+        // Fast2Sum, see T. J. Dekker, Numer. Math. 18(3), 224-242
+        // (1971), https://doi.org/10.1007/BF01397083 , eq. (4.1) and
+        // (4.3)
+        z = x + y;
+
+        const double w = z - x;
+
+        return y - w;
+    }
+
     double angular_range_reduce(const double x)
     {
         if (!std::isfinite(x)) {
@@ -43,16 +55,18 @@ namespace {
 
         if (x >= -cody_waite_x_max_2 && x <= cody_waite_x_max_2) {
             // 1686629713 2^(-28)
-            static const double two_pi_0 =  6.28318530693650245667;
+            static const double two_pi_1 =  6.28318530693650245667;
             // 560513589 2^(-61)
-            static const double two_pi_1 =  2.43084020360578856312e-10;
+            static const double two_pi_2 =  2.43084020360578856312e-10;
             // 2 pi - 14488038916154245685 2^(-61)
-            static const double two_pi_2 = -1.00331152253366640471e-19;
+            static const double two_pi_3 = -1.00331152253366640471e-19;
             const double k = rint(x * inverse_two_pi);
 
-            ret = x - k * two_pi_0;
-            ret -= k * two_pi_1;
-            ret -= k * two_pi_2;
+            ret = x - k * two_pi_1;
+
+            const double t = fast2sum(ret, ret, -k * two_pi_2);
+
+            ret += t - k * two_pi_3;
         }
         else {
             // Fallback using the system trigonometric function
