@@ -8,7 +8,7 @@ namespace {
     void kahan_sum(double &s, double &s2, const double x)
     {
         // The Kahan summation algorithm. See e.g. N. J. Higham, "The
-        // Accuracy of Floating Point Summation", SIAM J. Sci. Comput.
+        // accuracy of floating point summation", SIAM J. Sci. Comput.
         // 14(4), 783--799 (1993), https://doi.org/10.1137/0914050 .
 
         s2 += x;
@@ -21,9 +21,11 @@ namespace {
 
     double fast2sum(double &z, const double x, const double y)
     {
-        // Fast2Sum, see T. J. Dekker, Numer. Math. 18(3), 224-242
-        // (1971), https://doi.org/10.1007/BF01397083 , eq. (4.1) and
-        // (4.3)
+        // Fast2Sum, see T. J. Dekker, "A floating-point technique for
+        // extending the available precision", Numer. Math. 18(3),
+        // 224-242 (1971), https://doi.org/10.1007/BF01397083 , eq.
+        // (4.1) and (4.3)
+
         z = x + y;
 
         const double w = z - x;
