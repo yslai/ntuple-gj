@@ -33,6 +33,22 @@ namespace {
         iphi = (n1 / 2) % nphi;
     }
 
+    unsigned int from_sm_ieta_iphi(unsigned int sm,
+                                   unsigned int ieta,
+                                   unsigned int iphi)
+    {
+        const unsigned int n0 =
+            sm < 10 ? sm * 1152 :
+            sm < 12 ? 11520 + (sm - 10) * 384 :
+            sm < 18 ? 12288 + (sm - 12) * 768 :
+            16896 + (sm - 18) * 384;
+        const unsigned int nphi =
+            sm < 10 ? 24 : sm < 12 ? 8 : sm < 18 ? 24 : 8;
+
+        return n0 + nphi * (ieta - 1) +
+            (nphi + 1) * ((ieta - 1) % 2) + iphi * 2;
+    }
+
     void neta_nphi(unsigned int &neta, unsigned int &nphi,
                     const unsigned int sm)
     {
