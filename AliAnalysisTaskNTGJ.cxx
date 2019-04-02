@@ -29,6 +29,7 @@
 #include <AliMCEvent.h>
 #include <AliGenEventHeader.h>
 #include <AliGenPythiaEventHeader.h>
+#include <AliGenCocktailEventHeader.h>
 #include <AliStack.h>
 #include <AliAODMCParticle.h>
 #include <AliESDMuonTrack.h>
@@ -611,7 +612,6 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
     AliGenEventHeader *mc_truth_header = mc_truth_event != NULL ?
         mc_truth_event->GenEventHeader() : NULL;
-    AliGenPythiaEventHeader *mc_truth_pythia_header;
 
     if (mc_truth_header != NULL) {
         _branch_eg_weight = mc_truth_header->EventWeight();
@@ -623,8 +623,34 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         for (Int_t i = 0; i < 3; i++) {
             _branch_eg_primary_vertex[i] = eg_primary_vertex.At(i);
         }
-        mc_truth_pythia_header =
+
+        AliGenPythiaEventHeader *mc_truth_pythia_header =
             dynamic_cast<AliGenPythiaEventHeader *>(mc_truth_header);
+
+        if (mc_truth_pythia_header == NULL) {
+            fprintf(stderr, "%s:%d:\n", __FILE__, __LINE__);
+            // Try extract this from "cocktail header" = header list
+            // for embedding
+            AliGenCocktailEventHeader *mc_truth_cocktail_header =
+                dynamic_cast<AliGenCocktailEventHeader *>
+                (mc_truth_header);
+
+            if (mc_truth_cocktail_header != NULL) {
+                TList *header = mc_truth_cocktail_header->GetHeaders();
+
+                // header->Print();
+                if (header != NULL) {
+                    TObject *entry = header->FindObject("Pythia8GammaJet_1");
+
+                    if (entry != NULL) {
+                        mc_truth_pythia_header =
+                            dynamic_cast<AliGenPythiaEventHeader *>
+                            (entry);
+                    }
+                }
+            }
+        }
+
         if (mc_truth_pythia_header != NULL) {
             _branch_eg_signal_process_id =
                 mc_truth_pythia_header->ProcessType();
@@ -638,6 +664,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             _skim_sum_eg_ntrial +=
                 mc_truth_pythia_header->Trials();
         }
+
     }
 
     AliStack *stack;
