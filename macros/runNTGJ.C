@@ -113,6 +113,7 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     gSystem->Load("libEMCALUtils");
     gSystem->Load("libPWGPPEMCAL");
 
+#if 0
     if (gSystem->AccessPathName("libgmp.so") &&
         !gSystem->AccessPathName("/usr/lib64/libgmp.so")) {
         gSystem->Symlink("/usr/lib64/libgmp.so", "libgmp.so");
@@ -122,6 +123,7 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         !gSystem->AccessPathName("/usr/lib64/libmpfr.so")) {
         gSystem->Symlink("/usr/lib64/libmpfr.so", "libmpfr.so");
     }
+#endif
     gSystem->Load("libmpfr");
     gSystem->Load("libCGAL");
     gSystem->Load("libfastjet");
@@ -377,7 +379,9 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         // Not sure if this helps against the missing pyqpar_ when
         // dlopen() "libAliPythia6.so"
         "libpythia6.so libAliPythia6.so "
-        "libgmp.so libmpfr.so "
+#if 1
+        "libgmp.so libmpfr.so libboost_thread.so "
+#endif
         "libCGAL.so libfastjet.so libsiscone.so "
         "libsiscone_spherical.so libfastjetplugins.so "
         "libfastjetcontribfragile.so " +

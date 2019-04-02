@@ -499,7 +499,8 @@ namespace {
                                 const std::vector<double> x,
                                 double p)
     {
-        // See F. E. Harrell, C. E. Davis, Biometrika 69(3), 635--640,
+        // See F. E. Harrell, C. E. Davis, "A new distribution-free
+        // quantile estimator", Biometrika 69(3), 635--640,
         // https://doi.org/10.1093/biomet/69.3.635 , p. 646, eq. (2)
         // and (3); and Harrell's implementation for R at
         // https://github.com/harrelfe/Hmisc/blob/master/R/Misc.s
