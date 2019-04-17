@@ -25,9 +25,24 @@ endif
 
 CXXFLAGS +=	-I../.. -I.
 
-TARGET =	convert_sample convert_sample_full inference update_ntuple eta_data
+TARGET =	convert_sample convert_sample_full inference \
+		update_ntuple eta_data
 
-all:		$(TARGET)
+all:		check-nersc $(TARGET)
+
+check-nersc:
+ifeq (,$(ROOT_DIR))
+		$(error At NERSC, run \`module load boost cray-hdf5 \
+			root\' first)
+endif
+ifeq (,$(BOOST_DIR))
+		$(error At NERSC, run \`module load boost cray-hdf5 \
+			root\' first)
+endif
+ifeq (,$(HDF5_DIR))
+		$(error At NERSC, run \`module load boost cray-hdf5 \
+			root\' first)
+endif
 
 clean:
 		/usr/bin/rm -f *~ *.o $(TARGET) ml_out.py
