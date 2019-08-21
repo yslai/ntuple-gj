@@ -46,7 +46,33 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         sscanf(line, "%[^:]:%[ \t]%4096[^\n\r]", key, dummy, value);
 
         if (strcmp(key, "package") == 0) {
-            package_list.Add((TObject *)(new TObjString(value)));
+            // Split an array of potentially quoted package names
+            for (const char *v = value; *v != '\0';) {
+                // Move forward until *v is a non-deliminator, but not
+                // further than the end of the C string
+                while (*v != '\0' &&
+                       (*v == '\t' || *v == '\n' || *v == '\r' ||
+                        *v == ' '  || *v == '"'  || *v == '\'' ||
+                        *v == ','  || *v == '['  || *v == ']')) {
+                    v++;
+                }
+
+                // Convert the digit into an integer and add to AliEn
+                char p[4096];
+
+                if (sscanf(v, "%4096[^]\t\n\r \"',[]", p) == 1) {
+                    package_list.Add((TObject *)(new TObjString(p)));
+                }
+                // Move forward until *v is a deliminator, i.e.
+                // skipping the number characters processed by
+                // sscanf(). Note isdigit('\0') = 0 = false.
+                while (!(*v == '\0' || *v == '\t' || *v == '\n' ||
+                         *v == '\r' || *v == ' '  || *v == '"'  ||
+                         *v == '\'' || *v == ','  || *v == '['  ||
+                         *v == ']')) {
+                    v++;
+                }
+            }
         }
     }
     package_list.SetOwner();
@@ -91,7 +117,7 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
                 // symbolic "latest" should exist (note
                 // TString::ReplaceAll already modified the content)
                 include = "$ALICE_ROOT/../../" +
-                    ps(0, ps.Index("/")) + "/latest/include";
+                    ps(0, ps.Index("::")) + "/latest/include";
             }
             gROOT->ProcessLine(".include " + include);
         }
@@ -147,7 +173,8 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         const TString &ps =
             ((TObjString *)(package_list.At(i)))->String();
 
-        fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, ps.Data());
+        // fprintf(stderr, "%s:%d: package[%d] = `%s'\n", __FILE__,
+        //         __LINE__, i, ps.Data());
         plugin->AddExternalPackage(ps.Data());
     }
 
@@ -258,8 +285,9 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
                 // Convert the digit into an integer and add to AliEn
                 int n;
 
-                sscanf(v, "%d", &n);
-                plugin->AddRunNumber(n);
+                if (sscanf(v, "%d", &n) == 1) {
+                    plugin->AddRunNumber(n);
+                }
                 // Move forward until *v is a non-digit, i.e. skipping
                 // the number characters processed by sscanf(). Note
                 // isdigit('\0') = 0 = false.
@@ -355,7 +383,11 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     TString oadb_filename = "";
 
     if (!gSystem->AccessPathName("libmkl_core_so")) {
-        mkl_filename = "libiomp5_so libmkl_avx2_so libmkl_avx_so libmkl_core_so libmkl_intel_lp64_so libmkl_intel_thread_so";
+        // See https://software.intel.com/en-us/mkl-linux-developer-
+        // guide-dynamic-libraries-in-the-lib-intel64-lin-directory
+        mkl_filename = "libiomp5_so libmkl_avx2_so libmkl_avx_so "
+            "libmkl_core_so libmkl_intel_lp64_so "
+            "libmkl_intel_thread_so";
     }
     if (strchr(emcal_geometry_filename.Data(), '/') == NULL) {
         oadb_filename += emcal_geometry_filename;
@@ -388,6 +420,8 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         mkl_filename + " " +
         emcal_correction_filename + " " +
         oadb_filename);
+    // fprintf(stderr, "%s:%d: mkl_filename = `%s'\n", __FILE__,
+    //         __LINE__, mkl_filename.Data());
     plugin->SetAnalysisSource("AliAnalysisTaskNTGJ.cxx");
 
     // Honor alien_CLOSE_SE for the output also, e.g. when
@@ -431,8 +465,11 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         stored_track_min_pt + "," +
         stored_jet_min_pt_raw + "," +
         nrandom_isolation + ")";
-    fprintf(stderr, "%s:%d: add_task_line = `%s'\n", __FILE__,
-            __LINE__, add_task_line.Data());
+    // fprintf(stderr, "%s:%d: add_task_line = `%s'\n", __FILE__,
+    //         __LINE__, add_task_line.Data());
+    if (strcmp(run_mode, "parse_only") == 0) {
+        gSystem->Exit(0);
+    }
     gROOT->ProcessLine(add_task_line);
 
     if (mgr->InitAnalysis()) {
