@@ -4,7 +4,7 @@ get_yum() {
     r="${1}"
     shift
     # Extract package URLs from the repository
-    x="$(wget -q -O - ${r}/repodata/primary.xml.gz | \
+    x="$(curl ${r}/repodata/primary.xml.gz | \
 gzip -dc | sed "/<location/!d;s/.*href=\"//;s/\".*//")"
     #echo "${x}" 1>&2
     for p in "$@"; do
@@ -12,7 +12,7 @@ gzip -dc | sed "/<location/!d;s/.*href=\"//;s/\".*//")"
 	# such as -32bit and -l in the package name
 	u="$(echo "${x}" | sed -n "/${p}-[0-9\\.]\\{4\\}/h;\$!b;g;p")"
 	b="$(basename "${u}")"
-	[[ -f "${b}" ]] || wget -N "${r}/${u}"
+	[[ -f "${b}" ]] || curl "-RO" "${r}/${u}"
 	echo "${b}"
     done
 }
@@ -23,7 +23,7 @@ builtin_rpm2cpio() {
     # Beginning with Intel MKL 2019.4, the RPMs use xz compression.
     python -c "import sys;i=getattr(sys.stdin,'buffer',sys.stdin);\
 o=getattr(sys.stdout,'buffer',sys.stdout);d=i.read()[96:];\
-o.write(d[d.find(b'\\xfd7zXZ\\x00'):])" | xz -dc
+o.write(d[d.index(b'\\xfd7zXZ\\x00'):])" | xz -dc
 }
 
 cleanup() {
@@ -47,7 +47,6 @@ if [[ -d opt ]]; then
     exit 1
 fi
 trap cleanup 0 1 2 15
-echo "${rpm_list}"
 for p in mkl-core-rt openmp; do
     cat $(echo "${rpm_list}" | grep "^intel-${p}-.*.rpm\$") | \
 	builtin_rpm2cpio | cpio -idm
