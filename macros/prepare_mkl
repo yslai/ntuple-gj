@@ -6,20 +6,24 @@ get_yum() {
     # Extract package URLs from the repository
     x="$(wget -q -O - ${r}/repodata/primary.xml.gz | \
 gzip -dc | sed "/<location/!d;s/.*href=\"//;s/\".*//")"
+    #echo "${x}" 1>&2
     for p in "$@"; do
 	# Use the last entry (most recent version), and avoid suffixes
 	# such as -32bit and -l in the package name
 	u="$(echo "${x}" | sed -n "/${p}-[0-9\\.]\\{4\\}/h;\$!b;g;p")"
-	[[ -f "$(basename "${u}")" ]] || wget -N "${r}/${u}"
+	b="$(basename "${u}")"
+	[[ -f "${b}" ]] || wget -N "${r}/${u}"
+	echo "${b}"
     done
 }
 
 builtin_rpm2cpio() {
-    # Skip the 96 byte RPM header and search for a payload with gzip
-    # magic, similar to https://github.com/ruda/rpm2cpio
+    # Skip the 96 byte RPM header and search for a payload with xz
+    # magic bytes, similar to https://github.com/ruda/rpm2cpio .
+    # Beginning with Intel MKL 2019.4, the RPMs use xz compression.
     python -c "import sys;i=getattr(sys.stdin,'buffer',sys.stdin);\
 o=getattr(sys.stdout,'buffer',sys.stdout);d=i.read()[96:];\
-o.write(d[d.find(b'\\x1f\\x8b'):])" | gzip -dc
+o.write(d[d.find(b'\\xfd7zXZ\\x00'):])" | xz -dc
 }
 
 cleanup() {
@@ -35,23 +39,19 @@ cleanup() {
 
 # Download using Intel's YUM repository (https://software.intel.com/
 # en-us/articles/installing-intel-free-libs-and-python-yum-repo)
-get_yum https://yum.repos.intel.com/mkl \
-    intel-mkl-core-rt intel-openmp
-
-# cat <<EOF | sha256sum -c
-# 5f3b81920838ff2b12c7b9c66edf6393d57b4ef8a42b3a042cfeba68413350a4  \
-# intel-mkl-core-rt-2019.1-144-2019.1-144.x86_64.rpm
-# 46dd480d9868be345eb4ec8e3302580b1df930988708aab06d643c4a2fdc298e  \
-# intel-openmp-19.0.1-144-19.0.1-144.x86_64.rpm
-# EOF
+rpm_list="$(get_yum https://yum.repos.intel.com/mkl \
+    intel-mkl-core-rt intel-openmp)"
 
 if [[ -d opt ]]; then
     echo "$(basename "$0"): error: a directory \`opt' is in the way"
     exit 1
 fi
 trap cleanup 0 1 2 15
-cat intel-mkl-core-rt-*.rpm | builtin_rpm2cpio | cpio -idm
-cat intel-openmp-*.rpm | builtin_rpm2cpio | cpio -idm
+echo "${rpm_list}"
+for p in mkl-core-rt openmp; do
+    cat $(echo "${rpm_list}" | grep "^intel-${p}-.*.rpm\$") | \
+	builtin_rpm2cpio | cpio -idm
+done
 p=$(echo opt/intel/compilers_and_libraries_*/linux | sed "s/ .*//")
 for f in \
     "${p}/compiler/lib/intel64_lin/libiomp5.so" \
