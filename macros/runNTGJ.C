@@ -122,6 +122,8 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
             gROOT->ProcessLine(".include " + include);
         }
     }
+    gROOT->ProcessLine(".include /cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/GMP/v6.0.0-1/lib");
+    gROOT->ProcessLine(".include /cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/MPFR/v3.1.3-3/lib");
 
     // Load base root libraries
     gSystem->Load("libTree");
@@ -380,14 +382,20 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     // Intel MKL
 
     TString mkl_filename = "";
+    TString efp7_filename = "";
     TString oadb_filename = "";
 
     if (!gSystem->AccessPathName("libmkl_core_so")) {
         // See https://software.intel.com/en-us/mkl-linux-developer-
         // guide-dynamic-libraries-in-the-lib-intel64-lin-directory
         mkl_filename = "libiomp5_so libmkl_avx2_so libmkl_avx_so "
-            "libmkl_core_so libmkl_intel_lp64_so "
-            "libmkl_intel_thread_so";
+            "libmkl_core_so libmkl_def_so libmkl_intel_lp64_so "
+            "libmkl_intel_thread_so libmkl_vml_avx2_so "
+            "libmkl_vml_avx_so libmkl_vml_def_so";
+    }
+    if (!gSystem->AccessPathName("efp7.cc")) {
+        efp7_filename =
+            "blasdrv.h efp7.cc einstein_sum.h fill_efp7.cc";
     }
     if (strchr(emcal_geometry_filename.Data(), '/') == NULL) {
         oadb_filename += emcal_geometry_filename;
@@ -406,7 +414,6 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         "eLut.cpp eLut.h half.cpp halfExport.h halfFunction.h "
         "half.h halfLimits.h toFloat.h "
         "keras_model.h keras_model.cc "
-        // "blasdrv.h efp7.cc einstein_sum.h "
         "photon_discr.model "
         // Not sure if this helps against the missing pyqpar_ when
         // dlopen() "libAliPythia6.so"
@@ -417,7 +424,7 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         "libCGAL.so libfastjet.so libsiscone.so "
         "libsiscone_spherical.so libfastjetplugins.so "
         "libfastjetcontribfragile.so " +
-        mkl_filename + " " +
+        mkl_filename + " " + efp7_filename + " " +
         emcal_correction_filename + " " +
         oadb_filename);
     // fprintf(stderr, "%s:%d: mkl_filename = `%s'\n", __FILE__,
