@@ -122,8 +122,8 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
             gROOT->ProcessLine(".include " + include);
         }
     }
-    gROOT->ProcessLine(".include /cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/GMP/v6.0.0-1/lib");
-    gROOT->ProcessLine(".include /cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/MPFR/v3.1.3-3/lib");
+    gROOT->ProcessLine(".L /cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/GMP/v6.0.0-1/lib/libgmp.so");
+    gROOT->ProcessLine(".L /cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/MPFR/v3.1.3-3/libmpfr.so");
 
     // Load base root libraries
     gSystem->Load("libTree");
