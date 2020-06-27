@@ -64,8 +64,6 @@
 #ifdef WITH_EFP7
 #include "einstein_sum.h"
 #include "efp7.cc"
-#else // WITH_EFP7
-#define FILL_EFP7 {}
 #endif // WITH_EFP7
 #include "isolation.h"
 #endif // __CINT__
@@ -189,14 +187,14 @@ ClassImp(AliAnalysisTaskNTGJ);
     _metadata_filled(false)
 
 AliAnalysisTaskNTGJ::AliAnalysisTaskNTGJ(const char *name)
-    : AliAnalysisTaskSE(name), CLASS_INITIALIZATION
+    : AliAnalysisTaskEmcal(name), CLASS_INITIALIZATION
 {
     DefineOutput(1, TTree::Class());
 }
 
 AliAnalysisTaskNTGJ::AliAnalysisTaskNTGJ(
     const AliAnalysisTaskNTGJ &x)
-    : AliAnalysisTaskSE(), CLASS_INITIALIZATION
+    : AliAnalysisTaskEmcal(), CLASS_INITIALIZATION
 {
     _emcal_geometry_filename = x._emcal_geometry_filename;
     _emcal_local2master_filename = x._emcal_local2master_filename;
@@ -254,6 +252,8 @@ AliAnalysisTaskNTGJ &AliAnalysisTaskNTGJ::operator=(
     _stored_track_min_pt = x._stored_track_min_pt;
     _stored_jet_min_pt_raw = x._stored_jet_min_pt_raw;
     _nrandom_isolation = x._nrandom_isolation;
+
+    return *this;
 }
 
 AliAnalysisTaskNTGJ::~AliAnalysisTaskNTGJ(void)
@@ -275,6 +275,8 @@ AliAnalysisTaskNTGJ::~AliAnalysisTaskNTGJ(void)
 
 void AliAnalysisTaskNTGJ::UserCreateOutputObjects(void)
 {
+    AliAnalysisTaskEmcal::UserCreateOutputObjects();
+
     TFile *file = OpenFile(1);
 
     if (file != NULL) {
@@ -317,7 +319,7 @@ void AliAnalysisTaskNTGJ::UserCreateOutputObjects(void)
 
 #undef MEMBER_BRANCH
 
-void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
+void AliAnalysisTaskNTGJ::Run(Option_t *option)
 {
     if (!_emcal_geometry_filename.empty() &&
         !_emcal_local2master_filename.empty() &&
@@ -540,7 +542,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     AliMultSelection *mult_selection = static_cast<AliMultSelection *>
         (event->FindListObject("MultSelection"));
 
-    std::fill(_branch_centrality, _branch_centrality + 9, NAN);
+    std::fill(_branch_centrality,
+              _branch_centrality + sizeof(_branch_centrality) /
+              sizeof(*_branch_centrality), NAN);
     if (mult_selection != NULL) {
         for (size_t i = 0; i < 9; i++) {
             _branch_centrality[i] =
@@ -564,7 +568,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     _branch_centrality_v0m = _branch_centrality[0];
 
     std::fill(_branch_event_plane_psi_v0,
-              _branch_event_plane_psi_v0 + 3, NAN);
+              _branch_event_plane_psi_v0 +
+              sizeof(_branch_event_plane_psi_v0) /
+              sizeof(*_branch_event_plane_psi_v0), NAN);
 
     AliEventplane *event_plane = event->GetEventplane();
 
@@ -604,9 +610,15 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     _branch_eg_scale_pdf = NAN;
     _branch_eg_alpha_qcd = NAN;
     _branch_eg_alpha_qed = NAN;
-    std::fill(_branch_eg_pdf_id, _branch_eg_pdf_id + 2, INT_MIN);
-    std::fill(_branch_eg_pdf_x, _branch_eg_pdf_x + 2, NAN);
-    std::fill(_branch_eg_pdf_x_pdf, _branch_eg_pdf_x_pdf + 2, NAN);
+    std::fill(_branch_eg_pdf_id,
+              _branch_eg_pdf_id + sizeof(_branch_eg_pdf_id) /
+              sizeof(*_branch_eg_pdf_id), INT_MIN);
+    std::fill(_branch_eg_pdf_x,
+              _branch_eg_pdf_x + sizeof(_branch_eg_pdf_x) /
+              sizeof(*_branch_eg_pdf_x), NAN);
+    std::fill(_branch_eg_pdf_x_pdf,
+              _branch_eg_pdf_x_pdf + sizeof(_branch_eg_pdf_x_pdf) /
+              sizeof(*_branch_eg_pdf_x_pdf), NAN);
 
     // FIXME: Weight is missing, AliGenEventHeader::EventWeight()
 
@@ -640,12 +652,15 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
                 // header->Print();
                 if (header != NULL) {
-                    TObject *entry = header->FindObject("Pythia8GammaJet_1");
-
-                    if (entry != NULL) {
-                        mc_truth_pythia_header =
-                            dynamic_cast<AliGenPythiaEventHeader *>
-                            (entry);
+                    for (const auto && entry : *header) {
+                        if (entry != NULL) {
+                            mc_truth_pythia_header =
+                                dynamic_cast<AliGenPythiaEventHeader *>
+                                (entry);
+                            if (mc_truth_pythia_header != NULL) {
+                                break;
+                            }
+                        }
                     }
                 }
             }
@@ -681,9 +696,13 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     }
 
     std::fill(_branch_primary_vertex,
-              _branch_primary_vertex + 3, NAN);
+              _branch_primary_vertex +
+              sizeof(_branch_primary_vertex) /
+              sizeof(*_branch_primary_vertex), NAN);
     std::fill(_branch_primary_vertex_sigma,
-              _branch_primary_vertex_sigma + 3, NAN);
+              _branch_primary_vertex_sigma +
+              sizeof(_branch_primary_vertex_sigma) /
+              sizeof(*_branch_primary_vertex_sigma), NAN);
     _branch_primary_vertex_ncontributor = INT_MIN;
 
     const AliVVertex *primary_vertex = event->GetPrimaryVertex();
@@ -704,9 +723,13 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     }
 
     std::fill(_branch_primary_vertex_spd,
-              _branch_primary_vertex_spd + 3, NAN);
+              _branch_primary_vertex_spd +
+              sizeof(_branch_primary_vertex_spd) /
+              sizeof(*_branch_primary_vertex_spd), NAN);
     std::fill(_branch_primary_vertex_spd_sigma,
-              _branch_primary_vertex_spd_sigma + 3, NAN);
+              _branch_primary_vertex_spd_sigma +
+              sizeof(_branch_primary_vertex_spd_sigma) /
+              sizeof(*_branch_primary_vertex_spd_sigma), NAN);
     _branch_primary_vertex_spd_ncontributor = INT_MIN;
 
     const AliVVertex *primary_vertex_spd =
@@ -753,16 +776,14 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         }
     }
 
-    TRefArray calo_cluster;
-
-    event->GetEMCALClusters(&calo_cluster);
+    AliClusterContainer *calo_cluster = GetClusterContainer(0);
 
     if (_skim_cluster_min_e > -INFINITY) {
         double cluster_e_max = -INFINITY;
 
-        for (Int_t i = 0; i < calo_cluster.GetEntriesFast(); i++) {
+        for (Int_t i = 0; i < calo_cluster->GetNEntries(); i++) {
             AliVCluster *c =
-                static_cast<AliVCluster *>(calo_cluster.At(i));
+                static_cast<AliVCluster *>(calo_cluster->GetCluster(i));
 
             if (!(c->GetNCells() > 1) ||
                 cell_masked(c, _emcal_mask)) {
@@ -808,7 +829,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             // FIXME: AOD not handled
             _branch_beam_energy = NAN;
             std::fill(_branch_beam_particle,
-                      _branch_beam_particle + 2, 0);
+                      _branch_beam_particle +
+                      sizeof(_branch_beam_particle) /
+                      sizeof(*_branch_beam_particle), 0);
         }
 
 #ifdef WITH_EFP7
@@ -830,16 +853,22 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         _branch_grid_data_dir[0] = '\0';
         _branch_grid_data_pattern[0] = '\0';
         std::fill(_branch_beam_particle,
-                  _branch_beam_particle + 2, 0);
+                  _branch_beam_particle +
+                  sizeof(_branch_beam_particle) /
+                  sizeof(*_branch_beam_particle), 0);
         _branch_trigger_class.clear();
 
         _branch_debug_blas_version[0] = '\0';
     }
 
-    std::fill(_branch_cell_eta, _branch_cell_eta + EMCAL_NCELL, NAN);
-    std::fill(_branch_cell_phi, _branch_cell_phi + EMCAL_NCELL, NAN);
+    std::fill(&_branch_cell_position[0][0],
+              &_branch_cell_position[0][0] +
+              sizeof(_branch_cell_position) /
+              sizeof(_branch_cell_position[0][0]), NAN);
     std::fill(_branch_cell_voronoi_area,
-              _branch_cell_voronoi_area + EMCAL_NCELL, NAN);
+              _branch_cell_voronoi_area +
+              sizeof(_branch_cell_voronoi_area) /
+              sizeof(*_branch_cell_voronoi_area), NAN);
     if (_emcal_geometry != NULL) {
         _emcal_cell_position = new std::vector<point_2d_t>();
         for (unsigned int cell_id = 0; cell_id < EMCAL_NCELL;
@@ -849,8 +878,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             _emcal_geometry->GetGlobal(cell_id, v);
             v -= TVector3(_branch_primary_vertex);
 
-            _branch_cell_eta[cell_id] = v.Eta();
-            _branch_cell_phi[cell_id] = v.Phi();
+            _branch_cell_position[cell_id][0] = v.X();
+            _branch_cell_position[cell_id][1] = v.Y();
+            _branch_cell_position[cell_id][2] = v.Z();
             reinterpret_cast<std::vector<point_2d_t> *>
                 (_emcal_cell_position)->push_back(
                     point_2d_t(v.Eta(), v.Phi()));
@@ -949,8 +979,12 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     std::vector<fastjet::PseudoJet> particle_reco_its;
     std::vector<fastjet::PseudoJet> particle_reco_cluster;
 
-    std::fill(_branch_met_tpc, _branch_met_tpc + 2, 0);
-    std::fill(_branch_met_its, _branch_met_its + 2, 0);
+    std::fill(_branch_met_tpc,
+              _branch_met_tpc + sizeof(_branch_met_tpc) /
+              sizeof(*_branch_met_tpc), 0);
+    std::fill(_branch_met_its,
+              _branch_met_its + sizeof(_branch_met_its) /
+              sizeof(*_branch_met_its), 0);
 
     std::map<size_t, size_t> track_reco_index_tpc;
     std::vector<size_t> reco_stored_track_index_tpc;
@@ -960,10 +994,12 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     double met_tpc_kahan_error[2] = { 0, 0 };
     double met_its_kahan_error[2] = { 0, 0 };
 
+    AliTrackContainer *track = GetTrackContainer(0);
+
     _branch_ntrack = 0;
     if (esd_event != NULL) {
-        for (Int_t i = 0; i < esd_event->GetNumberOfTracks(); i++) {
-            AliESDtrack *t = esd_event->GetTrack(i);
+        for (Int_t i = 0; i < track->GetNEntries(); i++) {
+            AliVTrack *t = track->GetTrack(i);
 
             if (t == NULL) {
                 continue;
@@ -971,8 +1007,15 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
             // Apply PWG-JE cuts (track cuts 0 and 1)
 
-            if (_track_cut[0].AcceptTrack(t) ||
-                _track_cut[1].AcceptTrack(t)) {
+            if (
+#if 0
+                // Deactivated for AOD/embedding
+                _track_cut[0].AcceptTrack(t) ||
+                _track_cut[1].AcceptTrack(t)
+#else
+                true
+#endif
+                ) {
                 track_reco_index_tpc[i] = particle_reco_tpc.size();
                 reco_stored_track_index_tpc.push_back(_branch_ntrack);
                 particle_reco_tpc.push_back(fastjet::PseudoJet(
@@ -985,7 +1028,14 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
             // Apply ITS only cut (track cut 4)
 
-            if (_track_cut[4].AcceptTrack(t)) {
+            if (
+#if 0
+                // Deactivated for AOD/embedding
+                _track_cut[4].AcceptTrack(t)
+#else
+                false
+#endif
+                ) {
                 track_reco_index_its[i] = particle_reco_its.size();
                 reco_stored_track_index_its.push_back(_branch_ntrack);
                 particle_reco_its.push_back(fastjet::PseudoJet(
@@ -998,6 +1048,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
             // Store tracks passing PWG-JE *or* "2015 PbPb" cuts
 
+#if 0
+            // Deactivated for AOD/embedding
             bool store_track = false;
 
             for (std::vector<AliESDtrackCuts>::iterator iterator =
@@ -1008,6 +1060,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                     break;
                 }
             }
+#else
+            bool store_track = true;
+#endif
 
             if (store_track) {
                 _branch_track_e[_branch_ntrack] = half(t->E());
@@ -1040,10 +1095,13 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 // with clusterCut = 0 and 1.
 
                 _branch_track_quality[_branch_ntrack] = 0U;
+#if 0
+                // Deactivated for AOD/embedding
                 for (size_t j = 0; j < _track_cut.size(); j++) {
                     _branch_track_quality[_branch_ntrack] |=
                         _track_cut[j].AcceptTrack(t) ? 1U << j : 0;
                 }
+#endif
 
                 _branch_track_tpc_dedx[_branch_ntrack] =
                     half(t->GetTPCsignal());
@@ -1054,6 +1112,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
                 _branch_track_tpc_length_active_zone
                     [_branch_ntrack] = NAN;
+#if 0
+                // Deactivated for AOD/embedding
                 if (t->GetInnerParam() != NULL) {
                     _branch_track_tpc_length_active_zone
                         [_branch_ntrack] =
@@ -1061,6 +1121,10 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                              (mode_inner_wall, dead_zone_width_cm,
                               max_z_cm, event->GetMagneticField()));
                 }
+#else
+                    _branch_track_tpc_length_active_zone
+                        [_branch_ntrack] = NAN;
+#endif
                 _branch_track_tpc_xrow[_branch_ntrack] =
                     std::min(static_cast<Float_t>(UCHAR_MAX),
                              std::max(0.0F, t->GetTPCCrossedRows()));
@@ -1143,12 +1207,12 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     std::map<size_t, size_t> cluster_reco_index;
     std::vector<size_t> reco_stored_cluster_index;
     std::vector<bool>
-        cell_pass_basic_quality(calo_cluster.GetEntriesFast(),
+        cell_pass_basic_quality(calo_cluster->GetNEntries(),
                                 false);
 
-    for (Int_t i = 0; i < calo_cluster.GetEntriesFast(); i++) {
+    for (Int_t i = 0; i < calo_cluster->GetNEntries(); i++) {
         AliVCluster *c =
-            static_cast<AliVCluster *>(calo_cluster.At(i));
+            static_cast<AliVCluster *>(calo_cluster->GetCluster(i));
 
         Int_t cell_id_max = -1;
         Double_t cell_energy_max = -INFINITY;
@@ -1255,6 +1319,10 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     std::vector<fastjet::PseudoJet> particle_truth;
     std::vector<fastjet::PseudoJet> jet_truth_ak04;
     fastjet::ClusterSequenceArea *cluster_sequence_truth = NULL;
+    std::vector<fastjet::PseudoJet> particle_charged_truth;
+    std::vector<fastjet::PseudoJet> jet_charged_truth_ak04;
+    fastjet::ClusterSequenceArea *cluster_sequence_charged_truth =
+        NULL;
 
     _branch_nmc_truth = 0;
 
@@ -1270,7 +1338,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         PDG_CODE_PHOTON                     = 22,
     };
 
-    std::fill(_branch_met_truth, _branch_met_truth + 2, 0);
+    std::fill(_branch_met_truth,
+              _branch_met_truth + sizeof(_branch_met_truth) /
+              sizeof(*_branch_met_truth), 0);
 
     std::vector<fastjet::PseudoJet> particle_reco_tagged_ak04tpc =
         particle_reco_tpc;
@@ -1340,6 +1410,22 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                         particle_truth.back().
                             set_user_index(USER_INDEX_MUON);
                         break;
+                    }
+                    // Fill again for charged particle
+                    if (p->Charge() != 0) {
+                        particle_charged_truth.push_back(fastjet::PseudoJet(
+                            p->Px(), p->Py(), p->Pz(), p->P()));
+                        switch (abs_pdg_code) {
+                        case PDG_CODE_ELECTRON_MINUS:
+                        case PDG_CODE_PHOTON:
+                            particle_charged_truth.back().
+                                set_user_index(USER_INDEX_EM);
+                            break;
+                        case PDG_CODE_MUON_MINUS:
+                            particle_charged_truth.back().
+                                set_user_index(USER_INDEX_MUON);
+                            break;
+                        }
                     }
                     kahan_sum(_branch_met_truth[0],
                               met_truth_kahan_error[0], p->Px());
@@ -1418,6 +1504,15 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 fastjet::antikt_algorithm, jet_antikt_d_04)),
             fastjet::VoronoiAreaSpec());
         jet_truth_ak04 = cluster_sequence_truth->inclusive_jets(0);
+
+        cluster_sequence_charged_truth =
+            new fastjet::ClusterSequenceArea(
+                particle_charged_truth,
+                fastjet::JetDefinition(fastjet::JetDefinition(
+                    fastjet::antikt_algorithm, jet_antikt_d_04)),
+                fastjet::VoronoiAreaSpec());
+        jet_charged_truth_ak04 =
+            cluster_sequence_charged_truth->inclusive_jets(0);
     }
 
     // The reco jets will contain EMCAL clusters as ghosts. The idea
@@ -1427,9 +1522,9 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     // ATLAS global sequential (GS) correction (the tracking in ALICE
     // being the larger acceptance detector).
 
-    for (Int_t i = 0; i < calo_cluster.GetEntriesFast(); i++) {
+    for (Int_t i = 0; i < calo_cluster->GetNEntries(); i++) {
         AliVCluster *c =
-            static_cast<AliVCluster *>(calo_cluster.At(i));
+            static_cast<AliVCluster *>(calo_cluster->GetCluster(i));
 
         if (cell_pass_basic_quality[i]) {
             TLorentzVector p;
@@ -1448,18 +1543,30 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         }
     }
 
-    FILL_BRANCH_JET_TRUTH(ak04, jet_truth_ak04);
+    FILL_BRANCH_JET_TRUTH(truth, ak04, jet_truth_ak04);
     TAG_PARTICLE_RECO_JET_TRUTH(particle_reco_tagged_ak04tpc,
-                                jet_truth_ak04);
+                                jet_truth_ak04, 0);
+    TAG_PARTICLE_RECO_JET_TRUTH(particle_reco_tagged_ak04its,
+                                jet_truth_ak04, 0);
+
+    FILL_BRANCH_JET_TRUTH(charged_truth, ak04,
+                          jet_charged_truth_ak04);
+    TAG_PARTICLE_RECO_JET_TRUTH(particle_reco_tagged_ak04tpc,
+                                jet_charged_truth_ak04, 1);
+    TAG_PARTICLE_RECO_JET_TRUTH(particle_reco_tagged_ak04its,
+                                jet_charged_truth_ak04, 1);
+
+    // Insert partons as ghosts into the reco particles
     TAG_PARTICLE_RECO_PARTON(particle_reco_tagged_ak04tpc,
                              algorithmic, ALGORITHMIC);
-    TAG_PARTICLE_RECO_JET_TRUTH(particle_reco_tagged_ak04its,
-                                jet_truth_ak04);
     TAG_PARTICLE_RECO_PARTON(particle_reco_tagged_ak04its,
                              algorithmic, ALGORITHMIC);
 
     if (cluster_sequence_truth != NULL) {
         delete cluster_sequence_truth;
+    }
+    if (cluster_sequence_charged_truth != NULL) {
+        delete cluster_sequence_charged_truth;
     }
 
     for (size_t i = 0; i < particle_reco_tpc.size(); i++) {
@@ -1582,15 +1689,22 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     _branch_ue_estimate_cluster_const_se = ue_estimate_cluster.second;
 
     std::fill(_branch_cell_cluster_index,
-              _branch_cell_cluster_index + EMCAL_NCELL, USHRT_MAX);
+              _branch_cell_cluster_index +
+              sizeof(_branch_cell_cluster_index) /
+              sizeof(*_branch_cell_cluster_index), USHRT_MAX);
     _branch_ncluster = 0;
 
-    const Int_t ncalo_cluster = _nrandom_isolation > 0 ?
-        _nrandom_isolation : calo_cluster.GetEntriesFast();
+    // FIXME: Turn this into a switch
+    static const bool fill_cluster = true;
+
+    const Int_t ncalo_cluster =
+        fill_cluster && _nrandom_isolation > 0 ?
+        _nrandom_isolation : calo_cluster->GetNEntries();
     AliESDCaloCluster dummy_cluster;
 
     for (Int_t i = 0; i < ncalo_cluster; i++) {
 #if 0
+        // Random cone isolation, not used
         if (_nrandom_isolation > 0) {
             TLorentzVector p;
 
@@ -1604,7 +1718,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 #endif
 
         AliVCluster *c = _nrandom_isolation > 0 ? &dummy_cluster :
-            static_cast<AliVCluster *>(calo_cluster.At(i));
+            static_cast<AliVCluster *>(calo_cluster->GetCluster(i));
         TLorentzVector p;
 
         c->GetMomentum(p, _branch_primary_vertex);
@@ -1736,7 +1850,7 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             cluster_nmctruth_index++;
         }
 
-        if (esd_event != NULL) {
+        if (track != NULL) {
             double cluster_iso_tpc_01 = 0;
             double cluster_iso_tpc_02 = 0;
             double cluster_iso_tpc_03 = 0;
@@ -1771,8 +1885,8 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
             std::vector<std::pair<double, double> >
                 delta_vs_iso_its_with_ue;
 
-            for (Int_t j = 0; j < esd_event->GetNumberOfTracks(); j++) {
-                AliESDtrack *t = esd_event->GetTrack(j);
+            for (Int_t j = 0; j < track->GetNEntries(); j++) {
+                AliVTrack *t = track->GetTrack(j);
 
                 if (t == NULL) {
                     continue;
@@ -1780,8 +1894,14 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
 
                 // Apply PWG-JE cuts (track cuts 0 and 1)
 
-                if (_track_cut[0].AcceptTrack(t) ||
-                    _track_cut[1].AcceptTrack(t)) {
+                if (
+#if 0
+                    _track_cut[0].AcceptTrack(t) ||
+                    _track_cut[1].AcceptTrack(t)
+#else
+                    true
+#endif
+                    ) {
                     const double dpseudorapidity = t->Eta() - p.Eta();
                     const double dazimuth = angular_range_reduce(
                         angular_range_reduce(t->Phi()) -
@@ -1828,7 +1948,13 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                                 sqrt(dr_2), track_pt_minus_ue + ue));
                     }
                 }
-                if (_track_cut[4].AcceptTrack(t)) {
+                if (
+#if 0
+                    _track_cut[4].AcceptTrack(t)
+#else
+                    false
+#endif
+                    ) {
                     const double dpseudorapidity = t->Eta() - p.Eta();
                     const double dazimuth = angular_range_reduce(
                         angular_range_reduce(t->Phi()) -
@@ -1877,13 +2003,13 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
                 }
             }
 
-            for (Int_t j = 0; j < calo_cluster.GetEntriesFast(); j++) {
+            for (Int_t j = 0; j < calo_cluster->GetNEntries(); j++) {
                 if (!cell_pass_basic_quality[j]) {
                     continue;
                 }
 
                 AliVCluster *c =
-                    static_cast<AliVCluster *>(calo_cluster.At(i));
+                    static_cast<AliVCluster *>(calo_cluster->GetCluster(i));
                 TLorentzVector p1;
 
                 c->GetMomentum(p1, _branch_primary_vertex);
@@ -2218,19 +2344,17 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
         }
     }
 
-    calo_cluster.Delete();
-
     FILL_BRANCH_JET(ak04tpc, jet_reco_ak04tpc,
                     cluster_sequence_reco_ak04tpc,
                     jet_reco_tagged_ak04tpc,
                     cluster_sequence_reco_tagged_ak04tpc,
-                    ak04, jet_truth_ak04,
+                    ak04, jet_truth_ak04, jet_charged_truth_ak04,
                     particle_reco_area_tpc, ue_estimate_tpc);
     FILL_BRANCH_JET(ak04its, jet_reco_ak04its,
                     cluster_sequence_reco_ak04its,
                     jet_reco_tagged_ak04its,
                     cluster_sequence_reco_tagged_ak04its,
-                    ak04, jet_truth_ak04,
+                    ak04, jet_truth_ak04, jet_charged_truth_ak04,
                     particle_reco_area_its, ue_estimate_its);
 
     if (_skim_jet_min_pt[0] > -INFINITY) {
@@ -2288,13 +2412,19 @@ void AliAnalysisTaskNTGJ::UserExec(Option_t *option)
     }
 
 #ifdef WITH_EFP7
-#include <fill_efp7.cc>
+#include "fill_efp7.h"
 #endif // WITH_EFP7
 
-    std::fill(_branch_cell_e, _branch_cell_e + EMCAL_NCELL, NAN);
-    std::fill(_branch_cell_tof, _branch_cell_tof + EMCAL_NCELL, NAN);
+    std::fill(_branch_cell_e,
+              _branch_cell_e + sizeof(_branch_cell_e) /
+              sizeof(*_branch_cell_e), NAN);
+    std::fill(_branch_cell_tof,
+              _branch_cell_tof + sizeof(_branch_cell_tof) /
+              sizeof(*_branch_cell_tof), NAN);
     std::fill(_branch_cell_mc_truth_index,
-              _branch_cell_mc_truth_index + EMCAL_NCELL, USHRT_MAX);
+              _branch_cell_mc_truth_index +
+              sizeof(_branch_cell_mc_truth_index) /
+              sizeof(*_branch_cell_mc_truth_index), USHRT_MAX);
     for (Short_t i = 0; i < emcal_cell->GetNumberOfCells(); i++) {
         Short_t cell_number = -1;
         Double_t cell_energy = NAN;

@@ -1,6 +1,9 @@
 #include <TFile.h>
 #include <TTree.h>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmisleading-indentation"
 #include <TLorentzVector.h>
+#pragma GCC diagnostic pop
 
 #include <TROOT.h>
 #include <TApplication.h>

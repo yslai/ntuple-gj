@@ -1,3 +1,11 @@
+#ifdef __CLING__
+R__ADD_INCLUDE_PATH($ALICE_PHYSICS)
+#include <OADB/COMMON/MULTIPLICITY/macros/AddTaskMultSelection.C>
+#include <PWG/EMCAL/macros/AddTaskEmcalCorrectionTask.C>
+#include <PWGPP/EMCAL/macros/ConfigureEMCALRecoUtils.C>
+#include <OADB/macros/AddTaskPhysicsSelection.C>
+#endif // __CLING__
+
 AliAnalysisTaskNTGJ *
 AddAliAnalysisTaskNTGJ(TString name,
                        TString emcal_correction_filename,
@@ -33,16 +41,20 @@ AddAliAnalysisTaskNTGJ(TString name,
             __LINE__, skim_cluster_min_e);
 
     if (mult_selection) {
+#ifndef __CLING__
         gROOT->LoadMacro("$ALICE_PHYSICS/OADB/COMMON/MULTIPLICITY/"
                          "macros/AddTaskMultSelection.C");
+#endif // __CLING__
 
         AliMultSelectionTask *mult_selection_task =
             AddTaskMultSelection(kFALSE);
     }
 
     if (emcal_correction_filename != "") {
+#ifndef __CLING__
         gROOT->LoadMacro("$ALICE_PHYSICS/PWG/EMCAL/macros/"
                          "AddTaskEmcalCorrectionTask.C");
+#endif // __CLING__
 
         AliEmcalCorrectionTask *correction_task =
             AddTaskEmcalCorrectionTask();
@@ -76,8 +88,10 @@ AddAliAnalysisTaskNTGJ(TString name,
 
     AliEMCALRecoUtils *reco_util = task->GetEMCALRecoUtils();
   
+#ifndef __CLING__
     gROOT->LoadMacro("$ALICE_PHYSICS/PWGPP/EMCAL/macros/"
                      "ConfigureEMCALRecoUtils.C");
+#endif // __CLING__
   
     ConfigureEMCALRecoUtils(reco_util, kFALSE, kTRUE, kTRUE,
                             kFALSE, kFALSE, kFALSE); 
@@ -87,8 +101,10 @@ AddAliAnalysisTaskNTGJ(TString name,
     reco_util->SwitchOnRunDepCorrection();
 
     if (physics_selection) {
+#ifndef __CLING__
         gROOT->LoadMacro("$ALICE_PHYSICS/OADB/macros/"
                          "AddTaskPhysicsSelection.C");
+#endif // __CLING__
 
         AliPhysicsSelectionTask* physics_selection_task =
             AddTaskPhysicsSelection(physics_selection_mc_analysis,
@@ -108,7 +124,8 @@ AddAliAnalysisTaskNTGJ(TString name,
                                             kOutputContainer,
                                             filename.Data()));
 
-    AliAnalysisAlien *plugin = mgr->GetGridHandler();
+    AliAnalysisAlien *plugin =
+        static_cast<AliAnalysisAlien *>(mgr->GetGridHandler());
 
     if (plugin != NULL) {
         task->SetAliROOTVersion(plugin->GetAliROOTVersion());

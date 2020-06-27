@@ -81,16 +81,6 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     if (package_list.GetSize() == 0) {
         package_list.Add((TObject *)(new TObjString(
             "fastjet::v3.2.1_1.024-alice1-4")));
-        // Compiling against CGAL requires explicit include paths to
-        // Boost, MPFR, and GMP
-        package_list.Add((TObject *)(new TObjString(
-            "cgal::v4.6.3-18")));
-        package_list.Add((TObject *)(new TObjString(
-            "boost::v1.59.0-14")));
-        package_list.Add((TObject *)(new TObjString(
-            "MPFR::v3.1.3-4")));
-        package_list.Add((TObject *)(new TObjString(
-            "GMP::v6.0.0-2")));
         // The grid ROOT packages tend to lack a GCC 4.9.x =
         // CXXABI_1.3.8 dependency (see also
         // https://gcc.gnu.org/onlinedocs/libstdc++/manual/abi.html),
@@ -139,19 +129,6 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     gSystem->Load("libEMCALUtils");
     gSystem->Load("libPWGPPEMCAL");
 
-#if 0
-    if (gSystem->AccessPathName("libgmp.so") &&
-        !gSystem->AccessPathName("/usr/lib64/libgmp.so")) {
-        gSystem->Symlink("/usr/lib64/libgmp.so", "libgmp.so");
-    }
-    gSystem->Load("libgmp");
-    if (gSystem->AccessPathName("libmpfr.so") &&
-        !gSystem->AccessPathName("/usr/lib64/libmpfr.so")) {
-        gSystem->Symlink("/usr/lib64/libmpfr.so", "libmpfr.so");
-    }
-#endif
-    gSystem->Load("libmpfr");
-    gSystem->Load("libCGAL");
     gSystem->Load("libfastjet");
     gSystem->Load("libsiscone");
     gSystem->Load("libsiscone_spherical");
@@ -393,7 +370,7 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
     }
     if (!gSystem->AccessPathName("efp7.cc")) {
         efp7_filename =
-            "blasdrv.h efp7.cc einstein_sum.h fill_efp7.cc";
+            "blasdrv.h efp7.cc einstein_sum.h fill_efp7.h";
     }
     if (strchr(emcal_geometry_filename.Data(), '/') == NULL) {
         oadb_filename += emcal_geometry_filename;
@@ -411,15 +388,13 @@ void runNTGJ(const char *config_filename = "config/lhc16c2_1run.yaml",
         "bad_channel.h "
         "eLut.cpp eLut.h half.cpp halfExport.h halfFunction.h "
         "half.h halfLimits.h toFloat.h "
+        "cgal_4_9.h "
         "keras_model.h keras_model.cc "
         "photon_discr.model "
         // Not sure if this helps against the missing pyqpar_ when
         // dlopen() "libAliPythia6.so"
         "libpythia6.so libAliPythia6.so "
-#if 1
-        "libgmp.so libmpfr.so libboost_thread.so "
-#endif
-        "libCGAL.so libfastjet.so libsiscone.so "
+        "libfastjet.so libsiscone.so "
         "libsiscone_spherical.so libfastjetplugins.so "
         "libfastjetcontribfragile.so " +
         mkl_filename + " " + efp7_filename + " " +

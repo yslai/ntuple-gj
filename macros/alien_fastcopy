@@ -40,7 +40,7 @@ copy() {
 	case "$f" in
 	    *analysis.jdl)
 		;;
-	    *.root)
+	    *.root|*/[0-9]*[0-9].[0-9]*/*)
 		o=$(echo "$f" | /bin/sed "s|.*$(echo "${1}" | \
 sed "s|/\\+\$||")/\\+|$(echo "${2}" | sed "s|/\\+\$||")/|")
 		if [[ -f "$o" ]]; then
@@ -52,8 +52,8 @@ sed "s|/\\+\$||")/\\+|$(echo "${2}" | sed "s|/\\+\$||")/|")
 		wait_process "$3"
 		echo "+ alien_cp \
 \"alien://${f}\" \"$o\" (nproc = $nproc)" 1>&2
-		#[[ -d "$o" ]] || /bin/mkdir -p "$o"
-		#alien_cp "alien://${f}" "$o" &
+		[[ -d "$o" ]] || /bin/mkdir -p "$o"
+		alien_cp "alien://${f}" "$o" &
 		count_process
 		;;
 	    $1*/)
